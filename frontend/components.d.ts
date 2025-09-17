@@ -11,7 +11,10 @@ declare module 'vue' {
     AppHeader: typeof import('./src/components/AppHeader.vue')['default']
     ChatLayout: typeof import('./src/components/ChatLayout.vue')['default']
     ChatMessage: typeof import('./src/components/ChatMessage.vue')['default']
+    FallbackRenderer: typeof import('./src/components/renderers/FallbackRenderer.vue')['default']
     MessageInput: typeof import('./src/components/MessageInput.vue')['default']
     MessageList: typeof import('./src/components/MessageList.vue')['default']
+    SystemRenderer: typeof import('./src/components/renderers/SystemRenderer.vue')['default']
+    TextRenderer: typeof import('./src/components/renderers/TextRenderer.vue')['default']
   }
 }

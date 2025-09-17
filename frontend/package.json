@@ -12,8 +12,12 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^1.0.117",
+    "@anthropic-ai/sdk": "^0.62.0",
     "@primeuix/themes": "^1.2.3",
     "@tailwindcss/vite": "^4.1.13",
+    "github-markdown-css": "^5.8.1",
+    "marked": "^16.3.0",
+    "mermaid": "^11.11.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.3.9",
     "tailwindcss": "^4.1.13",
