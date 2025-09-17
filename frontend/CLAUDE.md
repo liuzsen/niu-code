@@ -19,3 +19,8 @@
 
 - Use Vue 3 Composition API with `<script lang='ts' setup>`
 - Extract reusable logic into composables
+
+## Workflow
+
+- After completing code editing tasks, you must run `pnpm run check` to ensure code quality.
+- Claude should **NEVER** test code functionality or start the development server.

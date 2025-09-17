@@ -2,6 +2,7 @@ import { ref, reactive } from 'vue'
 import type { ClientMessage, ServerMessage } from '../types/index'
 import type { ChatMessage } from '../types/chat'
 import { createUserMessage, createAgentMessage } from '../types/chat'
+import { loadMockData } from './mock-loader'
 
 interface WebSocketState {
   connected: boolean
@@ -30,6 +31,9 @@ export class WebSocketService {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
+      this.messages.value = loadMockData()
+      this.state.connected = true;
+
       if (this.state.connected || this.state.connecting) {
         resolve()
         return

@@ -95,4 +95,3 @@ frontend/src/
 - **Backend**: @anthropic-ai/claude-code, express, ws, cors, dotenv
 - **Frontend**: vue@3.5.18, vite, vue-tsc
 - **Development**: TypeScript, ESLint, nodemon, tsx
-
