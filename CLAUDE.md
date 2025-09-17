@@ -88,7 +88,7 @@ frontend/src/
 1. **Backend development**: Focus on Claude SDK integration and WebSocket message handling
 2. **Frontend development**: Build chat interface and tool permission components
 3. **Integration testing**: Test WebSocket communication and Claude interactions by human
-4. **Check code quality**: Always run `pnpm run check` before commits
+4. **Check code quality**: Always run `pnpm run check` after requirement finished
 
 ## Key Dependencies
 

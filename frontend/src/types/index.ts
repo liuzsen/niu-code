@@ -2,10 +2,10 @@
 export * from './claude';
 
 // Export WebSocket message types
-export * from './websocket';
+export * from './websocket.ts';
 
 // Export session management types
-export * from './session';
+export * from './session.ts';
 
 // Tool permission types (updated to remove 'any')
 export interface ToolPermissionRequest {

@@ -1,6 +1,7 @@
 import { ref, reactive } from 'vue'
-import type { ClientMessage, ServerMessage } from '../../../backend/src/types/index'
-import type { Message } from '../types/message'
+import type { ClientMessage, ServerMessage } from '../types/index'
+import type { ChatMessage } from '../types/chat'
+import { createUserMessage, createAgentMessage } from '../types/chat'
 
 interface WebSocketState {
   connected: boolean
@@ -21,7 +22,7 @@ export class WebSocketService {
     error: null
   })
 
-  public messages = ref<Message[]>([])
+  public messages = ref<ChatMessage[]>([])
 
   constructor(url: string) {
     this.url = url
@@ -102,11 +103,7 @@ export class WebSocketService {
   }
 
   sendUserInput(content: string): void {
-    this.messages.value.push({
-      role: 'user',
-      content,
-      timestamp: Date.now()
-    })
+    this.messages.value.push(createUserMessage(content))
 
     const message: ClientMessage = {
       type: 'user_input',
@@ -119,7 +116,7 @@ export class WebSocketService {
   startSession(): void {
     const message: ClientMessage = {
       type: 'start_session',
-      data: { timestamp: new Date().toISOString() }
+      data: {}
     }
 
     this.sendMessage(message)
@@ -130,27 +127,15 @@ export class WebSocketService {
 
     switch (message.type) {
       case 'claude_message':
-        this.messages.value.push({
-          role: 'assistant',
-          content: message.data.content,
-          timestamp: Date.now()
-        })
+        this.messages.value.push(createAgentMessage(message))
         break
 
       case 'session_started':
-        this.messages.value.push({
-          role: 'assistant',
-          content: `Session started: ${message.data.message}`,
-          timestamp: Date.now()
-        })
+        this.messages.value.push(createAgentMessage(message))
         break
 
       case 'error':
-        this.messages.value.push({
-          role: 'assistant',
-          content: `Error: ${message.data.message}`,
-          timestamp: Date.now()
-        })
+        this.messages.value.push(createAgentMessage(message))
         this.state.error = message.data.message
         break
 
