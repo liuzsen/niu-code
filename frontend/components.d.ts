@@ -17,6 +17,7 @@ declare module 'vue' {
     FallbackRenderer: typeof import('./src/components/renderers/FallbackRenderer.vue')['default']
     MessageInput: typeof import('./src/components/MessageInput.vue')['default']
     MessageList: typeof import('./src/components/MessageList.vue')['default']
+    ResultRenderer: typeof import('./src/components/renderers/ResultRenderer.vue')['default']
     SystemRenderer: typeof import('./src/components/renderers/SystemRenderer.vue')['default']
     TextRenderer: typeof import('./src/components/renderers/TextRenderer.vue')['default']
     TodoWriteRenderer: typeof import('./src/components/renderers/TodoWriteRenderer.vue')['default']

@@ -1,5 +1,5 @@
 import type { ProjectClaudeMessage } from '../types/claude'
-import type { SDKAssistantMessage, SDKMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
+import type { SDKAssistantMessage, SDKMessage, SDKResultMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
 import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
 
 // Bash 数据类型
@@ -170,6 +170,14 @@ export function extract_write(message: ProjectClaudeMessage): WriteData | null {
       content: input.content,
       id: content.id
     }
+  }
+
+  return null
+}
+
+export function extract_result(message: ProjectClaudeMessage): SDKResultMessage | null {
+  if (message.sdkMessage.type == "result") {
+    return message.sdkMessage
   }
 
   return null
