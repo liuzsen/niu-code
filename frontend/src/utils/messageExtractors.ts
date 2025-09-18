@@ -19,6 +19,13 @@ export interface TodoWriteData {
   id: string
 }
 
+// Write 数据类型
+export interface WriteData {
+  file_path: string
+  content: string
+  id: string
+}
+
 // 导出原有的数据提取函数
 function is_assistant_msg(m: SDKMessage): m is SDKAssistantMessage {
   return m.type == "assistant"
@@ -120,12 +127,47 @@ export function extract_todo_write(message: ProjectClaudeMessage): TodoWriteData
   if (
     'todos' in input &&
     Array.isArray(input.todos) &&
-    input.todos.every((_: { content: string; activeForm: string; status: string }) =>
-      true
+    input.todos.every((todo: { content: string; activeForm: string; status: string }) =>
+      todo.content && todo.activeForm && todo.status
     )
   ) {
     return {
       todos: input.todos,
+      id: content.id
+    }
+  }
+
+  return null
+}
+
+export function extract_write(message: ProjectClaudeMessage): WriteData | null {
+  const sdkMessage = message.sdkMessage
+
+  if (!is_assistant_msg(sdkMessage)) return null
+
+  const content = sdkMessage.message.content[0]
+  if (content.type != 'tool_use') {
+    return null
+  }
+
+  if (content.name != 'Write') {
+    return null
+  }
+
+  const input = content.input;
+  if (!input || typeof input != "object") {
+    return null
+  }
+
+  if (
+    'file_path' in input &&
+    'content' in input &&
+    typeof input.file_path === 'string' &&
+    typeof input.content === 'string'
+  ) {
+    return {
+      file_path: input.file_path,
+      content: input.content,
       id: content.id
     }
   }

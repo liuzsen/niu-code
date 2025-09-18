@@ -45,8 +45,9 @@ import SystemRenderer from './renderers/SystemRenderer.vue'
 import TextRenderer from './renderers/TextRenderer.vue'
 import BashRenderer from './renderers/BashRenderer.vue'
 import TodoWriteRenderer from './renderers/TodoWriteRenderer.vue'
+import WriteRenderer from './renderers/WriteRenderer.vue'
 import FallbackRenderer from './renderers/FallbackRenderer.vue'
-import { extract_system_init, extract_assistant_text, extract_bash, extract_todo_write } from '../utils/messageExtractors'
+import { extract_system_init, extract_assistant_text, extract_bash, extract_todo_write, extract_write } from '../utils/messageExtractors'
 
 interface Props {
   message: ChatMessage
@@ -89,6 +90,10 @@ const rendererConfigs: Array<RendererConfig<unknown>> = [
   {
     component: TodoWriteRenderer,
     extractor: extract_todo_write
+  },
+  {
+    component: WriteRenderer,
+    extractor: extract_write
   }
 ]
 

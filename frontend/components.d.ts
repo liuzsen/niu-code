@@ -10,13 +10,16 @@ declare module 'vue' {
   export interface GlobalComponents {
     AppHeader: typeof import('./src/components/AppHeader.vue')['default']
     BashRenderer: typeof import('./src/components/renderers/BashRenderer.vue')['default']
+    Button: typeof import('primevue/button')['default']
     ChatLayout: typeof import('./src/components/ChatLayout.vue')['default']
     ChatMessage: typeof import('./src/components/ChatMessage.vue')['default']
+    Dialog: typeof import('primevue/dialog')['default']
     FallbackRenderer: typeof import('./src/components/renderers/FallbackRenderer.vue')['default']
     MessageInput: typeof import('./src/components/MessageInput.vue')['default']
     MessageList: typeof import('./src/components/MessageList.vue')['default']
     SystemRenderer: typeof import('./src/components/renderers/SystemRenderer.vue')['default']
     TextRenderer: typeof import('./src/components/renderers/TextRenderer.vue')['default']
     TodoWriteRenderer: typeof import('./src/components/renderers/TodoWriteRenderer.vue')['default']
+    WriteRenderer: typeof import('./src/components/renderers/WriteRenderer.vue')['default']
   }
 }
