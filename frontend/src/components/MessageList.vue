@@ -14,7 +14,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch, type Component, computed } from 'vue'
 import ChatMessage from './ChatMessage.vue'
-import { useRenderableMessagesStore } from '../stores/renderableMessages'
+import { useChatStore } from '../stores/chat'
 import type { ProjectClaudeMessage } from '../types/claude'
 import { isAgentMessage } from '../types/chat'
 
@@ -23,11 +23,11 @@ import SystemRenderer from './renderers/SystemRenderer.vue'
 import TextRenderer from './renderers/TextRenderer.vue'
 import BashRenderer from './renderers/BashRenderer.vue'
 import FallbackRenderer from './renderers/FallbackRenderer.vue'
-import { extract_system_init, extract_assistant_text, extract_bash } from '../composables/useMessageProcessing'
+import { extract_system_init, extract_assistant_text, extract_bash } from '../utils/messageExtractors'
 
-// 使用可渲染消息 store
-const renderableStore = useRenderableMessagesStore()
-const displayMessages = computed(() => renderableStore.messages)
+// 使用统一的聊天 store
+const chatStore = useChatStore()
+const displayMessages = computed(() => chatStore.standaloneMessages)
 
 // 渲染器结果类型
 interface RendererResult {

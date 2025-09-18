@@ -55,8 +55,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { ProjectClaudeMessage } from '../../types/claude'
-import type { BashData } from '../../composables/useMessageProcessing'
-import { useToolCacheStore } from '../../stores/toolCache'
+import type { BashData } from '../../utils/messageExtractors'
+import { useChatStore } from '../../stores/chat'
 import Card from 'primevue/card'
 import ProgressSpinner from 'primevue/progressspinner'
 
@@ -66,11 +66,11 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const toolCache = useToolCacheStore()
+const chatStore = useChatStore()
 
 // 获取命令执行结果
 const commandResult = computed(() => {
-    return toolCache.getResult(props.data.id)
+    return chatStore.getToolResult(props.data.id)
 })
 
 type CommandState = "running" | "error" | "ok"
@@ -97,5 +97,6 @@ const resultText = computed(() => {
             return `unkonwn command result: ${commandResult.value.content}`
         }
     }
+    return undefined
 })
 </script>

@@ -1,7 +1,8 @@
 import { reactive } from 'vue'
 import type { ClientMessage, ServerMessage } from '../types/index'
 import { loadMockData } from './mock-loader'
-import { createAgentMessage, createUserMessage, type ChatMessage } from '../types/chat'
+import { createAgentMessage, createUserMessage } from '../types/chat'
+import { useChatStore } from '../stores/chat'
 
 interface WebSocketState {
   connected: boolean
@@ -15,9 +16,7 @@ export class WebSocketService {
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000
-
-  // 事件监听器
-  private messageListeners: Array<(message: ChatMessage) => void> = []
+  private chatStore: ReturnType<typeof useChatStore> | null = null
 
   public state = reactive<WebSocketState>({
     connected: false,
@@ -29,15 +28,20 @@ export class WebSocketService {
     this.url = url
   }
 
-  onMessage(handler: (message: ChatMessage) => void): void {
-    this.messageListeners.push(handler)
+  // 延迟获取 store，确保 Pinia 已经初始化
+  private getChatStore() {
+    if (!this.chatStore) {
+      this.chatStore = useChatStore()
+    }
+    return this.chatStore
   }
 
   private useMock() {
     this.state.connected = true;
     const messages = loadMockData();
+    const store = this.getChatStore()
     for (const message of messages) {
-      this.emitMessageEvent(message)
+      store.processMessage(message)
     }
   }
 
@@ -124,23 +128,12 @@ export class WebSocketService {
     }
 
     this.sendMessage(message);
-    this.emitMessageEvent(createUserMessage(content));
-  }
-
-  private emitMessageEvent(message: ChatMessage) {
-    this.messageListeners.forEach(listener => {
-      try {
-        listener(message)
-      } catch (error) {
-        console.error('Error in message listener:', error)
-      }
-    })
-
+    this.getChatStore().processMessage(createUserMessage(content));
   }
 
   private handleServerMessage(message: ServerMessage) {
     console.log('Received server message:', message)
-    this.emitMessageEvent(createAgentMessage(message))
+    this.getChatStore().processMessage(createAgentMessage(message))
   }
 
   private attemptReconnect(): void {
