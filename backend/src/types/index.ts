@@ -2,7 +2,7 @@
 export * from './claude';
 
 // Export WebSocket message types
-export * from './websocket';
+export * from './ws-message';
 
 // Export session management types
 export * from './session';

@@ -11,6 +11,10 @@ import { onUnmounted } from 'vue'
 import AppHeader from './components/AppHeader.vue'
 import ChatLayout from './components/ChatLayout.vue'
 import { wsService } from './services/websocket'
+import { useMessageProcessing } from './composables/useMessageProcessing'
+
+// 初始化消息处理系统（只负责分类，不返回数据）
+useMessageProcessing()
 
 onUnmounted(() => {
   wsService.disconnect()

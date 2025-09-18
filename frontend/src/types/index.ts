@@ -2,7 +2,7 @@
 export * from './claude';
 
 // Export WebSocket message types
-export * from './websocket.ts';
+export * from './ws-message.ts';
 
 // Export session management types
 export * from './session.ts';

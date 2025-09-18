@@ -1,5 +1,5 @@
-import type { ProjectClaudeMessage } from './claude';
-import type { ToolPermissionRequest, ToolPermissionResponse } from './index';
+import { ProjectClaudeMessage } from './claude';
+import { ToolPermissionRequest, ToolPermissionResponse } from './index';
 
 // Client message types
 
@@ -31,16 +31,10 @@ export interface ToolPermissionResponseMessage {
   data: ToolPermissionResponseData;
 }
 
-export interface StartSessionMessage {
-  type: 'start_session';
-  data: StartSessionData;
-}
-
 // Union type for all client messages
 export type ClientMessage =
   | UserInputMessage
   | ToolPermissionResponseMessage
-  | StartSessionMessage;
 
 // Server message types
 
@@ -78,17 +72,11 @@ export interface ErrorMessageWrapper {
   data: ErrorData;
 }
 
-export interface SessionStartedWrapper {
-  type: 'session_started';
-  data: SessionStartedData;
-}
-
 // Union type for all server messages
 export type ServerMessage =
   | ClaudeMessageWrapper
   | ToolPermissionRequestWrapper
   | ErrorMessageWrapper
-  | SessionStartedWrapper;
 
 // Type guard functions for client messages
 export function isUserInputMessage(message: ClientMessage): message is UserInputMessage {
@@ -97,10 +85,6 @@ export function isUserInputMessage(message: ClientMessage): message is UserInput
 
 export function isToolPermissionResponseMessage(message: ClientMessage): message is ToolPermissionResponseMessage {
   return message.type === 'tool_permission_response';
-}
-
-export function isStartSessionMessage(message: ClientMessage): message is StartSessionMessage {
-  return message.type === 'start_session';
 }
 
 // Type guard functions for server messages
@@ -114,10 +98,6 @@ export function isToolPermissionRequestWrapper(message: ServerMessage): message 
 
 export function isErrorMessageWrapper(message: ServerMessage): message is ErrorMessageWrapper {
   return message.type === 'error';
-}
-
-export function isSessionStartedWrapper(message: ServerMessage): message is SessionStartedWrapper {
-  return message.type === 'session_started';
 }
 
 // Helper functions for creating messages
@@ -136,13 +116,6 @@ export function createToolPermissionResponseMessage(
   return {
     type: 'tool_permission_response',
     data: { ...response, sessionId, toolRequestId }
-  };
-}
-
-export function createStartSessionMessage(sessionId?: string, config?: StartSessionData['config']): StartSessionMessage {
-  return {
-    type: 'start_session',
-    data: { sessionId, config }
   };
 }
 
@@ -183,17 +156,6 @@ export function createErrorMessageWrapper(
       code,
       details,
       sessionId
-    }
-  };
-}
-
-export function createSessionStartedWrapper(sessionId: string, message: string): SessionStartedWrapper {
-  return {
-    type: 'session_started',
-    data: {
-      sessionId,
-      message,
-      timestamp: new Date().toISOString()
     }
   };
 }

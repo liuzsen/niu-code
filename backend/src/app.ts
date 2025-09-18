@@ -7,8 +7,6 @@ import { WebSocket } from 'ws';
 import {
   ClientMessage,
   UserInputMessage,
-  StartSessionMessage,
-  createSessionStartedWrapper,
   createErrorMessageWrapper
 } from './types/index.js';
 import { ClaudeService } from './services/claude.js';
@@ -50,9 +48,6 @@ wss.on('connection', (ws) => {
       switch (message.type) {
         case 'user_input':
           await handleUserInput(ws, message as UserInputMessage);
-          break;
-        case 'start_session':
-          await handleStartSession(ws, message as StartSessionMessage);
           break;
         default: {
           console.log('Unknown message type:', message.type);
@@ -107,35 +102,6 @@ async function handleUserInput(ws: WebSocket, message: UserInputMessage) {
       errorMessage,
       message.data.sessionId,
       'PROCESSING_ERROR'
-    );
-    ws.send(JSON.stringify(errorResponse));
-  }
-}
-
-async function handleStartSession(ws: WebSocket, message: StartSessionMessage) {
-  try {
-    const { sessionId } = message.data;
-
-    console.log('Starting new session:', sessionId || 'new session');
-
-    // Create a new session through Claude service
-    const newSessionId = sessionId || undefined;
-
-    // Send session started response
-    const response = createSessionStartedWrapper(
-      newSessionId || claudeService.getSessionStats().totalSessions.toString(),
-      'Session started successfully'
-    );
-
-    ws.send(JSON.stringify(response));
-
-  } catch (error) {
-    console.error('Error starting session:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorResponse = createErrorMessageWrapper(
-      errorMessage,
-      message.data.sessionId,
-      'SESSION_START_ERROR'
     );
     ws.send(JSON.stringify(errorResponse));
   }

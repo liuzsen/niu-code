@@ -1,4 +1,4 @@
-import type { ServerMessage } from './websocket'
+import type { ServerMessage } from './ws-message'
 
 export type MessageFrom = 'user' | 'agent'
 

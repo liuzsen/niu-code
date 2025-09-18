@@ -1,6 +1,6 @@
 import { query, SDKUserMessage, PermissionMode } from '@anthropic-ai/claude-code';
 import { ProjectClaudeMessage, createProjectClaudeMessage } from '../types/claude.js';
-import { ServerMessage, createClaudeMessageWrapper } from '../types/websocket.js';
+import { ServerMessage, createClaudeMessageWrapper } from '../types/ws-message.js';
 import { Session, SessionInfo, SessionConfig, createSessionInfo, createSessionMessage, generateSessionId } from '../types/session.js';
 
 export interface ClaudeServiceOptions {

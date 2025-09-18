@@ -1,5 +1,5 @@
-import { ProjectClaudeMessage } from './claude';
-import { ToolPermissionRequest, ToolPermissionResponse } from './index';
+import type { ProjectClaudeMessage } from './claude';
+import type { ToolPermissionRequest, ToolPermissionResponse } from './index';
 
 // Client message types
 
@@ -31,16 +31,10 @@ export interface ToolPermissionResponseMessage {
   data: ToolPermissionResponseData;
 }
 
-export interface StartSessionMessage {
-  type: 'start_session';
-  data: StartSessionData;
-}
-
 // Union type for all client messages
 export type ClientMessage =
   | UserInputMessage
   | ToolPermissionResponseMessage
-  | StartSessionMessage;
 
 // Server message types
 
@@ -99,10 +93,6 @@ export function isToolPermissionResponseMessage(message: ClientMessage): message
   return message.type === 'tool_permission_response';
 }
 
-export function isStartSessionMessage(message: ClientMessage): message is StartSessionMessage {
-  return message.type === 'start_session';
-}
-
 // Type guard functions for server messages
 export function isClaudeMessageWrapper(message: ServerMessage): message is ClaudeMessageWrapper {
   return message.type === 'claude_message';
@@ -136,13 +126,6 @@ export function createToolPermissionResponseMessage(
   return {
     type: 'tool_permission_response',
     data: { ...response, sessionId, toolRequestId }
-  };
-}
-
-export function createStartSessionMessage(sessionId?: string, config?: StartSessionData['config']): StartSessionMessage {
-  return {
-    type: 'start_session',
-    data: { sessionId, config }
   };
 }
 

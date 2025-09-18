@@ -1,6 +1,6 @@
 import type { ChatMessage } from '../types/chat'
 import type { ProjectClaudeMessage } from '../types/claude'
-import { createClaudeMessageWrapper } from '../types/websocket'
+import { createClaudeMessageWrapper } from '../types/ws-message'
 import mockData from '../assets/opcode_expanded.json'
 
 /**

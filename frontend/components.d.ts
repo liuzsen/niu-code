@@ -9,6 +9,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppHeader: typeof import('./src/components/AppHeader.vue')['default']
+    BashRenderer: typeof import('./src/components/renderers/BashRenderer.vue')['default']
     ChatLayout: typeof import('./src/components/ChatLayout.vue')['default']
     ChatMessage: typeof import('./src/components/ChatMessage.vue')['default']
     FallbackRenderer: typeof import('./src/components/renderers/FallbackRenderer.vue')['default']

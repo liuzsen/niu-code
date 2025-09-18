@@ -1,8 +1,7 @@
-import { ref, reactive } from 'vue'
+import { reactive } from 'vue'
 import type { ClientMessage, ServerMessage } from '../types/index'
-import type { ChatMessage } from '../types/chat'
-import { createUserMessage, createAgentMessage } from '../types/chat'
 import { loadMockData } from './mock-loader'
+import { createAgentMessage, createUserMessage, type ChatMessage } from '../types/chat'
 
 interface WebSocketState {
   connected: boolean
@@ -17,22 +16,34 @@ export class WebSocketService {
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000
 
+  // 事件监听器
+  private messageListeners: Array<(message: ChatMessage) => void> = []
+
   public state = reactive<WebSocketState>({
     connected: false,
     connecting: false,
     error: null
   })
 
-  public messages = ref<ChatMessage[]>([])
-
   constructor(url: string) {
     this.url = url
   }
 
+  onMessage(handler: (message: ChatMessage) => void): void {
+    this.messageListeners.push(handler)
+  }
+
+  private useMock() {
+    this.state.connected = true;
+    const messages = loadMockData();
+    for (const message of messages) {
+      this.emitMessageEvent(message)
+    }
+  }
+
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.messages.value = loadMockData()
-      this.state.connected = true;
+      this.useMock()
 
       if (this.state.connected || this.state.connecting) {
         resolve()
@@ -107,45 +118,29 @@ export class WebSocketService {
   }
 
   sendUserInput(content: string): void {
-    this.messages.value.push(createUserMessage(content))
-
     const message: ClientMessage = {
       type: 'user_input',
       data: { content }
     }
 
-    this.sendMessage(message)
+    this.sendMessage(message);
+    this.emitMessageEvent(createUserMessage(content));
   }
 
-  startSession(): void {
-    const message: ClientMessage = {
-      type: 'start_session',
-      data: {}
-    }
+  private emitMessageEvent(message: ChatMessage) {
+    this.messageListeners.forEach(listener => {
+      try {
+        listener(message)
+      } catch (error) {
+        console.error('Error in message listener:', error)
+      }
+    })
 
-    this.sendMessage(message)
   }
 
-  private handleServerMessage(message: ServerMessage): void {
+  private handleServerMessage(message: ServerMessage) {
     console.log('Received server message:', message)
-
-    switch (message.type) {
-      case 'claude_message':
-        this.messages.value.push(createAgentMessage(message))
-        break
-
-      case 'session_started':
-        this.messages.value.push(createAgentMessage(message))
-        break
-
-      case 'error':
-        this.messages.value.push(createAgentMessage(message))
-        this.state.error = message.data.message
-        break
-
-      default:
-        console.log('Unknown server message type:', message.type)
-    }
+    this.emitMessageEvent(createAgentMessage(message))
   }
 
   private attemptReconnect(): void {
