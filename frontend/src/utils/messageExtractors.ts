@@ -1,5 +1,5 @@
 import type { ProjectClaudeMessage } from '../types/claude'
-import type { SDKSystemMessage } from '@anthropic-ai/claude-code'
+import type { SDKAssistantMessage, SDKMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
 import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
 
 // Bash 数据类型
@@ -10,8 +10,8 @@ export interface BashData {
 }
 
 // 导出原有的数据提取函数
-function is_assistant_msg(m: any): m is any {
-  return m.type === "assistant"
+function is_assistant_msg(m: SDKMessage): m is SDKAssistantMessage {
+  return m.type == "assistant"
 }
 
 export function extract_system_init(message: ProjectClaudeMessage): SDKSystemMessage | null {
@@ -25,14 +25,10 @@ export function extract_system_init(message: ProjectClaudeMessage): SDKSystemMes
 export function extract_assistant_text(message: ProjectClaudeMessage): string | null {
   const sdkMessage = message.sdkMessage
   if (is_assistant_msg(sdkMessage)) {
-    // 类型断言，因为我们已经检查了类型
-    const assistantMsg = sdkMessage as any
-    const content = assistantMsg.message?.content || []
-    if (Array.isArray(content)) {
-      const textContent = content.find((item: { type?: string }) => item.type === 'text')
-      if (textContent && 'text' in textContent) {
-        return (textContent as any).text
-      }
+    const content = sdkMessage.message.content
+    const textContent = content[0]
+    if (textContent.type == 'text') {
+      return textContent.text
     }
   }
   return null
@@ -43,13 +39,15 @@ export function extract_bash(message: ProjectClaudeMessage): BashData | null {
 
   if (!is_assistant_msg(sdkMessage)) return null
 
-  // 类型断言，因为我们已经检查了类型
-  const assistantMsg = sdkMessage as any
-  const content = assistantMsg.message?.content?.[0]
-  if (content?.type !== "tool_use" || content.name !== "Bash") return null
+  const content = sdkMessage.message.content[0]
+  if (content.type != 'tool_use') {
+    return null
+  }
 
-  const input = content.input
-  if (!input || typeof input !== "object") return null
+  const input = content.input;
+  if (!input || typeof input != "object") {
+    return null
+  }
 
   if (
     'command' in input &&
@@ -60,7 +58,7 @@ export function extract_bash(message: ProjectClaudeMessage): BashData | null {
     return {
       command: input.command,
       description: input.description,
-      id: content.id,
+      id: content.id
     }
   }
 
