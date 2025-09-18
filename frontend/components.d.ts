@@ -17,5 +17,6 @@ declare module 'vue' {
     MessageList: typeof import('./src/components/MessageList.vue')['default']
     SystemRenderer: typeof import('./src/components/renderers/SystemRenderer.vue')['default']
     TextRenderer: typeof import('./src/components/renderers/TextRenderer.vue')['default']
+    TodoWriteRenderer: typeof import('./src/components/renderers/TodoWriteRenderer.vue')['default']
   }
 }

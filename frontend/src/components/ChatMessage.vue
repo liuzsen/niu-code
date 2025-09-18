@@ -44,8 +44,9 @@ import type { ProjectClaudeMessage } from '../types/claude'
 import SystemRenderer from './renderers/SystemRenderer.vue'
 import TextRenderer from './renderers/TextRenderer.vue'
 import BashRenderer from './renderers/BashRenderer.vue'
+import TodoWriteRenderer from './renderers/TodoWriteRenderer.vue'
 import FallbackRenderer from './renderers/FallbackRenderer.vue'
-import { extract_system_init, extract_assistant_text, extract_bash } from '../utils/messageExtractors'
+import { extract_system_init, extract_assistant_text, extract_bash, extract_todo_write } from '../utils/messageExtractors'
 
 interface Props {
   message: ChatMessage
@@ -84,6 +85,10 @@ const rendererConfigs: Array<RendererConfig<unknown>> = [
   {
     component: BashRenderer,
     extractor: extract_bash
+  },
+  {
+    component: TodoWriteRenderer,
+    extractor: extract_todo_write
   }
 ]
 

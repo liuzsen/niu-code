@@ -9,6 +9,16 @@ export interface BashData {
   id: string
 }
 
+// TodoWrite 数据类型
+export interface TodoWriteData {
+  todos: Array<{
+    content: string
+    activeForm: string
+    status: 'pending' | 'in_progress' | 'completed'
+  }>
+  id: string
+}
+
 // 导出原有的数据提取函数
 function is_assistant_msg(m: SDKMessage): m is SDKAssistantMessage {
   return m.type == "assistant"
@@ -86,4 +96,39 @@ export function extract_tool_result(message: ProjectClaudeMessage): ToolResultBl
   }
 
   return content
+}
+
+export function extract_todo_write(message: ProjectClaudeMessage): TodoWriteData | null {
+  const sdkMessage = message.sdkMessage
+
+  if (!is_assistant_msg(sdkMessage)) return null
+
+  const content = sdkMessage.message.content[0]
+  if (content.type != 'tool_use') {
+    return null
+  }
+
+  if (content.name != 'TodoWrite') {
+    return null
+  }
+
+  const input = content.input;
+  if (!input || typeof input != "object") {
+    return null
+  }
+
+  if (
+    'todos' in input &&
+    Array.isArray(input.todos) &&
+    input.todos.every((_: { content: string; activeForm: string; status: string }) =>
+      true
+    )
+  ) {
+    return {
+      todos: input.todos,
+      id: content.id
+    }
+  }
+
+  return null
 }
