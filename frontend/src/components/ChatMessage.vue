@@ -3,22 +3,18 @@
     :class="{ 'justify-end': message.from === 'user', 'justify-start': message.from === 'agent' }">
     <div class="flex items-start w-full space-x-2 max-w-3xl"
       :class="{ 'flex-row-reverse space-x-reverse': message.from === 'user' }">
-      <!-- Avatar -->
-      <div class="flex-shrink-0">
-        <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-sm"
-          :class="message.from === 'user' ? 'bg-blue-500' : 'bg-emerald-500'">
-          {{ message.from === 'user' ? 'U' : 'A' }}
-        </div>
-      </div>
-
       <div class="flex flex-col flex-1">
-        <div class=" rounded-xl p-4 text-sm" :class="message.from === 'user'
-          ? 'bg-surface-50'
-          : 'bg-surface-100 dark:bg-surface-800'">
+
+        <!-- <div class="flex text-xs gap-2 justify-between px-2">
+        </div> -->
+        <div class="flex gap-2 text-sm px-2 mb-0.5">
+          <p v-if="isUserMessage(message)" class=" text-green-500">Human</p>
+          <p v-if="isAgentMessage(message)" class=" dark:text-orange-300 text-surface-700">Main Agent</p>
+        </div>
+
+        <div class=" rounded-xl p-4 text-sm bg-surface-100 dark:bg-surface-800">
           <!-- 用户消息 -->
-          <div v-if="isUserMessage(message)" class="whitespace-pre-wrap break-words">
-            {{ message.content }}
-          </div>
+          <MarkdownRenderer v-if="isUserMessage(message)" :content="message.content" />
 
           <!-- Agent 消息-->
           <div v-else-if="rendererInfo">
@@ -27,9 +23,11 @@
           </div>
         </div>
 
-        <p class="text-xs mt-1 px-1" :class="{ 'text-right': message.from === 'user' }">
-          {{ formatTime }}
-        </p>
+        <div class="flex justify-end mt-0.5">
+          <p class="text-xs mr-2">
+            {{ formatTime }}
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -52,6 +50,7 @@ import WriteRenderer from './renderers/WriteRenderer.vue'
 import ResultRenderer from './renderers/ResultRenderer.vue'
 import FallbackRenderer from './renderers/FallbackRenderer.vue'
 import { extract_system_init, extract_assistant_text, extract_bash, extract_todo_write, extract_write, extract_result } from '../utils/messageExtractors'
+import MarkdownRenderer from './renderers/MarkdownRenderer.vue'
 
 interface Props {
   message: ChatMessage

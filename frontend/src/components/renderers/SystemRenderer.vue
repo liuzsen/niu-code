@@ -5,8 +5,8 @@
         <i class="pi pi-cog"></i>
         <span class="font-semibold text-surface-900 dark:text-surface-400">系统信息</span>
       </div>
-      <span class="px-2 py-1 text-xs rounded-xl bg-surface-400 dark:bg-surface-900 dark:text-surface-300">{{ model
-        }}</span>
+      <span class="px-2 py-1 text-xs rounded-xl bg-surface-400 dark:bg-surface-900 dark:text-orange-400">{{ model
+      }}</span>
     </div>
 
     <div class="space-y-2 text-xs flex flex-col gap-1 dark:text-surface-300 font-medium dark:font-semibold">

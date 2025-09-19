@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex flex-col">
     <AppHeader />
-    <div class=" overflow-hidden bg-surface-200 dark:bg-surface-900">
+    <div class=" overflow-hidden bg-surface-200 dark:bg-surface-900 h-full">
       <ChatLayout />
     </div>
   </div>

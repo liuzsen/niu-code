@@ -15,6 +15,8 @@ declare module 'vue' {
     ChatMessage: typeof import('./src/components/ChatMessage.vue')['default']
     Dialog: typeof import('primevue/dialog')['default']
     FallbackRenderer: typeof import('./src/components/renderers/FallbackRenderer.vue')['default']
+    MarkdownRender: typeof import('./src/components/renderers/MarkdownRender.vue')['default']
+    MarkdownRenderer: typeof import('./src/components/renderers/MarkdownRenderer.vue')['default']
     MessageInput: typeof import('./src/components/MessageInput.vue')['default']
     MessageList: typeof import('./src/components/MessageList.vue')['default']
     ResultRenderer: typeof import('./src/components/renderers/ResultRenderer.vue')['default']
@@ -22,6 +24,7 @@ declare module 'vue' {
     Tag: typeof import('primevue/tag')['default']
     TextRenderer: typeof import('./src/components/renderers/TextRenderer.vue')['default']
     TodoWriteRenderer: typeof import('./src/components/renderers/TodoWriteRenderer.vue')['default']
+    UserMessageRenderer: typeof import('./src/components/renderers/UserMessageRenderer.vue')['default']
     WriteRenderer: typeof import('./src/components/renderers/WriteRenderer.vue')['default']
   }
 }

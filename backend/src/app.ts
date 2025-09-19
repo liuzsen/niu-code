@@ -4,6 +4,8 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import dotenv from 'dotenv';
 import { WebSocket } from 'ws';
+import fs from 'fs/promises';
+import path from 'path';
 import {
   ClientMessage,
   UserInputMessage,
@@ -90,11 +92,26 @@ async function handleUserInput(ws: WebSocket, message: UserInputMessage) {
     // Create the async generator stream from Claude service
     const stream = await claudeService.processPrompt(content, sessionId);
 
-    // Stream each message back to the client
-    for await (const serverMessage of stream) {
-      ws.send(JSON.stringify(serverMessage));
+    // Manual iteration to properly handle both yield values and TReturn value
+    let result = await stream.next();
+    while (!result.done) {
+      // Send each message to the client
+      ws.send(JSON.stringify(result.value));
+      result = await stream.next();
     }
 
+    // Save the TReturn value (SessionResult) to .local/session-result.json
+    if (result.done && result.value) {
+      const localDir = path.join(process.cwd(), '.local');
+      const resultPath = path.join(localDir, 'session-result.json');
+
+      // Ensure .local directory exists
+      await fs.mkdir(localDir, { recursive: true });
+
+      // Save the result
+      await fs.writeFile(resultPath, JSON.stringify(result.value, null, 2));
+      console.log(`Session result saved to ${resultPath}`);
+    }
   } catch (error) {
     console.error('Error handling user input:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
