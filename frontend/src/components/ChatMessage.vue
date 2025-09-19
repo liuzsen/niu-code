@@ -23,7 +23,7 @@
           </div>
         </div>
 
-        <div class="flex justify-end mt-0.5">
+        <div class="flex justify-end mt-0.5 text-gray-500">
           <p class="text-xs mr-2">
             {{ formatTime }}
           </p>
@@ -48,8 +48,11 @@ import BashRenderer from './renderers/BashRenderer.vue'
 import TodoWriteRenderer from './renderers/TodoWriteRenderer.vue'
 import WriteRenderer from './renderers/WriteRenderer.vue'
 import ResultRenderer from './renderers/ResultRenderer.vue'
+import EditRenderer from './renderers/EditRenderer.vue'
+import MultiEditRenderer from './renderers/MultiEditRenderer.vue'
+import ReadRenderer from './renderers/ReadRenderer.vue'
 import FallbackRenderer from './renderers/FallbackRenderer.vue'
-import { extract_system_init, extract_assistant_text, extract_bash, extract_todo_write, extract_write, extract_result } from '../utils/messageExtractors'
+import { extract_system_init, extract_assistant_text, extract_bash, extract_todo_write, extract_write, extract_edit, extract_multi_edit, extract_read, extract_result } from '../utils/messageExtractors'
 import MarkdownRenderer from './renderers/MarkdownRenderer.vue'
 
 interface Props {
@@ -97,6 +100,18 @@ const rendererConfigs: Array<RendererConfig<unknown>> = [
   {
     component: WriteRenderer,
     extractor: extract_write
+  },
+  {
+    component: EditRenderer,
+    extractor: extract_edit
+  },
+  {
+    component: MultiEditRenderer,
+    extractor: extract_multi_edit
+  },
+  {
+    component: ReadRenderer,
+    extractor: extract_read
   },
   {
     component: ResultRenderer,

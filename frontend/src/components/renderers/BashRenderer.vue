@@ -65,6 +65,7 @@
 import { computed } from 'vue'
 import type { ProjectClaudeMessage } from '../../types/claude'
 import type { BashData } from '../../utils/messageExtractors'
+import { cleanToolResult } from '../../utils/messageExtractors'
 import { useChatStore } from '../../stores/chat'
 
 interface Props {
@@ -98,11 +99,7 @@ const state = computed<CommandState>(() => {
 // 显示结果文本
 const resultText = computed(() => {
     if (commandResult.value) {
-        if (typeof commandResult.value.content == "string") {
-            return commandResult.value.content
-        } else {
-            return `unkonwn command result: ${commandResult.value.content}`
-        }
+        return cleanToolResult(commandResult.value.content)
     }
     return undefined
 })

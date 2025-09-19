@@ -47,7 +47,7 @@ export class WebSocketService {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      // this.useMock()
+      this.useMock()
 
       if (this.state.connected || this.state.connecting) {
         resolve()
