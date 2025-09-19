@@ -5,10 +5,10 @@
 </template>
 
 <script setup lang="ts">
-import type { ProjectClaudeMessage } from '../../types/claude'
+import type { ClaudeMessageWrapper } from '../../types';
 
 interface Props {
-  message: ProjectClaudeMessage
+  message: ClaudeMessageWrapper
   data: unknown
 }
 

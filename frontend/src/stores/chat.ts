@@ -25,7 +25,7 @@ export const useChatStore = defineStore('chat', {
       if (message.from !== 'agent') return
 
       if (message.serverMessage.type === 'claude_message') {
-        const toolResult = extract_tool_result(message.serverMessage.data)
+        const toolResult = extract_tool_result(message.serverMessage.sdkMessage)
         if (toolResult) {
           this.setToolResult(toolResult.tool_use_id, toolResult)
         } else {

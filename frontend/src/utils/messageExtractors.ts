@@ -1,21 +1,20 @@
-import type { ProjectClaudeMessage } from '../types/claude'
 import type { SDKAssistantMessage, SDKMessage, SDKResultMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
 import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
 
 // 清理工具结果内容
 export function cleanToolResult(content: unknown): string {
-    if (typeof content !== 'string') {
-        return String(content)
-    }
+  if (typeof content !== 'string') {
+    return String(content)
+  }
 
-    // 检查是否包含 <tool_use_error> 标签
-    const errorMatch = content.match(/<tool_use_error>([\s\S]*?)<\/tool_use_error>/)
-    if (errorMatch) {
-        return errorMatch[1].trim()
-    }
+  // 检查是否包含 <tool_use_error> 标签
+  const errorMatch = content.match(/<tool_use_error>([\s\S]*?)<\/tool_use_error>/)
+  if (errorMatch) {
+    return errorMatch[1].trim()
+  }
 
-    // 如果没有错误标签，返回原内容
-    return content
+  // 如果没有错误标签，返回原内容
+  return content
 }
 
 // Bash 数据类型
@@ -47,16 +46,14 @@ function is_assistant_msg(m: SDKMessage): m is SDKAssistantMessage {
   return m.type == "assistant"
 }
 
-export function extract_system_init(message: ProjectClaudeMessage): SDKSystemMessage | null {
-  const sdkMessage = message.sdkMessage
+export function extract_system_init(sdkMessage: SDKMessage): SDKSystemMessage | null {
   if (sdkMessage.type === 'system' && sdkMessage.subtype === 'init') {
     return sdkMessage
   }
   return null
 }
 
-export function extract_assistant_text(message: ProjectClaudeMessage): string | null {
-  const sdkMessage = message.sdkMessage
+export function extract_assistant_text(sdkMessage: SDKMessage): string | null {
   if (is_assistant_msg(sdkMessage)) {
     const content = sdkMessage.message.content
     const textContent = content[0]
@@ -67,9 +64,7 @@ export function extract_assistant_text(message: ProjectClaudeMessage): string | 
   return null
 }
 
-export function extract_bash(message: ProjectClaudeMessage): BashData | null {
-  const sdkMessage = message.sdkMessage
-
+export function extract_bash(sdkMessage: SDKMessage): BashData | null {
   if (!is_assistant_msg(sdkMessage)) return null
 
   const content = sdkMessage.message.content[0]
@@ -98,9 +93,7 @@ export function extract_bash(message: ProjectClaudeMessage): BashData | null {
   return null
 }
 
-export function extract_tool_result(message: ProjectClaudeMessage): ToolResultBlockParam | null {
-  const sdkMessage = message.sdkMessage
-
+export function extract_tool_result(sdkMessage: SDKMessage): ToolResultBlockParam | null {
   if (sdkMessage.type !== 'user') {
     return null
   }
@@ -121,9 +114,7 @@ export function extract_tool_result(message: ProjectClaudeMessage): ToolResultBl
   return content
 }
 
-export function extract_todo_write(message: ProjectClaudeMessage): TodoWriteData | null {
-  const sdkMessage = message.sdkMessage
-
+export function extract_todo_write(sdkMessage: SDKMessage): TodoWriteData | null {
   if (!is_assistant_msg(sdkMessage)) return null
 
   const content = sdkMessage.message.content[0]
@@ -156,9 +147,7 @@ export function extract_todo_write(message: ProjectClaudeMessage): TodoWriteData
   return null
 }
 
-export function extract_write(message: ProjectClaudeMessage): WriteData | null {
-  const sdkMessage = message.sdkMessage
-
+export function extract_write(sdkMessage: SDKMessage): WriteData | null {
   if (!is_assistant_msg(sdkMessage)) return null
 
   const content = sdkMessage.message.content[0]
@@ -211,9 +200,7 @@ export interface ReadData {
   id: string
 }
 
-export function extract_read(message: ProjectClaudeMessage): ReadData | null {
-  const sdkMessage = message.sdkMessage
-
+export function extract_read(sdkMessage: SDKMessage): ReadData | null {
   if (!is_assistant_msg(sdkMessage)) return null
 
   const content = sdkMessage.message.content[0]
@@ -243,9 +230,7 @@ export function extract_read(message: ProjectClaudeMessage): ReadData | null {
   return null
 }
 
-export function extract_multi_edit(message: ProjectClaudeMessage): MultiEditData | null {
-  const sdkMessage = message.sdkMessage
-
+export function extract_multi_edit(sdkMessage: SDKMessage): MultiEditData | null {
   if (!is_assistant_msg(sdkMessage)) return null
 
   const content = sdkMessage.message.content[0]
@@ -290,9 +275,7 @@ export interface EditData {
   id: string
 }
 
-export function extract_edit(message: ProjectClaudeMessage): EditData | null {
-  const sdkMessage = message.sdkMessage
-
+export function extract_edit(sdkMessage: SDKMessage): EditData | null {
   if (!is_assistant_msg(sdkMessage)) return null
 
   const content = sdkMessage.message.content[0]
@@ -328,9 +311,9 @@ export function extract_edit(message: ProjectClaudeMessage): EditData | null {
   return null
 }
 
-export function extract_result(message: ProjectClaudeMessage): SDKResultMessage | null {
-  if (message.sdkMessage.type == "result") {
-    return message.sdkMessage
+export function extract_result(sdkMessage: SDKMessage): SDKResultMessage | null {
+  if (sdkMessage.type == "result") {
+    return sdkMessage
   }
 
   return null

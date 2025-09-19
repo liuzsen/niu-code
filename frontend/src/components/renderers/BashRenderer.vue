@@ -63,13 +63,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { ProjectClaudeMessage } from '../../types/claude'
 import type { BashData } from '../../utils/messageExtractors'
 import { cleanToolResult } from '../../utils/messageExtractors'
 import { useChatStore } from '../../stores/chat'
+import type { ClaudeMessageWrapper } from '../../types'
 
 interface Props {
-    message: ProjectClaudeMessage
+    message: ClaudeMessageWrapper
     data: BashData
 }
 

@@ -162,16 +162,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { ProjectClaudeMessage } from '../../types/claude'
 import type { EditData } from '../../utils/messageExtractors'
 import { cleanToolResult } from '../../utils/messageExtractors'
 import { useChatStore } from '../../stores/chat'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
+import type { ClaudeMessageWrapper } from '../../types'
 
 interface Props {
-    message: ProjectClaudeMessage
+    message: ClaudeMessageWrapper
     data: EditData
 }
 

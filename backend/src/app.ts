@@ -9,7 +9,7 @@ import path from 'path';
 import {
   ClientMessage,
   UserInputMessage,
-  createErrorMessageWrapper
+  createWsErrorMessage
 } from './types/index.js';
 import { ClaudeService } from './services/claude.js';
 
@@ -53,7 +53,7 @@ wss.on('connection', (ws) => {
           break;
         default: {
           console.log('Unknown message type:', message.type);
-          const errorResponse = createErrorMessageWrapper(
+          const errorResponse = createWsErrorMessage(
             `Unknown message type: ${message.type}`,
             undefined,
             'UNKNOWN_MESSAGE_TYPE'
@@ -65,7 +65,7 @@ wss.on('connection', (ws) => {
     } catch (error) {
       console.error('Error parsing message:', error);
       const errorMessage = error instanceof Error ? error.message : 'Invalid message format';
-      const errorResponse = createErrorMessageWrapper(
+      const errorResponse = createWsErrorMessage(
         errorMessage,
         undefined,
         'PARSE_ERROR'
@@ -85,12 +85,12 @@ wss.on('connection', (ws) => {
 
 async function handleUserInput(ws: WebSocket, message: UserInputMessage) {
   try {
-    const { content, sessionId } = message.data;
+    const { content } = message;
 
     console.log(`Processing user input: ${content.substring(0, 100)}...`);
 
     // Create the async generator stream from Claude service
-    const stream = await claudeService.processPrompt(content, sessionId);
+    const stream = await claudeService.processPrompt(content);
 
     // Manual iteration to properly handle both yield values and TReturn value
     let result = await stream.next();
@@ -115,111 +115,14 @@ async function handleUserInput(ws: WebSocket, message: UserInputMessage) {
   } catch (error) {
     console.error('Error handling user input:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    const errorResponse = createErrorMessageWrapper(
+    const errorResponse = createWsErrorMessage(
       errorMessage,
-      message.data.sessionId,
+      message.sessionId,
       'PROCESSING_ERROR'
     );
     ws.send(JSON.stringify(errorResponse));
   }
 }
-
-// Routes for session management
-app.get('/sessions', (_req, res) => {
-  try {
-    const sessions = claudeService.getAllSessions();
-    const stats = claudeService.getSessionStats();
-    res.json({
-      sessions,
-      stats,
-      message: 'Sessions retrieved successfully'
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    res.status(500).json({
-      error: errorMessage,
-      message: 'Failed to retrieve sessions'
-    });
-  }
-});
-
-app.get('/sessions/:sessionId', (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const session = claudeService.getSession(sessionId);
-
-    if (!session) {
-      return res.status(404).json({
-        error: 'Session not found',
-        message: `Session with ID ${sessionId} does not exist`
-      });
-    }
-
-    res.json({
-      session,
-      message: 'Session retrieved successfully'
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    res.status(500).json({
-      error: errorMessage,
-      message: 'Failed to retrieve session'
-    });
-  }
-});
-
-app.delete('/sessions/:sessionId', (req, res) => {
-  try {
-    const { sessionId } = req.params;
-    const session = claudeService.getSession(sessionId);
-
-    if (!session) {
-      return res.status(404).json({
-        error: 'Session not found',
-        message: `Session with ID ${sessionId} does not exist`
-      });
-    }
-
-    claudeService.deleteSession(sessionId);
-    res.json({
-      message: 'Session deleted successfully'
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    res.status(500).json({
-      error: errorMessage,
-      message: 'Failed to delete session'
-    });
-  }
-});
-
-app.delete('/sessions', (_req, res) => {
-  try {
-    claudeService.clearAllSessions();
-    res.json({
-      message: 'All sessions cleared successfully'
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-    res.status(500).json({
-      error: errorMessage,
-      message: 'Failed to clear sessions'
-    });
-  }
-});
-
-// Basic health check
-app.get('/health', (_req, res) => {
-  const stats = claudeService.getSessionStats();
-  res.json({
-    status: 'ok',
-    message: 'Claude Code Web Backend is running',
-    stats: {
-      sessions: stats,
-      uptime: process.uptime()
-    }
-  });
-});
 
 const PORT = process.env.PORT || 33333;
 

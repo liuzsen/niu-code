@@ -36,7 +36,7 @@ export class WebSocketService {
     return this.chatStore
   }
 
-  private useMock() {
+  useMock() {
     this.state.connected = true;
     const messages = loadMockData();
     const store = this.getChatStore()
@@ -47,7 +47,7 @@ export class WebSocketService {
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.useMock()
+      // this.useMock()
 
       if (this.state.connected || this.state.connecting) {
         resolve()
@@ -124,7 +124,7 @@ export class WebSocketService {
   sendUserInput(content: string): void {
     const message: ClientMessage = {
       type: 'user_input',
-      data: { content }
+      content,
     }
 
     this.sendMessage(message);

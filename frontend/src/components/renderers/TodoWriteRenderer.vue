@@ -29,11 +29,11 @@
 </template>
 
 <script setup lang="ts">
-import type { ProjectClaudeMessage } from '../../types/claude'
+import type { ClaudeMessageWrapper } from '../../types';
 import type { TodoWriteData } from '../../utils/messageExtractors'
 
 interface Props {
-    message: ProjectClaudeMessage
+    message: ClaudeMessageWrapper
     data: TodoWriteData
 }
 

@@ -19,7 +19,7 @@
           <!-- Agent 消息-->
           <div v-else-if="rendererInfo">
             <component :is="rendererInfo.component" :message="rendererInfo.props.message"
-              :data="rendererInfo.props.data" :key="message.id" />
+              :data="rendererInfo.props.data" />
           </div>
         </div>
 
@@ -39,7 +39,6 @@ import { computed } from 'vue'
 import type { ChatMessage } from '../types/chat'
 import { isUserMessage, isAgentMessage } from '../types/chat'
 import type { Component } from 'vue'
-import type { ProjectClaudeMessage } from '../types/claude'
 
 // 导入渲染器组件
 import SystemRenderer from './renderers/SystemRenderer.vue'
@@ -54,6 +53,8 @@ import ReadRenderer from './renderers/ReadRenderer.vue'
 import FallbackRenderer from './renderers/FallbackRenderer.vue'
 import { extract_system_init, extract_assistant_text, extract_bash, extract_todo_write, extract_write, extract_edit, extract_multi_edit, extract_read, extract_result } from '../utils/messageExtractors'
 import MarkdownRenderer from './renderers/MarkdownRenderer.vue'
+import type { ClaudeMessageWrapper } from '../types'
+import type { SDKMessage } from '@anthropic-ai/claude-code'
 
 interface Props {
   message: ChatMessage
@@ -65,13 +66,13 @@ const props = defineProps<Props>()
 interface RendererResult {
   component: Component
   props: {
-    message: ProjectClaudeMessage
+    message: ClaudeMessageWrapper
     data: unknown
   }
 }
 
 // 数据提取函数类型
-type DataExtractor<T> = (message: ProjectClaudeMessage) => T | null
+type DataExtractor<T> = (message: SDKMessage) => T | null
 
 // 渲染器配置
 interface RendererConfig<T> {
@@ -120,10 +121,10 @@ const rendererConfigs: Array<RendererConfig<unknown>> = [
 ]
 
 // 获取适合的渲染器组件和提取的数据
-const getRendererWithContent = (message: ProjectClaudeMessage): RendererResult => {
+const getRendererWithContent = (message: ClaudeMessageWrapper): RendererResult => {
   // 按照优先级顺序尝试每个提取函数
   for (const config of rendererConfigs) {
-    const data = config.extractor(message)
+    const data = config.extractor(message.sdkMessage)
     if (data !== null) {
       return {
         component: config.component,
@@ -151,14 +152,18 @@ const rendererInfo = computed(() => {
 
   const claudeMessage = computed(() => {
     if (isAgentMessage(props.message) && props.message.serverMessage.type === 'claude_message') {
-      return props.message.serverMessage.data
+      return props.message.serverMessage
     }
     return null
   })
 
   if (!claudeMessage.value) return null
 
-  return getRendererWithContent(claudeMessage.value)
+  if (claudeMessage.value.type == "claude_message") {
+    return getRendererWithContent(claudeMessage.value)
+  }
+
+  return null
 })
 
 // 格式化时间

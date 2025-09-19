@@ -5,10 +5,10 @@
 <script setup lang="ts">
 import { computed, watch, nextTick, onMounted } from 'vue'
 import { useMarkdownRenderer } from '../../utils/markdownRenderer'
-import type { ProjectClaudeMessage, } from '../../types';
+import type { ClaudeMessageWrapper } from '../../types';
 
 interface Props {
-  message: ProjectClaudeMessage
+  message: ClaudeMessageWrapper
   data: string
 }
 

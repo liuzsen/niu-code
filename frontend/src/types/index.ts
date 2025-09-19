@@ -1,11 +1,5 @@
-// Export all Claude SDK message types
-export * from './claude';
-
 // Export WebSocket message types
 export * from './ws-message.ts';
-
-// Export session management types
-export * from './session.ts';
 
 // Tool permission types (updated to remove 'any')
 export interface ToolPermissionRequest {

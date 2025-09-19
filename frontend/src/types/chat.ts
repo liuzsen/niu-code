@@ -2,27 +2,22 @@ import type { ServerMessage } from './ws-message'
 
 export type MessageFrom = 'user' | 'agent'
 
-export interface BaseChatMessage {
-  id: string
-  from: MessageFrom
+export interface UserMessage {
+  from: 'user'
+  content: string
   timestamp: number
 }
 
-export interface UserMessage extends BaseChatMessage {
-  from: 'user'
-  content: string
-}
-
-export interface AgentMessage extends BaseChatMessage {
+export interface AgentMessage {
   from: 'agent'
   serverMessage: ServerMessage
+  timestamp: number
 }
 
 export type ChatMessage = UserMessage | AgentMessage
 
 export function createUserMessage(content: string): UserMessage {
   return {
-    id: Date.now().toString(),
     from: 'user',
     content,
     timestamp: Date.now()
@@ -31,7 +26,6 @@ export function createUserMessage(content: string): UserMessage {
 
 export function createAgentMessage(serverMessage: ServerMessage): AgentMessage {
   return {
-    id: Date.now().toString(),
     from: 'agent',
     serverMessage,
     timestamp: Date.now()
