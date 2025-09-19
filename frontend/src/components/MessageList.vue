@@ -1,5 +1,7 @@
 <template>
-  <div class="flex-1 border border-surface-300 overflow-y-auto p-4 space-y-4" ref="messagesContainer">
+  <div
+    class=" bg-surface-200 dark:bg-surface-900 flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar rounded-xl border-x border-y border-surface-300 dark:border-surface-700"
+    ref="messagesContainer">
     <ChatMessage v-for="message in displayMessages" :key="message.timestamp" :message="message" />
 
     <div v-if="displayMessages.length === 0" class="text-center mt-12" style="color: var(--text-color-secondary)">
@@ -31,3 +33,29 @@ const scrollToBottom = () => {
 
 watch(displayMessages, scrollToBottom, { deep: true })
 </script>
+
+<style scoped>
+.custom-scrollbar {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: #888 transparent;
+}
+
+/* WebKit */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+</style>

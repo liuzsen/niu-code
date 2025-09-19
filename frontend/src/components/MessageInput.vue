@@ -1,12 +1,13 @@
 <template>
   <div class="min-h-0">
     <!-- Modern Chat Input Container -->
-    <div class="bg-surface-0 border border-surface-200 rounded-2xl p-3 shadow-sm">
+    <div
+      class="bg-surface-0 dark:bg-surface-800 border border-surface-400 dark:border-surface-500 rounded-2xl p-3 shadow-sm">
       <!-- Input Area -->
       <div class="mb-1">
         <Textarea v-model="messageInput" ref="textareaRef" placeholder="在这里输入消息，按 Enter 发送..."
-          class="w-full resize-none border-0 outline-none bg-transparent text-surface-700 placeholder:text-surface-400 min-h-8 max-h-32"
-          :disabled="disabled" :auto-resize="true" @keydown.enter.prevent="handleKeydown" />
+          class="w-full resize-none border-0 bg-transparent !text-surface-300 min-h-8 max-h-32" :disabled="disabled"
+          :auto-resize="true" @keydown.enter.prevent="handleKeydown" />
       </div>
 
       <!-- Toolbar -->
@@ -14,21 +15,21 @@
         <!-- Left Tool Buttons -->
         <div class="flex items-center gap-2">
           <Button icon="pi pi-paperclip" severity="secondary" variant="text" size="small"
-            class="!p-1 !w-7 !h-7 text-surface-500 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
           <Button icon="pi pi-face-smile" severity="secondary" variant="text" size="small"
-            class="!p-1 !w-7 !h-7 text-surface-500 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
           <Button icon="pi pi-at" severity="secondary" variant="text" size="small"
-            class="!p-1 !w-7 !h-7 text-surface-500 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
           <Button icon="pi pi-image" severity="secondary" variant="text" size="small"
-            class="!p-1 !w-7 !h-7 text-surface-500 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
           <Button icon="pi pi-bolt" severity="secondary" variant="text" size="small"
-            class="!p-1 !w-7 !h-7 text-surface-500 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
           <Button icon="pi pi-th-large" severity="secondary" variant="text" size="small"
-            class="!p-1 !w-7 !h-7 text-surface-500 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
 
           <!-- Language/Settings Button -->
           <Button icon="pi pi-language" severity="secondary" variant="text" size="small"
-            class="!p-1 !w-7 !h-7 text-surface-500 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
         </div>
 
         <!-- Right Side Buttons -->
@@ -36,7 +37,7 @@
 
           <!-- Send Button -->
           <Button @click="sendUserInput" :disabled="disabled || !messageInput.trim()" icon="pi pi-arrow-up"
-            severity="info" size="small" class="!rounded-full !w-8 !h-8 !p-0 shrink-0" />
+            severity="secondary" size="small" class="rounded-full w-8 h-8 p-0 shrink-0 dark:bg-surface-950" />
         </div>
       </div>
     </div>

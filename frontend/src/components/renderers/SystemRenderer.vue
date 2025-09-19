@@ -1,48 +1,50 @@
 <template>
-  <div class="system-renderer">
-    <div class="system-header">
-      <div class="system-title">
-        <i class="pi pi-cog mr-2"></i>
-        <span>系统初始化</span>
+  <div class="space-y-4">
+    <div class="flex justify-between items-center pb-2 border-b border-surface-500">
+      <div class="flex items-center gap-2">
+        <i class="pi pi-cog"></i>
+        <span class="font-semibold text-surface-900 dark:text-surface-400">系统信息</span>
       </div>
-      <Tag severity="info" :value="model" />
+      <span class="px-2 py-1 text-xs rounded-xl bg-surface-400 dark:bg-surface-900 dark:text-surface-300">{{ model
+        }}</span>
     </div>
 
-    <div class="system-content">
-      <div class="info-grid">
-        <div class="info-item">
-          <span class="info-label">工作目录:</span>
-          <span class="info-value">{{ data.cwd }}</span>
+    <div class="space-y-2 text-xs flex flex-col gap-1 dark:text-surface-300 font-medium dark:font-semibold">
+      <div class="flex gap-2">
+        <span class="min-w-16 flex items-center">工作目录:</span>
+        <span class="font-mono break-all text-sm">{{ data.cwd }}</span>
+      </div>
+      <div class="flex gap-2">
+        <span class="min-w-16 flex items-center">会话 ID:</span>
+        <span class="font-mono break-all text-sm">{{ data.session_id }}</span>
+      </div>
+      <div class="flex gap-2">
+        <span class="min-w-16 flex items-center">权限模式:</span>
+        <span class="px-2 py-1 text-sm rounded-full" :class="{
+          'bg-gray-500 text-surface-900': data.permissionMode === 'default',
+          'bg-yellow-500 text-surface-900': data.permissionMode === 'acceptEdits',
+          'bg-red-400 text-surface-900': data.permissionMode === 'bypassPermissions',
+          'bg-green-500 text-surface-900': data.permissionMode === 'plan',
+        }">
+          {{ data.permissionMode }}
+        </span>
+      </div>
+      <div class="flex gap-2">
+        <span class="min-w-16 flex items-center max-h-6">可用工具:</span>
+        <div class="flex flex-wrap gap-1">
+          <span v-for="tool in data?.tools" :key="tool"
+            class="px-2 py-1 text-xs bg-surface-950 text-surface-300 rounded-full">
+            {{ tool }}
+          </span>
         </div>
-        <div class="info-item">
-          <span class="info-label">会话 ID:</span>
-          <span class="info-value">{{ data.session_id }}</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">权限模式:</span>
-          <Tag :severity="getPermissionSeverity(data.permissionMode)">
-            {{ data.permissionMode }}
-          </Tag>
-        </div>
-        <div class="info-item">
-          <span class="info-label">可用工具:</span>
-          <div class="tools-list">
-            <Tag v-for="tool in data?.tools?.slice(0, 8)" :key="tool" severity="secondary" :value="tool"
-              class="tool-tag" />
-            <span v-if="data.tools && data.tools.length > 8" class="more-tools">
-              +{{ data.tools.length - 8 }} 更多
-            </span>
-          </div>
-        </div>
-        <div class="info-item">
-          <span class="info-label">斜杠命令:</span>
-          <div class="commands-list">
-            <Tag v-for="command in data.slash_commands?.slice(0, 6)" :key="command" severity="secondary"
-              :value="'/' + command" class="command-tag" />
-            <span v-if="data.slash_commands && data.slash_commands.length > 6" class="more-commands">
-              +{{ data.slash_commands.length - 6 }} 更多
-            </span>
-          </div>
+      </div>
+      <div class="flex gap-2">
+        <span class="min-w-16 flex items-center max-h-6">斜杠命令:</span>
+        <div class="flex flex-wrap gap-1">
+          <span v-for="command in data.slash_commands" :key="command"
+            class="px-2 py-1 text-xs bg-surface-300 dark:bg-surface-900 rounded-full">
+            /{{ command }}
+          </span>
         </div>
       </div>
     </div>
@@ -51,7 +53,6 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import Tag from 'primevue/tag'
 import type { ProjectClaudeMessage } from '../../types/claude'
 import type { SDKSystemMessage } from '@anthropic-ai/claude-code'
 
@@ -67,93 +68,5 @@ const model = computed(() => {
   return props.data?.model || 'Unknown'
 })
 
-// 获取权限模式的严重程度
-const getPermissionSeverity = (mode: string) => {
-  switch (mode) {
-    case 'bypassPermissions':
-      return 'warning'
-    case 'auto-allow':
-      return 'success'
-    case 'default':
-      return 'info'
-    default:
-      return 'secondary'
-  }
-}
 
 </script>
-
-<style scoped>
-.system-renderer {
-  background-color: var(--surface-ground);
-  border: 1px solid var(--surface-border);
-  border-radius: 8px;
-  padding: 1rem;
-}
-
-.system-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--surface-d);
-}
-
-.system-title {
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-  color: var(--text-color);
-  font-size: 0.875rem;
-}
-
-.system-content {
-  color: var(--text-color-secondary);
-}
-
-.info-grid {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.info-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.info-label {
-  font-weight: 500;
-  color: var(--text-color);
-  min-width: 80px;
-  font-size: 0.813rem;
-}
-
-.info-value {
-  color: var(--text-color-secondary);
-  font-size: 0.813rem;
-  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-  word-break: break-all;
-}
-
-.tools-list,
-.commands-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  align-items: center;
-}
-
-.tool-tag,
-.command-tag {
-  font-size: 0.75rem;
-}
-
-.more-tools,
-.more-commands {
-  color: var(--text-color-secondary);
-  font-size: 0.75rem;
-  margin-left: 0.25rem;
-}
-</style>

@@ -19,6 +19,7 @@ declare module 'vue' {
     MessageList: typeof import('./src/components/MessageList.vue')['default']
     ResultRenderer: typeof import('./src/components/renderers/ResultRenderer.vue')['default']
     SystemRenderer: typeof import('./src/components/renderers/SystemRenderer.vue')['default']
+    Tag: typeof import('primevue/tag')['default']
     TextRenderer: typeof import('./src/components/renderers/TextRenderer.vue')['default']
     TodoWriteRenderer: typeof import('./src/components/renderers/TodoWriteRenderer.vue')['default']
     WriteRenderer: typeof import('./src/components/renderers/WriteRenderer.vue')['default']

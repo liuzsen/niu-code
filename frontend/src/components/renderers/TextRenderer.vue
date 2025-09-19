@@ -1,5 +1,5 @@
 <template>
-  <div ref="markdownContainer" class="markdown-body !bg-transparent" v-html="renderedContent" />
+  <div ref="markdownContainer" class="markdown-body !bg-transparent dark:!text-surface-300" v-html="renderedContent" />
 </template>
 
 <script setup lang="ts">

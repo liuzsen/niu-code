@@ -1,11 +1,11 @@
 <template>
-    <Card class="bg-zinc-800">
+    <div class="bg-surface-100 dark:bg-surface-800 border dark:border-zinc-700 shadow-lg rounded-xl">
         <!-- Write Header -->
-        <template #title>
+        <div class="p-4 border-b border-surface-500 dark:border-zinc-700">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <i class="pi pi-file text-blue-500"></i>
-                    <span class="text-sm font-mono text-gray-300">File Write</span>
+                    <i class="pi pi-file dark:text-surface-500"></i>
+                    <span class="text-sm font-mono">File Write</span>
                 </div>
 
                 <div class="flex items-center gap-2 flex-1">
@@ -24,64 +24,68 @@
                     </div>
                 </div>
             </div>
-        </template>
+        </div>
 
         <!-- Write Content -->
-        <template #content>
-            <div class="space-y-3">
+        <div class="p-4">
+            <div class="">
                 <!-- File Path -->
                 <div class="flex items-start gap-2">
-                    <span class="text-blue-500 font-mono text-sm font-semibold">📝</span>
-                    <code class="text-blue-500 font-mono text-sm leading-relaxed break-all">{{ data.file_path }}</code>
+                    <span class="font-mono text-sm font-semibold">📝</span>
+                    <code class="font-mono text-sm leading-relaxed break-all">{{ data.file_path }}</code>
                 </div>
 
                 <!-- File Content (preview) -->
-                <div class="mt-3">
+                <div class="">
                     <div class="flex items-center justify-between mb-2">
-                        <div class="text-gray-400 text-xs">Content ({{ contentLength }} chars):</div>
+                        <div class="text-surface-400 text-xs">Content ({{ contentLength }} chars):</div>
                         <div class="flex items-center gap-2">
                             <Button size="small" severity="secondary" variant="text" @click="copyToClipboard">
-                                <i class="pi pi-copy mr-1"></i>
+                                <i class="pi pi-copy text-sm"></i>
                                 Copy
                             </Button>
                             <Button size="small" severity="secondary" variant="text" @click="showFullContent = true">
-                                <i class="pi pi-expand mr-1"></i>
+                                <i class="pi pi-expand text-xs"></i>
                                 View Full
                             </Button>
                         </div>
                     </div>
-                    <div class="bg-gray-900 rounded-lg p-3 max-h-40 overflow-y-auto custom-scrollbar">
+                    <div class=" bg-surface-200 dark:bg-surface-900 p-3 max-h-40 overflow-y-auto custom-scrollbar">
                         <pre
-                            class="text-gray-300 font-mono text-sm leading-relaxed break-all whitespace-pre-wrap">{{ data.content }}</pre>
+                            class="font-mono text-sm leading-relaxed break-all whitespace-pre-wrap">{{ data.content }}</pre>
                     </div>
                 </div>
 
                 <!-- Result/Error -->
-                <div v-if="resultText" class="mt-3">
-                    <div class="text-gray-400 text-xs mb-1">Result:</div>
+                <div v-if="resultText" class="mt-4 border-t-1">
+                    <div class="text-xs my-2">Result:</div>
                     <div class="flex items-start gap-2">
                         <pre
-                            class="text-gray-300 font-mono text-sm leading-relaxed break-all whitespace-pre-wrap">{{ resultText }}</pre>
+                            class="font-mono text-sm leading-relaxed break-all whitespace-pre-wrap">{{ resultText }}</pre>
                     </div>
                 </div>
             </div>
-        </template>
-    </Card>
+        </div>
+    </div>
 
     <!-- Full Content Modal -->
-    <Dialog v-model:visible="showFullContent" modal :header="`File: ${data.file_path}`"
-        :style="{ width: '90vw', maxWidth: '1000px' }" :dismissableMask="true">
+    <Dialog v-model:visible="showFullContent" modal class="w-[90vw] max-w-[1000px]" :dismissableMask="true">
+        <template #header>
+            <div>
+                {{ data.file_path }}
+            </div>
+        </template>
         <div class="space-y-4">
-            <div class="bg-gray-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                <pre
-                    class="text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ data.content }}</pre>
+            <div
+                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar border border-surface-600">
+                <pre class="font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ data.content }}</pre>
             </div>
             <div class="flex justify-end gap-2">
                 <Button severity="secondary" @click="copyToClipboard" size="small">
                     <i class="pi pi-copy mr-1"></i>
                     Copy
                 </Button>
-                <Button severity="primary" @click="showFullContent = false" size="small">
+                <Button severity="secondary" @click="showFullContent = false" size="small">
                     Close
                 </Button>
             </div>
@@ -92,27 +96,27 @@
 <style scoped>
 /* Custom scrollbar styling for this component only */
 .custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #374151 transparent;
+    scrollbar-width: thin;
+    scrollbar-color: #374151 transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+    width: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-  border: none;
+    background: transparent;
+    border: none;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #374151;
-  border-radius: 3px;
-  border: none;
+    background: #374151;
+    border-radius: 3px;
+    border: none;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+    background: #4b5563;
 }
 </style>
 
@@ -121,7 +125,6 @@ import { computed, ref } from 'vue'
 import type { ProjectClaudeMessage } from '../../types/claude'
 import type { WriteData } from '../../utils/messageExtractors'
 import { useChatStore } from '../../stores/chat'
-import Card from 'primevue/card'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'

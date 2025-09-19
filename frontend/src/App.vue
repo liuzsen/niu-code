@@ -1,8 +1,9 @@
 <template>
-  <div class="h-full flex flex-col" style="background-color: var(--surface-ground)">
+  <div class="h-full flex flex-col">
     <AppHeader />
-
-    <ChatLayout />
+    <div class=" overflow-hidden bg-surface-200 dark:bg-surface-900">
+      <ChatLayout />
+    </div>
   </div>
 </template>
 

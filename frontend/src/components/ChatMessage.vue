@@ -1,22 +1,25 @@
 <template>
-  <div class="flex w-full"
+  <div class="flex w-full dark:text-surface-300 font-normal"
     :class="{ 'justify-end': message.from === 'user', 'justify-start': message.from === 'agent' }">
     <div class="flex items-start w-full space-x-2 max-w-3xl"
       :class="{ 'flex-row-reverse space-x-reverse': message.from === 'user' }">
+      <!-- Avatar -->
       <div class="flex-shrink-0">
         <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-medium text-sm"
           :class="message.from === 'user' ? 'bg-blue-500' : 'bg-emerald-500'">
           {{ message.from === 'user' ? 'U' : 'A' }}
         </div>
       </div>
+
       <div class="flex flex-col flex-1">
-        <div class="rounded-2xl px-4 pt-2 pb-2 text-sm" :class="message.from === 'user'
-          ? 'bg-blue-500 text-white rounded-br-lg'
-          : 'bg-slate-100 text-slate-900 rounded-bl-lg'">
+        <div class=" rounded-xl p-4 text-sm" :class="message.from === 'user'
+          ? 'bg-surface-50'
+          : 'bg-surface-100 dark:bg-surface-800'">
           <!-- 用户消息 -->
           <div v-if="isUserMessage(message)" class="whitespace-pre-wrap break-words">
             {{ message.content }}
           </div>
+
           <!-- Agent 消息-->
           <div v-else-if="rendererInfo">
             <component :is="rendererInfo.component" :message="rendererInfo.props.message"
@@ -24,7 +27,7 @@
           </div>
         </div>
 
-        <p class="text-xs mt-1 text-slate-500 px-1" :class="{ 'text-right': message.from === 'user' }">
+        <p class="text-xs mt-1 px-1" :class="{ 'text-right': message.from === 'user' }">
           {{ formatTime }}
         </p>
       </div>
