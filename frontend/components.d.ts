@@ -9,9 +9,25 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AppHeader: typeof import('./src/components/AppHeader.vue')['default']
+    BashRenderer: typeof import('./src/components/renderers/BashRenderer.vue')['default']
+    Button: typeof import('primevue/button')['default']
     ChatLayout: typeof import('./src/components/ChatLayout.vue')['default']
     ChatMessage: typeof import('./src/components/ChatMessage.vue')['default']
+    Dialog: typeof import('primevue/dialog')['default']
+    EditRenderer: typeof import('./src/components/renderers/EditRenderer.vue')['default']
+    FallbackRenderer: typeof import('./src/components/renderers/FallbackRenderer.vue')['default']
+    MarkdownRender: typeof import('./src/components/renderers/MarkdownRender.vue')['default']
+    MarkdownRenderer: typeof import('./src/components/renderers/MarkdownRenderer.vue')['default']
     MessageInput: typeof import('./src/components/MessageInput.vue')['default']
     MessageList: typeof import('./src/components/MessageList.vue')['default']
+    MultiEditRenderer: typeof import('./src/components/renderers/MultiEditRenderer.vue')['default']
+    ReadRenderer: typeof import('./src/components/renderers/ReadRenderer.vue')['default']
+    ResultRenderer: typeof import('./src/components/renderers/ResultRenderer.vue')['default']
+    SystemRenderer: typeof import('./src/components/renderers/SystemRenderer.vue')['default']
+    Tag: typeof import('primevue/tag')['default']
+    TextRenderer: typeof import('./src/components/renderers/TextRenderer.vue')['default']
+    TodoWriteRenderer: typeof import('./src/components/renderers/TodoWriteRenderer.vue')['default']
+    UserMessageRenderer: typeof import('./src/components/renderers/UserMessageRenderer.vue')['default']
+    WriteRenderer: typeof import('./src/components/renderers/WriteRenderer.vue')['default']
   }
 }

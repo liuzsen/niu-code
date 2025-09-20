@@ -1,7 +1,8 @@
-import { ref, reactive } from 'vue'
+import { reactive } from 'vue'
 import type { ClientMessage, ServerMessage } from '../types/index'
-import type { ChatMessage } from '../types/chat'
-import { createUserMessage, createAgentMessage } from '../types/chat'
+import { loadMockData } from './mock-loader'
+import { createAgentMessage, createUserMessage } from '../types/chat'
+import { useChatStore } from '../stores/chat'
 
 interface WebSocketState {
   connected: boolean
@@ -15,6 +16,7 @@ export class WebSocketService {
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000
+  private chatStore: ReturnType<typeof useChatStore> | null = null
 
   public state = reactive<WebSocketState>({
     connected: false,
@@ -22,14 +24,31 @@ export class WebSocketService {
     error: null
   })
 
-  public messages = ref<ChatMessage[]>([])
-
   constructor(url: string) {
     this.url = url
   }
 
+  // 延迟获取 store，确保 Pinia 已经初始化
+  private getChatStore() {
+    if (!this.chatStore) {
+      this.chatStore = useChatStore()
+    }
+    return this.chatStore
+  }
+
+  useMock() {
+    this.state.connected = true;
+    const messages = loadMockData();
+    const store = this.getChatStore()
+    for (const message of messages) {
+      store.processMessage(message)
+    }
+  }
+
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
+      // this.useMock()
+
       if (this.state.connected || this.state.connecting) {
         resolve()
         return
@@ -103,45 +122,18 @@ export class WebSocketService {
   }
 
   sendUserInput(content: string): void {
-    this.messages.value.push(createUserMessage(content))
-
     const message: ClientMessage = {
       type: 'user_input',
-      data: { content }
+      content,
     }
 
-    this.sendMessage(message)
+    this.sendMessage(message);
+    this.getChatStore().processMessage(createUserMessage(content));
   }
 
-  startSession(): void {
-    const message: ClientMessage = {
-      type: 'start_session',
-      data: {}
-    }
-
-    this.sendMessage(message)
-  }
-
-  private handleServerMessage(message: ServerMessage): void {
+  private handleServerMessage(message: ServerMessage) {
     console.log('Received server message:', message)
-
-    switch (message.type) {
-      case 'claude_message':
-        this.messages.value.push(createAgentMessage(message))
-        break
-
-      case 'session_started':
-        this.messages.value.push(createAgentMessage(message))
-        break
-
-      case 'error':
-        this.messages.value.push(createAgentMessage(message))
-        this.state.error = message.data.message
-        break
-
-      default:
-        console.log('Unknown server message type:', message.type)
-    }
+    this.getChatStore().processMessage(createAgentMessage(message))
   }
 
   private attemptReconnect(): void {

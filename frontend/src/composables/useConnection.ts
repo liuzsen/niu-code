@@ -12,7 +12,6 @@ export function useConnection() {
   const connect = async () => {
     try {
       await wsService.connect()
-      wsService.startSession()
     } catch (error) {
       console.error('Connection failed:', error)
     }

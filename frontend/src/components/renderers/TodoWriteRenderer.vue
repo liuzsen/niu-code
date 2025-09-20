@@ -1,0 +1,59 @@
+<template>
+    <div class=" bg-surface-100 dark:bg-surface-800 rounded-lg">
+        <!-- Todo List Header -->
+        <div class="flex items-center gap-2 mb-3">
+            <i class="pi pi-list dark:text-surface-400"></i>
+            <span class="text-sm">Todo List</span>
+        </div>
+
+        <!-- Todo List Content -->
+        <div class="space-y-1">
+            <div v-for="(todo, index) in data.todos" :key="index"
+                class="flex items-start gap-3 p-2 rounded-lg transition-colors hover:bg-surface-200 dark:hover:bg-surface-900">
+                <!-- Status Icon -->
+                <div class="flex-shrink-0 mt-0.5">
+                    <i class="" :class="{
+                        ' bg-gray-50 pi pi-circle rounded-full': todo.status == 'pending',
+                        'text-primary-400 pi pi-spin pi-spinner': todo.status === 'in_progress',
+                        'text-green-500 pi pi-check-circle': todo.status === 'completed',
+                    }" />
+                </div>
+
+                <!-- Todo Content -->
+                <div class="text-sm font-medium flex-1 min-w-0">
+                    {{ todo.content }}
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script setup lang="ts">
+import type { ClaudeMessageWrapper } from '../../types';
+import type { TodoWriteData } from '../../utils/messageExtractors'
+
+interface Props {
+    message: ClaudeMessageWrapper
+    data: TodoWriteData
+}
+
+defineProps<Props>()
+
+</script>
+
+<style scoped>
+/* 确保小图标尺寸一致 */
+.pi {
+    font-size: 1rem;
+}
+
+/* 任务项悬停效果 */
+.transition-colors {
+    transition: background-color 0.2s ease;
+}
+
+/* 文本溢出处理 */
+.min-w-0 {
+    min-width: 0;
+}
+</style>

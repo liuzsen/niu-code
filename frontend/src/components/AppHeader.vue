@@ -1,5 +1,5 @@
 <template>
-  <header class="bg-surface-100 dark:bg-surface-600 p-4 flex items-center justify-between">
+  <header class="bg-surface-100 dark:bg-surface-800 p-4 flex items-center justify-between">
     <div class="flex items-center space-x-3">
       <i class="pi pi-comments text-xl"></i>
       <h1 class="text-lg font-semibold">Claude Code Web</h1>

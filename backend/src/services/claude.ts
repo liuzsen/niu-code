@@ -1,7 +1,6 @@
 import { query, SDKUserMessage, PermissionMode } from '@anthropic-ai/claude-code';
-import { ProjectClaudeMessage, createProjectClaudeMessage } from '../types/claude.js';
-import { ServerMessage, createClaudeMessageWrapper } from '../types/websocket.js';
-import { Session, SessionInfo, SessionConfig, createSessionInfo, createSessionMessage, generateSessionId } from '../types/session.js';
+import { ClaudeMessageWrapper, ServerMessage, createClaudeMessageWrapper } from '../types/ws-message.js';
+import { SessionConfig } from '../types/session.js';
 
 export interface ClaudeServiceOptions {
   cwd?: string;
@@ -13,14 +12,12 @@ export interface ClaudeServiceOptions {
 
 export interface SessionResult {
   sessionId: string;
-  messages: ProjectClaudeMessage[];
-  result?: ProjectClaudeMessage;
+  claude_messages: ClaudeMessageWrapper[];
+  result?: ClaudeMessageWrapper;
   error?: string;
 }
 
 export class ClaudeService {
-  private activeSessions: Map<string, Session> = new Map();
-
   constructor(private options: ClaudeServiceOptions = {}) {
     this.options = {
       cwd: process.cwd(),
@@ -37,27 +34,16 @@ export class ClaudeService {
     };
   }
 
-  async processPrompt(prompt: string, sessionId?: string): Promise<AsyncGenerator<ServerMessage, SessionResult, unknown>> {
-    const actualSessionId = sessionId || generateSessionId();
-
-    // Create or get session
-    let session = this.activeSessions.get(actualSessionId);
-    if (!session) {
-      session = this.createSession(actualSessionId);
-      this.activeSessions.set(actualSessionId, session);
-    }
-
-    // Update session state
-    session.info.state = 'processing';
-    session.info.lastActivity = new Date().toISOString();
-
-    return this.createQueryStream(prompt, session);
+  async processPrompt(prompt: string): Promise<AsyncGenerator<ServerMessage, SessionResult, unknown>> {
+    return this.createQueryStream(prompt, this.getSessionConfig());
   }
 
-  private async *createQueryStream(prompt: string, session: Session): AsyncGenerator<ServerMessage, SessionResult, unknown> {
+  private async *createQueryStream(prompt: string, config: SessionConfig): AsyncGenerator<ServerMessage, SessionResult, unknown> {
     const queue: ServerMessage[] = [];
     let isProcessing = true;
     let sessionResult: SessionResult | null = null;
+    let messages: ClaudeMessageWrapper[] = []
+    let sessionId = "no-session-id"
 
     // Process the query in background
     const processingPromise = (async () => {
@@ -70,10 +56,9 @@ export class ClaudeService {
                 role: 'user',
                 content: prompt
               },
-              session_id: session.id,
+              session_id: "",
               parent_tool_use_id: null,
             } as SDKUserMessage;
-            console.log("yield msg", msg);
             yield msg;
 
             // Keep yielding while processing
@@ -83,7 +68,7 @@ export class ClaudeService {
           })(),
           options: {
             canUseTool: async (toolName, toolInput, suggestions) => {
-              if (session.info.config.debug) {
+              if (config.debug) {
                 console.log('Tool permission request:', { toolName, toolInput, suggestions });
               }
 
@@ -94,44 +79,33 @@ export class ClaudeService {
                 updatedPermissions: []
               };
             },
-            env: session.info.config.env,
-            maxTurns: session.info.config.maxTurns,
-            cwd: session.info.config.cwd,
-            permissionMode: session.info.config.permissionMode as PermissionMode,
+            env: config.env,
+            maxTurns: config.maxTurns,
+            cwd: config.cwd,
+            permissionMode: config.permissionMode as PermissionMode,
             stderr: (data) => {
               console.error('Claude SDK stderr:', data);
             },
           }
         });
 
+        let index = 0;
+
         for await (const sdkMessage of stream) {
-          // Create project Claude message directly from SDK message
-          const projectMessage = createProjectClaudeMessage(
-            sdkMessage,
-            session.id,
-            session.messages.length
-          );
-
-          // Add message to session
-          const sessionMessage = createSessionMessage(projectMessage);
-          session.messages.push(sessionMessage);
-
-          // Update session info
-          session.info.messageCount = session.messages.length;
-          session.info.lastActivity = new Date().toISOString();
-
-          // Queue message for yielding
-          queue.push(createClaudeMessageWrapper(projectMessage));
+          let serverMsg = createClaudeMessageWrapper(index, sdkMessage);
+          sessionId = sdkMessage.session_id;
+          index += 1;
+          messages.push(serverMsg);
+          queue.push(serverMsg);
 
           // If we get a result message, prepare final result
           if (sdkMessage.type === 'result') {
             sessionResult = {
-              sessionId: session.id,
-              messages: session.messages.map(m => m.claudeMessage),
-              result: projectMessage
+              sessionId: sdkMessage.session_id,
+              claude_messages: messages,
+              result: serverMsg
             };
 
-            session.info.state = 'completed';
             isProcessing = false;
             return;
           }
@@ -140,21 +114,18 @@ export class ClaudeService {
         // If we reach here without a result message, create a default result
         if (!sessionResult) {
           sessionResult = {
-            sessionId: session.id,
-            messages: session.messages.map(m => m.claudeMessage),
+            sessionId: messages[0].sdkMessage.session_id,
+            claude_messages: messages,
           };
-          session.info.state = 'completed';
         }
 
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         sessionResult = {
-          sessionId: session.id,
-          messages: session.messages.map(m => m.claudeMessage),
+          sessionId,
+          claude_messages: messages,
           error: errorMessage
         };
-
-        session.info.state = 'error';
       } finally {
         isProcessing = false;
       }
@@ -179,81 +150,22 @@ export class ClaudeService {
     } else {
       // Fallback result
       return {
-        sessionId: session.id,
-        messages: session.messages.map(m => m.claudeMessage),
+        sessionId,
+        claude_messages: messages,
         error: 'Unknown error occurred'
       };
     }
   }
 
-  private mapPermissionMode(mode: PermissionMode): 'default' | 'auto-allow' | 'deny' {
-    switch (mode) {
-      case 'default':
-        return 'default';
-      case 'acceptEdits':
-        return 'auto-allow';
-      case 'bypassPermissions':
-        return 'auto-allow';
-      case 'plan':
-        return 'default';
-      default:
-        return 'default';
-    }
-  }
-
-  private createSession(sessionId: string): Session {
+  private getSessionConfig(): SessionConfig {
     const config: SessionConfig = {
       cwd: this.options.cwd!,
-      permissionMode: this.mapPermissionMode(this.options.permissionMode!),
+      permissionMode: this.options.permissionMode || "default",
       maxTurns: this.options.maxTurns!,
       env: this.options.env!,
       debug: this.options.debug!
     };
 
-    const info = createSessionInfo(sessionId, config);
-
-    return {
-      id: sessionId,
-      info,
-      messages: [],
-      config
-    };
-  }
-
-  getSession(sessionId: string): Session | undefined {
-    return this.activeSessions.get(sessionId);
-  }
-
-  getAllSessions(): Session[] {
-    return Array.from(this.activeSessions.values());
-  }
-
-  updateSession(sessionId: string, updates: Partial<SessionInfo>): void {
-    const session = this.activeSessions.get(sessionId);
-    if (session) {
-      session.info = { ...session.info, ...updates, updatedAt: new Date().toISOString() };
-    }
-  }
-
-  deleteSession(sessionId: string): void {
-    this.activeSessions.delete(sessionId);
-  }
-
-  clearAllSessions(): void {
-    this.activeSessions.clear();
-  }
-
-  getSessionStats() {
-    const sessions = this.getAllSessions();
-    return {
-      totalSessions: sessions.length,
-      activeSessions: sessions.filter(s => s.info.state === 'active' || s.info.state === 'processing').length,
-      completedSessions: sessions.filter(s => s.info.state === 'completed').length,
-      errorSessions: sessions.filter(s => s.info.state === 'error').length,
-      averageMessageCount: sessions.length > 0
-        ? sessions.reduce((sum, s) => sum + s.info.messageCount, 0) / sessions.length
-        : 0,
-      totalMessages: sessions.reduce((sum, s) => sum + s.info.messageCount, 0)
-    };
+    return config
   }
 }
