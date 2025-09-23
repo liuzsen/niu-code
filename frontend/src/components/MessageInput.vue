@@ -31,6 +31,11 @@
           <!-- Language/Settings Button -->
           <Button icon="pi pi-language" severity="secondary" variant="text" size="small"
             class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+
+          <!-- Export Button -->
+          <Button icon="pi pi-download" severity="secondary" variant="text" size="small"
+            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" @click="exportCurrentChat"
+            :disabled="chatStore.messages.length === 0" title="导出对话" />
         </div>
 
         <!-- Right Side Buttons -->
@@ -43,6 +48,7 @@
         </div>
       </div>
     </div>
+
 
     <!-- Error Message -->
     <div v-if="error" class="mt-2 text-sm text-red-500">
@@ -57,7 +63,9 @@ import { ref, watch, nextTick, computed, inject } from 'vue'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import { useChatStore } from '../stores/chat'
+import { useToast } from 'primevue/usetoast'
 import type { MessageManager } from '../services/messageManager'
+import { downloadChat } from '../utils/chatExporter'
 
 interface Props {
   disabled?: boolean
@@ -72,6 +80,7 @@ const textareaRef = ref()
 // 注入 messageManager
 const messageManager = inject('messageManager') as MessageManager
 const chatStore = useChatStore()
+const toast = useToast()
 
 // 从 store 获取输入状态
 const storeDisabled = computed(() => chatStore.isInputDisabled)
@@ -115,6 +124,37 @@ const handleKeydown = (e: KeyboardEvent) => {
   } else {
     // Send message when Enter is pressed without Shift
     sendUserInput()
+  }
+}
+
+// 导出当前对话
+function exportCurrentChat() {
+  if (chatStore.messages.length === 0) {
+    toast.add({
+      severity: 'warn',
+      summary: '提示',
+      detail: '当前没有可导出的对话',
+      life: 3000
+    })
+    return
+  }
+
+  try {
+    downloadChat(chatStore)
+
+    toast.add({
+      severity: 'success',
+      summary: '导出成功',
+      detail: '对话已成功导出',
+      life: 3000
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: '导出失败',
+      detail: `导出对话时发生错误: ${error}`,
+      life: 5000
+    })
   }
 }
 

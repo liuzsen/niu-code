@@ -8,8 +8,7 @@ import type {
   ToolPermissionRequest,
 } from '../types/message'
 
-
-interface ChatState {
+export interface ChatState {
   // 会话信息
   currentSession: {
     id: string
@@ -46,6 +45,9 @@ export interface ChatStore {
   setSessionInputState: (disabled: boolean, reason: InputDisableReason, pendingRequest?: ToolPermissionRequest | string) => void
   handlePermissionResult: () => void
   getCurrentChatId: () => string
+
+  loadFromJson: (jsonString: string) => void
+  clearAll: () => void
 }
 
 export const useChatStore = defineStore('chat', {
@@ -120,7 +122,37 @@ export const useChatStore = defineStore('chat', {
     // 获取当前会话 ID
     getCurrentChatId(): string {
       return this.currentSession.id
-    }
+    },
+
+    // 从 JSON 字符串加载状态
+    loadFromJson(jsonString: string): void {
+      try {
+        const data = JSON.parse(jsonString)
+
+        this.currentSession = data.currentSession
+        this.messages = data.messages
+        this.inputState = data.inputState
+        this.toolResults = new Map(Object.entries(data.toolResults || {}))
+      } catch (error) {
+        console.error('Failed to load chat state from JSON:', error)
+        throw new Error(`Failed to load chat state: ${error}`)
+      }
+    },
+
+    // 清空所有数据
+    clearAll(): void {
+      this.currentSession = {
+        id: uuidv4(),
+        title: '新对话',
+        createdAt: Date.now()
+      }
+      this.messages = []
+      this.toolResults = new Map()
+      this.inputState = {
+        disabled: false,
+        reason: 'normal'
+      }
+    },
   },
 
   getters: {

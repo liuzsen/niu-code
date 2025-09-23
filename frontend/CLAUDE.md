@@ -27,4 +27,3 @@
 
 ## Notes
 
-- mock messages data: @frontend/src/assets/opcode_expanded.json
