@@ -14,7 +14,7 @@ pub struct ClientMessage {
 }
 
 #[derive(Deserialize)]
-#[serde(tag = "type")]
+#[serde(tag = "kind")]
 #[serde(rename_all = "snake_case")]
 pub enum ClientMessageData {
     UserInput(UserInput),
@@ -36,13 +36,18 @@ pub struct ServerMessage {
 }
 
 #[derive(From, Serialize)]
-#[serde(tag = "type")]
+#[serde(tag = "kind")]
 #[serde(rename_all = "snake_case")]
 pub enum ServerMessageData {
     Claude(SDKMessage),
-    ServerError(String),
+    ServerError(ServerError),
     SystemInfo(ClaudeSystemInfo),
     CanUseTool(CanUseToolParams),
+}
+
+#[derive(Serialize)]
+pub struct ServerError {
+    error: String,
 }
 
 #[derive(Serialize)]
