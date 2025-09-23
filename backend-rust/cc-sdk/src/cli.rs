@@ -4,10 +4,12 @@ use std::{
     fmt::Debug,
     ops::ControlFlow,
     path::{Path, PathBuf},
+    pin::Pin,
     process::Stdio,
+    task::{Context, Poll},
 };
 
-use anyhow::{Context, Result, bail};
+use anyhow::{Context as _, Result, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio::{
@@ -29,11 +31,48 @@ use crate::types::{
     PermissionUpdate, SDKMessage, SDKUserMessage, ToolInputSchemas,
 };
 
-pub type PromptStream = Box<dyn Stream<Item = SDKUserMessage> + Send + Unpin + 'static>;
+pub trait PromptGenerator: Send + Unpin + 'static {
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<SDKUserMessage>>;
+}
+
+impl Stream for Box<dyn PromptGenerator> {
+    type Item = SDKUserMessage;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let this = &mut **self.get_mut();
+        let this = Pin::new(this);
+        PromptGenerator::poll_next(this, cx)
+    }
+}
 
 pub enum Prompt {
     Oneshot(String),
-    Stream(PromptStream),
+    Stream(Box<dyn PromptGenerator>),
+}
+
+pub trait MyFrom<T> {
+    fn my_from(v: T) -> Self;
+}
+
+impl<T> MyFrom<T> for Prompt
+where
+    T: PromptGenerator,
+{
+    fn my_from(v: T) -> Self {
+        Self::Stream(Box::new(v))
+    }
+}
+
+impl MyFrom<String> for Prompt {
+    fn my_from(v: String) -> Self {
+        Prompt::Oneshot(v)
+    }
+}
+
+impl MyFrom<&'static str> for Prompt {
+    fn my_from(v: &'static str) -> Self {
+        Prompt::Oneshot(v.to_owned())
+    }
 }
 
 impl Prompt {
@@ -44,15 +83,15 @@ impl Prompt {
 
 impl<T> From<Box<T>> for Prompt
 where
-    T: Stream<Item = SDKUserMessage> + Send + Unpin + 'static,
+    T: PromptGenerator,
 {
     fn from(value: Box<T>) -> Self {
         Self::Stream(value)
     }
 }
 
-impl From<PromptStream> for Prompt {
-    fn from(value: PromptStream) -> Self {
+impl From<Box<dyn PromptGenerator>> for Prompt {
+    fn from(value: Box<dyn PromptGenerator>) -> Self {
         Self::Stream(value)
     }
 }
@@ -70,9 +109,7 @@ impl From<String> for Prompt {
     }
 }
 
-#[pin_project::pin_project]
 pub struct QueryStream {
-    #[pin]
     receiver: UnboundedReceiver<SDKMessage>,
     writer_chan: Option<UnboundedSender<ClaudeWriterMessage>>,
     claude_sys_info: Option<ClaudeSysInfo>,
@@ -82,11 +119,10 @@ impl Stream for QueryStream {
     type Item = SDKMessage;
 
     fn poll_next(
-        self: std::pin::Pin<&mut Self>,
+        mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
-        let mut this = self.project();
-        this.receiver.poll_recv(cx)
+        self.as_mut().receiver.poll_recv(cx)
     }
 }
 
@@ -97,7 +133,7 @@ struct ClaudeReader {
 }
 
 struct ClaudeWriter {
-    prompt: Box<dyn Stream<Item = SDKUserMessage> + Send + Unpin>,
+    prompt: Box<dyn PromptGenerator>,
     claude_stdin: ChildStdin,
     receiver: UnboundedReceiver<ClaudeWriterMessage>,
 }
@@ -417,9 +453,9 @@ pub struct ClaudeSysInfo {
 impl QueryStream {
     pub async fn new<T>(prompt: T, mut options: ClaudeCodeOptions) -> anyhow::Result<Self>
     where
-        Prompt: From<T>,
+        Prompt: MyFrom<T>,
     {
-        let prompt = Prompt::from(prompt);
+        let prompt = Prompt::my_from(prompt);
         let mut child = spawn_cc_cli(&prompt, &options)?;
         debug!("claude code cli running");
 
@@ -507,7 +543,7 @@ impl QueryStream {
         self.send_req(QueryCommand::Interrupt {})
     }
 
-    pub async fn set_permission_mode(&self, mode: PermissionMode) -> Result<()> {
+    pub fn set_permission_mode(&self, mode: PermissionMode) -> Result<()> {
         self.send_req(QueryCommand::SetPermissionMode { mode })
     }
 

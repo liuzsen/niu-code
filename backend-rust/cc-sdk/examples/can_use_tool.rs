@@ -6,6 +6,7 @@ use std::{
 };
 
 use cc_sdk::{
+    cli::PromptGenerator,
     query,
     types::{
         APIUserMessage, CanUseToolCallBack, ClaudeCodeOptions, DebugCallBack, PermissionAllow,
@@ -13,7 +14,7 @@ use cc_sdk::{
     },
 };
 use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
-use tokio_stream::{Stream, StreamExt};
+use tokio_stream::StreamExt;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
@@ -145,17 +146,15 @@ fn set_tracing() {
     tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
 }
 
-struct PromptStream {
+struct PromptGen {
     receiver: UnboundedReceiver<String>,
 }
 
-impl Stream for PromptStream {
-    type Item = SDKUserMessage;
-
+impl PromptGenerator for PromptGen {
     fn poll_next(
         self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
+    ) -> Poll<Option<SDKUserMessage>> {
         let prompt = ready!(self.get_mut().receiver.poll_recv(cx));
         let prompt = match prompt {
             Some(p) => p,
@@ -181,9 +180,9 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("This is being logged on the info level");
     let options = options();
     let (tx, rx) = unbounded_channel();
-    let prompt = PromptStream { receiver: rx };
+    let prompt = PromptGen { receiver: rx };
 
-    let mut claude = query(Box::new(prompt), options).await?;
+    let mut claude = query(prompt, options).await?;
 
     let prompt = "Use the cat command to get the first 3 lines of the file Cargo.toml and write them to the file test-output.txt.";
     tx.send(prompt.to_owned()).unwrap();
