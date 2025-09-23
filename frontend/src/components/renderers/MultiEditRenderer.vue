@@ -175,10 +175,10 @@ import { useChatStore } from '../../stores/chat'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import type { ClaudeMessageWrapper } from '../../types'
+import type { SDKMessage } from '@anthropic-ai/claude-code'
 
 interface Props {
-    message: ClaudeMessageWrapper
+    message: SDKMessage
     data: MultiEditData
 }
 

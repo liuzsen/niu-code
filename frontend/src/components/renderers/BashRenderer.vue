@@ -66,10 +66,10 @@ import { computed } from 'vue'
 import type { BashData } from '../../utils/messageExtractors'
 import { cleanToolResult } from '../../utils/messageExtractors'
 import { useChatStore } from '../../stores/chat'
-import type { ClaudeMessageWrapper } from '../../types'
+import type { SDKMessage } from '@anthropic-ai/claude-code'
 
 interface Props {
-    message: ClaudeMessageWrapper
+    message: SDKMessage
     data: BashData
 }
 

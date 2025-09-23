@@ -1,98 +1,150 @@
 import { defineStore } from 'pinia'
-import type { ChatMessage } from '../types/chat'
+import { v4 as uuidv4 } from 'uuid'
 import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
-import { extract_tool_result } from '../utils/messageExtractors'
+import type { SDKMessage } from '@anthropic-ai/claude-code'
+import type {
+  ChatMessage,
+  UserInput,
+  ToolPermissionRequest,
+} from '../types/message'
 
+
+interface ChatState {
+  // 会话信息
+  currentSession: {
+    id: string
+    title: string
+    createdAt: number
+  }
+
+  // 消息列表
+  messages: ChatMessage[]
+
+  // 工具结果
+  toolResults: Map<string, ToolResultBlockParam>
+
+  // 输入状态
+  inputState: {
+    disabled: boolean
+    reason: InputDisableReason
+    pendingRequest?: ToolPermissionRequest
+    error?: string
+  }
+
+}
+
+export interface ChatStore {
+  currentSession: ChatState['currentSession']
+  messages: ChatState['messages']
+  toolResults: ChatState['toolResults']
+  inputState: ChatState['inputState']
+
+  // Actions
+  addUserMessage: (chatId: string, content: UserInput) => void
+  addClaudeMessage: (chatId: string, content: SDKMessage) => void
+  setToolResult: (toolUseId: string, result: ToolResultBlockParam) => void
+  setSessionInputState: (disabled: boolean, reason: InputDisableReason, pendingRequest?: ToolPermissionRequest | string) => void
+  handlePermissionResult: () => void
+  getCurrentChatId: () => string
+}
 
 export const useChatStore = defineStore('chat', {
-  state: () => ({
-    standaloneMessages: [] as ChatMessage[],
-    toolResults: new Map<string, ToolResultBlockParam>()
+  state: (): ChatState => ({
+    currentSession: {
+      id: uuidv4(),
+      title: '新对话',
+      createdAt: Date.now()
+    },
+    messages: [],
+    toolResults: new Map(),
+    inputState: {
+      disabled: false,
+      reason: 'normal'
+    }
   }),
 
   actions: {
-    // 统一的消息处理入口
-    processMessage(chatMessage: ChatMessage) {
-      if (chatMessage.from === 'user') {
-        this.addMessage(chatMessage)
-      } else {
-        this.processAgentMessage(chatMessage)
-      }
-    },
 
-    // 处理代理消息
-    processAgentMessage(message: ChatMessage) {
-      if (message.from !== 'agent') return
-
-      if (message.serverMessage.type === 'claude_message') {
-        const toolResult = extract_tool_result(message.serverMessage.sdkMessage)
-        if (toolResult) {
-          this.setToolResult(toolResult.tool_use_id, toolResult)
-        } else {
-          this.addMessage(message)
+    // 添加用户消息
+    addUserMessage(chatId: string, content: UserInput) {
+      const message: ChatMessage = {
+        chat_id: chatId,
+        data: {
+          from: 'human',
+          content
         }
-      } else {
-        console.error('Unknown message:', message)
-        this.addMessage(message)
       }
+      this.messages.push(message)
     },
 
-    // 添加消息
-    addMessage(message: ChatMessage) {
-      this.standaloneMessages.push(message)
+    // 添加 Claude 消息
+    addClaudeMessage(chatId: string, content: SDKMessage) {
+      const message: ChatMessage = {
+        chat_id: chatId,
+        data: {
+          from: 'agent',
+          content
+        }
+      }
+      this.messages.push(message)
     },
+
 
     // 设置工具结果
-    setToolResult(id: string, result: ToolResultBlockParam) {
-      this.toolResults.set(id, result)
+    setToolResult(toolUseId: string, result: ToolResultBlockParam) {
+      this.toolResults.set(toolUseId, result)
     },
 
-    // 获取工具结果
-    getToolResult(id: string): ToolResultBlockParam | undefined {
-      return this.toolResults.get(id)
+    // 设置输入状态
+    setSessionInputState(
+      disabled: boolean,
+      reason: InputDisableReason,
+      pendingRequest?: ToolPermissionRequest | string
+    ) {
+      this.inputState = {
+        disabled,
+        reason,
+        pendingRequest: typeof pendingRequest === 'string' ? undefined : pendingRequest,
+        error: reason === 'error' && typeof pendingRequest === 'string' ? pendingRequest : undefined
+      }
     },
 
-    // 清空消息
-    clearMessages() {
-      this.standaloneMessages = []
+    // 处理权限结果
+    handlePermissionResult() {
+      this.setSessionInputState(false, 'normal')
+      // 清除权限请求
+      this.inputState.pendingRequest = undefined
     },
 
-    // 清空工具结果
-    clearToolResults() {
-      this.toolResults.clear()
-    },
 
-    // 清空所有数据
-    clearAll() {
-      this.clearMessages()
-      this.clearToolResults()
+    // 获取当前会话 ID
+    getCurrentChatId(): string {
+      return this.currentSession.id
     }
   },
 
   getters: {
     // 消息数量
-    messageCount: (state) => state.standaloneMessages.length,
+    messageCount: (state: ChatState) => state.messages.length,
 
-    // 是否为空消息列表
-    isEmptyMessages: (state) => state.standaloneMessages.length === 0,
+    // 输入是否被禁用
+    isInputDisabled: (state: ChatState) => state.inputState.disabled,
 
-    // 工具结果数量
-    toolResultCount: (state) => state.toolResults.size,
+    // 输入禁用原因
+    inputDisableReason: (state: ChatState) => state.inputState.reason,
 
-    // 是否为空工具结果
-    isEmptyToolResults: (state) => state.toolResults.size === 0,
+    // 待处理的权限请求
+    pendingPermissionRequest: (state: ChatState) => state.inputState.pendingRequest,
 
-    // 获取所有工具结果
-    getAllToolResults: (state) => Array.from(state.toolResults.values()),
-
-    // 获取最近的用户消息
-    lastUserMessage: (state) => state.standaloneMessages
-      .filter(msg => msg.from === 'user')
-      .pop(),
-
-    // 获取最近的代理消息
-    lastAgentMessage: (state) => state.standaloneMessages
-      .filter(msg => msg.from === 'agent')
-      .pop()
+    // 获取工具结果
+    getToolResult: (state: ChatState) => (toolUseId: string) => state.toolResults.get(toolUseId)
   }
 })
+
+// 输入状态类型
+export type InputDisableReason =
+  | 'normal'
+  | 'processing'
+  | 'tool_permission_pending'
+  | 'disconnected'
+  | 'error'

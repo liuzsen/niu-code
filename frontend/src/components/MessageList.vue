@@ -2,7 +2,7 @@
   <div
     class=" bg-surface-200 dark:bg-surface-900 flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar rounded-xl border-x border-y border-surface-300 dark:border-surface-700"
     ref="messagesContainer">
-    <ChatMessage v-for="message in displayMessages" :key="message.timestamp" :message="message" />
+    <ChatMessage v-for="(message, index) in displayMessages" :key="`${message.chat_id}-${index}`" :message="message" />
 
     <div v-if="displayMessages.length === 0" class="text-center mt-12" style="color: var(--text-color-secondary)">
       <i class="pi pi-comments text-4xl mb-4 block"></i>
@@ -19,7 +19,7 @@ import { useChatStore } from '../stores/chat'
 
 // 使用统一的聊天 store
 const chatStore = useChatStore()
-const displayMessages = computed(() => chatStore.standaloneMessages)
+const displayMessages = computed(() => chatStore.messages)
 
 const messagesContainer = ref<HTMLElement>()
 

@@ -27,6 +27,7 @@ declare module 'vue' {
     Tag: typeof import('primevue/tag')['default']
     TextRenderer: typeof import('./src/components/renderers/TextRenderer.vue')['default']
     TodoWriteRenderer: typeof import('./src/components/renderers/TodoWriteRenderer.vue')['default']
+    ToolPermissionDialog: typeof import('./src/components/ToolPermissionDialog.vue')['default']
     UserMessageRenderer: typeof import('./src/components/renderers/UserMessageRenderer.vue')['default']
     WriteRenderer: typeof import('./src/components/renderers/WriteRenderer.vue')['default']
   }

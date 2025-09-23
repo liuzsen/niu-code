@@ -1,20 +1,18 @@
 <template>
   <div class="flex w-full dark:text-surface-300 font-normal"
-    :class="{ 'justify-end': message.from === 'user', 'justify-start': message.from === 'agent' }">
+    :class="{ 'justify-end': message.data.from === 'human', 'justify-start': message.data.from === 'agent' }">
     <div class="flex items-start w-full space-x-2 max-w-3xl"
-      :class="{ 'flex-row-reverse space-x-reverse': message.from === 'user' }">
+      :class="{ 'flex-row-reverse space-x-reverse': message.data.from === 'human' }">
       <div class="flex flex-col flex-1">
 
-        <!-- <div class="flex text-xs gap-2 justify-between px-2">
-        </div> -->
         <div class="flex gap-2 text-sm px-2 mb-0.5">
-          <p v-if="isUserMessage(message)" class=" text-green-500">Human</p>
-          <p v-if="isAgentMessage(message)" class=" dark:text-orange-300 text-surface-700">Main Agent</p>
+          <p v-if="message.data.from === 'human'" class=" text-green-500">Human</p>
+          <p v-if="message.data.from === 'agent'" class=" dark:text-orange-300 text-surface-700">Main Agent</p>
         </div>
 
         <div class=" rounded-xl p-4 text-sm bg-surface-100 dark:bg-surface-800">
           <!-- 用户消息 -->
-          <MarkdownRenderer v-if="isUserMessage(message)" :content="message.content" />
+          <MarkdownRenderer v-if="message.data.from === 'human'" :content="message.data.content.content" />
 
           <!-- Agent 消息-->
           <div v-else-if="rendererInfo">
@@ -36,8 +34,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { ChatMessage } from '../types/chat'
-import { isUserMessage, isAgentMessage } from '../types/chat'
+import type { ChatMessage } from '../types/message'
 import type { Component } from 'vue'
 
 // 导入渲染器组件
@@ -53,7 +50,6 @@ import ReadRenderer from './renderers/ReadRenderer.vue'
 import FallbackRenderer from './renderers/FallbackRenderer.vue'
 import { extract_system_init, extract_assistant_text, extract_bash, extract_todo_write, extract_write, extract_edit, extract_multi_edit, extract_read, extract_result } from '../utils/messageExtractors'
 import MarkdownRenderer from './renderers/MarkdownRenderer.vue'
-import type { ClaudeMessageWrapper } from '../types'
 import type { SDKMessage } from '@anthropic-ai/claude-code'
 
 interface Props {
@@ -66,7 +62,7 @@ const props = defineProps<Props>()
 interface RendererResult {
   component: Component
   props: {
-    message: ClaudeMessageWrapper
+    message: SDKMessage
     data: unknown
   }
 }
@@ -121,10 +117,10 @@ const rendererConfigs: Array<RendererConfig<unknown>> = [
 ]
 
 // 获取适合的渲染器组件和提取的数据
-const getRendererWithContent = (message: ClaudeMessageWrapper): RendererResult => {
+const getRendererWithContent = (message: SDKMessage): RendererResult => {
   // 按照优先级顺序尝试每个提取函数
   for (const config of rendererConfigs) {
-    const data = config.extractor(message.sdkMessage)
+    const data = config.extractor(message)
     if (data !== null) {
       return {
         component: config.component,
@@ -148,26 +144,14 @@ const getRendererWithContent = (message: ClaudeMessageWrapper): RendererResult =
 
 // 获取消息的渲染器信息
 const rendererInfo = computed(() => {
-  if (!isAgentMessage(props.message)) return null
+  if (props.message.data.from !== 'agent') return null
 
-  const claudeMessage = computed(() => {
-    if (isAgentMessage(props.message) && props.message.serverMessage.type === 'claude_message') {
-      return props.message.serverMessage
-    }
-    return null
-  })
-
-  if (!claudeMessage.value) return null
-
-  if (claudeMessage.value.type == "claude_message") {
-    return getRendererWithContent(claudeMessage.value)
-  }
-
-  return null
+  const claudeMessage = props.message.data.content
+  return getRendererWithContent(claudeMessage)
 })
 
 // 格式化时间
 const formatTime = computed(() => {
-  return new Date(props.message.timestamp).toLocaleTimeString()
+  return new Date().toLocaleTimeString()
 })
 </script>

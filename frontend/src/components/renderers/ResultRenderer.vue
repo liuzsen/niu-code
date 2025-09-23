@@ -49,10 +49,10 @@
 <script setup lang="ts">
 import type { SDKResultMessage } from '@anthropic-ai/claude-code';
 import { computed } from 'vue'
-import type { ClaudeMessageWrapper } from '../../types';
+import type { SDKMessage } from '@anthropic-ai/claude-code';
 
 interface Props {
-  message: ClaudeMessageWrapper
+  message: SDKMessage
   data: SDKResultMessage
 }
 

@@ -1,8 +1,5 @@
 import { reactive } from 'vue'
-import type { ClientMessage, ServerMessage } from '../types/index'
-import { loadMockData } from './mock-loader'
-import { createAgentMessage, createUserMessage } from '../types/chat'
-import { useChatStore } from '../stores/chat'
+import type { ClientMessage, ServerMessage, WebSocketError } from '../types/message'
 
 interface WebSocketState {
   connected: boolean
@@ -16,7 +13,10 @@ export class WebSocketService {
   private reconnectAttempts = 0
   private maxReconnectAttempts = 5
   private reconnectDelay = 1000
-  private chatStore: ReturnType<typeof useChatStore> | null = null
+
+  // 类型安全的消息处理器
+  private messageHandlers: Set<(message: ServerMessage) => void> = new Set()
+  private errorHandlers: Set<(error: WebSocketError) => void> = new Set()
 
   public state = reactive<WebSocketState>({
     connected: false,
@@ -28,27 +28,20 @@ export class WebSocketService {
     this.url = url
   }
 
-  // 延迟获取 store，确保 Pinia 已经初始化
-  private getChatStore() {
-    if (!this.chatStore) {
-      this.chatStore = useChatStore()
-    }
-    return this.chatStore
+  // 注册消息处理器
+  onMessage(handler: (message: ServerMessage) => void): () => void {
+    this.messageHandlers.add(handler)
+    return () => this.messageHandlers.delete(handler)
   }
 
-  useMock() {
-    this.state.connected = true;
-    const messages = loadMockData();
-    const store = this.getChatStore()
-    for (const message of messages) {
-      store.processMessage(message)
-    }
+  // 注册错误处理器
+  onError(handler: (error: WebSocketError) => void): () => void {
+    this.errorHandlers.add(handler)
+    return () => this.errorHandlers.delete(handler)
   }
 
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      // this.useMock()
-
       if (this.state.connected || this.state.connecting) {
         resolve()
         return
@@ -69,12 +62,7 @@ export class WebSocketService {
         }
 
         this.ws.onmessage = (event) => {
-          try {
-            const message: ServerMessage = JSON.parse(event.data)
-            this.handleServerMessage(message)
-          } catch (error) {
-            console.error('Error parsing server message:', error)
-          }
+          this.handleMessage(event)
         }
 
         this.ws.onclose = () => {
@@ -89,11 +77,29 @@ export class WebSocketService {
           console.error('WebSocket error:', error)
           this.state.error = 'Connection error'
           this.state.connecting = false
+
+          // 通知错误处理器
+          this.errorHandlers.forEach(handler => {
+            handler({
+              type: 'connection_error',
+              error: error instanceof Error ? error : new Error(String(error))
+            })
+          })
+
           reject(error)
         }
       } catch (error) {
         this.state.connecting = false
         this.state.error = 'Failed to create connection'
+
+        // 通知错误处理器
+        this.errorHandlers.forEach(handler => {
+          handler({
+            type: 'connection_error',
+            error: error instanceof Error ? error : new Error(String(error))
+          })
+        })
+
         reject(error)
       }
     })
@@ -108,6 +114,7 @@ export class WebSocketService {
     this.state.connecting = false
   }
 
+  // 发送消息 - 纯网络通信，不处理业务逻辑
   sendMessage(message: ClientMessage): void {
     if (!this.state.connected || !this.ws) {
       throw new Error('WebSocket not connected')
@@ -121,24 +128,45 @@ export class WebSocketService {
     }
   }
 
-  sendUserInput(content: string): void {
-    const message: ClientMessage = {
-      type: 'user_input',
-      content,
+  // 处理接收的消息
+  private handleMessage(event: MessageEvent) {
+    try {
+      const message: ServerMessage = JSON.parse(event.data)
+
+      // 调用所有消息处理器
+      this.messageHandlers.forEach(handler => {
+        try {
+          handler(message)
+        } catch (error) {
+          console.error('Error in message handler:', error)
+        }
+      })
+    } catch (error) {
+      console.error('Error parsing server message:', error)
+
+      // 通知错误处理器
+      this.errorHandlers.forEach(handler => {
+        handler({
+          type: 'parse_error',
+          error: error instanceof Error ? error : new Error(String(error)),
+          rawMessage: event.data
+        })
+      })
     }
-
-    this.sendMessage(message);
-    this.getChatStore().processMessage(createUserMessage(content));
-  }
-
-  private handleServerMessage(message: ServerMessage) {
-    console.log('Received server message:', message)
-    this.getChatStore().processMessage(createAgentMessage(message))
   }
 
   private attemptReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       this.state.error = 'Max reconnection attempts reached'
+
+      // 通知错误处理器
+      this.errorHandlers.forEach(handler => {
+        handler({
+          type: 'connection_error',
+          error: new Error('Max reconnection attempts reached')
+        })
+      })
+
       return
     }
 
@@ -156,4 +184,4 @@ export class WebSocketService {
 }
 
 // Global instance
-export const wsService = new WebSocketService('ws://localhost:33333')
+export const wsService = new WebSocketService('ws://localhost:33333/api/connect')

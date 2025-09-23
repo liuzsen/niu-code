@@ -29,11 +29,11 @@
 </template>
 
 <script setup lang="ts">
-import type { ClaudeMessageWrapper } from '../../types';
+import type { SDKMessage } from '@anthropic-ai/claude-code';
 import type { TodoWriteData } from '../../utils/messageExtractors'
 
 interface Props {
-    message: ClaudeMessageWrapper
+    message: SDKMessage
     data: TodoWriteData
 }
 

@@ -6,8 +6,9 @@
       <!-- Input Area -->
       <div class="mb-1">
         <Textarea v-model="messageInput" ref="textareaRef" placeholder="在这里输入消息，按 Enter 发送..."
-          class="w-full resize-none border-0 bg-transparent !text-surface-300 min-h-8 max-h-32" :disabled="disabled"
-          :auto-resize="true" @keydown.enter.prevent="handleKeydown" />
+          class="w-full resize-none border-0 bg-transparent !text-surface-300 min-h-8 max-h-32"
+          :disabled="computedDisabled" :auto-resize="true" @keydown.enter.prevent="handleKeydown"
+          :title="disabledTooltip" />
       </div>
 
       <!-- Toolbar -->
@@ -36,8 +37,9 @@
         <div class="flex items-center gap-2">
 
           <!-- Send Button -->
-          <Button @click="sendUserInput" :disabled="disabled || !messageInput.trim()" icon="pi pi-arrow-up"
-            severity="secondary" size="small" class="rounded-full w-8 h-8 p-0 shrink-0 dark:bg-surface-950" />
+          <Button @click="sendUserInput" :disabled="computedDisabled || !messageInput.trim()" icon="pi pi-arrow-up"
+            severity="secondary" size="small" class="rounded-full w-8 h-8 p-0 shrink-0 dark:bg-surface-950"
+            :title="disabledTooltip" />
         </div>
       </div>
     </div>
@@ -51,24 +53,56 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed, inject } from 'vue'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
-import { wsService } from '../services/websocket'
+import { useChatStore } from '../stores/chat'
+import type { MessageManager } from '../services/messageManager'
 
 interface Props {
-  disabled: boolean
+  disabled?: boolean
   error?: string
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const messageInput = ref('')
 const textareaRef = ref()
 
+// 注入 messageManager
+const messageManager = inject('messageManager') as MessageManager
+const chatStore = useChatStore()
+
+// 从 store 获取输入状态
+const storeDisabled = computed(() => chatStore.isInputDisabled)
+const storeError = computed(() => chatStore.inputState.error)
+
+// 组合的禁用状态
+const computedDisabled = computed(() => props.disabled || storeDisabled.value)
+
+// 禁用原因提示
+const disabledTooltip = computed(() => {
+  if (!storeDisabled.value) return ''
+
+  switch (chatStore.inputDisableReason) {
+    case 'tool_permission_pending':
+      return '等待工具权限确认...'
+    case 'processing':
+      return '正在处理中...'
+    case 'disconnected':
+      return '连接已断开'
+    case 'error':
+      return storeError.value || '发生错误'
+    default:
+      return '输入已禁用'
+  }
+})
+
 const sendUserInput = () => {
   if (!messageInput.value.trim()) return
-  wsService.sendUserInput(messageInput.value.trim())
+
+  const chatId = chatStore.getCurrentChatId()
+  messageManager.sendUserInput(chatId, messageInput.value.trim())
   messageInput.value = ''
 }
 
