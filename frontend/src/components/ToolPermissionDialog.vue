@@ -13,8 +13,14 @@
     </template>
 
     <div>
-      <div v-if="writeInput" class="flex flex-col">
+      <div v-if="writeInput">
         <WriteInput :content="writeInput.content" :file_path="writeInput.file_path"></WriteInput>
+      </div>
+      <div v-else-if="editInput">
+        <EditInput :input="editInput"></EditInput>
+      </div>
+      <div v-else class="border border-surface-300 dark:border-surface-600 rounded-lg p-4 overflow-auto">
+        <pre>{{ JSON.stringify(request, null, 2) }} </pre>
       </div>
     </div>
     <div>
@@ -61,6 +67,7 @@ import type { PermissionResult } from '@anthropic-ai/claude-code'
 import { Button, useToast } from 'primevue'
 import { exportCurrentChat } from '../utils/chatExporter'
 import WriteInput from './permission-renders/WriteInput.vue'
+import EditInput from './permission-renders/EditInput.vue'
 
 
 const isDev = import.meta.env.DEV
@@ -89,6 +96,14 @@ const writeInput = computed(() => {
   if (request.value?.tool_use.tool_name == 'Write') {
     return request.value.tool_use.input
   }
+  return undefined
+})
+
+const editInput = computed(() => {
+  if (request.value?.tool_use.tool_name == 'Edit') {
+    return request.value.tool_use.input
+  }
+
   return undefined
 })
 
