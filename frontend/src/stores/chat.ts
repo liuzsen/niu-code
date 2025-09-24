@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
-import type { SDKMessage } from '@anthropic-ai/claude-code'
+import type { PermissionUpdate, SDKMessage } from '@anthropic-ai/claude-code'
 import type {
-  ChatMessage,
   UserInput,
-  ToolPermissionRequest,
+  ToolInputSchemasWithName,
 } from '../types/message'
+import type { ChatMessage } from '../types'
 
 export interface ChatState {
   // 会话信息
@@ -29,7 +29,12 @@ export interface ChatState {
     pendingRequest?: ToolPermissionRequest
     error?: string
   }
+}
 
+export interface ToolPermissionRequest {
+  tool_use: ToolInputSchemasWithName
+  suggestions?: PermissionUpdate[]
+  chat_id: string
 }
 
 export interface ChatStore {

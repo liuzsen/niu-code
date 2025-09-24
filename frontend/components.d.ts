@@ -26,9 +26,12 @@ declare module 'vue' {
     SystemRenderer: typeof import('./src/components/renderers/SystemRenderer.vue')['default']
     Tag: typeof import('primevue/tag')['default']
     TextRenderer: typeof import('./src/components/renderers/TextRenderer.vue')['default']
+    Toast: typeof import('primevue/toast')['default']
     TodoWriteRenderer: typeof import('./src/components/renderers/TodoWriteRenderer.vue')['default']
     ToolPermissionDialog: typeof import('./src/components/ToolPermissionDialog.vue')['default']
     UserMessageRenderer: typeof import('./src/components/renderers/UserMessageRenderer.vue')['default']
+    Write: typeof import('./src/components/permission-renders/Write.vue')['default']
+    WriteInput: typeof import('./src/components/permission-renders/WriteInput.vue')['default']
     WriteRenderer: typeof import('./src/components/renderers/WriteRenderer.vue')['default']
   }
 }

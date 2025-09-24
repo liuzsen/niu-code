@@ -1,13 +1,12 @@
 import type {
   ClientMessage,
   ServerMessage,
-  ExtendedPermissionResult,
-  WebSocketError
 } from '../types/message'
-import { WebSocketService } from './websocket'
+import { WebSocketService, type WebSocketError } from './websocket'
 import { wsService } from './websocket'
 import { extract_tool_result } from '../utils/messageExtractors'
 import type { ChatStore } from '../stores/chat'
+import type { PermissionResult } from '@anthropic-ai/claude-code'
 
 export class MessageManager {
   private ws: WebSocketService
@@ -49,6 +48,7 @@ export class MessageManager {
 
   // 发送用户输入
   sendUserInput(chatId: string, content: string) {
+    console.log('Sending user input:', content)
     const message: ClientMessage = {
       chat_id: chatId,
       data: {
@@ -70,12 +70,14 @@ export class MessageManager {
   }
 
   // 发送权限响应
-  sendPermissionResponse(chatId: string, result: ExtendedPermissionResult) {
+  sendPermissionResponse(chatId: string, result: PermissionResult) {
+    console.log('Sending permission response:', result)
     const message: ClientMessage = {
       chat_id: chatId,
-      data: result.allowed
-        ? { kind: 'permission_resp', behavior: 'allow', updatedInput: {} }
-        : { kind: 'permission_resp', behavior: 'deny', message: 'Permission denied' }
+      data: {
+        kind: 'permission_resp',
+        ...result
+      }
     }
 
     this.ws.sendMessage(message)
@@ -107,11 +109,10 @@ export class MessageManager {
 
     // Only process if it's actually a tool permission request
     if (data.kind === 'can_use_tool') {
+      console.log('Tool permission request received:', data)
       // 设置权限请求状态
       this.chatStore.setSessionInputState(true, 'tool_permission_pending', {
-        tool_name: data.tool_name,
-        tool_use_id: data.tool_use_id,
-        input: data.input,
+        tool_use: data.tool_use,
         suggestions: data.suggestions,
         chat_id: chat_id
       })

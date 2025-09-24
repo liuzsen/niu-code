@@ -16,15 +16,13 @@
       </Button>
 
       <!-- Mock Mode Toggle (Dev only) -->
-      <div v-if="showMockToggle" class="flex items-center space-x-2 px-3 py-1 rounded-lg bg-surface-200 dark:bg-surface-700">
-        <span class="text-sm font-medium" :class="{ 'text-green-600 dark:text-green-400': mockModeActive, 'text-surface-600 dark:text-surface-400': !mockModeActive }">
+      <div v-if="showMockToggle"
+        class="flex items-center space-x-2 px-3 py-1 rounded-lg bg-surface-200 dark:bg-surface-700">
+        <span class="text-sm font-medium"
+          :class="{ 'text-green-600 dark:text-green-400': mockModeActive, 'text-surface-600 dark:text-surface-400': !mockModeActive }">
           Mock
         </span>
-        <ToggleSwitch
-          v-model="mockModeActive"
-          @change="handleMockModeChange"
-          size="small"
-        />
+        <ToggleSwitch v-model="mockModeActive" @change="handleMockModeChange" size="small" />
       </div>
 
       <button type="button"

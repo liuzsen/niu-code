@@ -4,7 +4,7 @@ import { computed, ref, onMounted } from "vue";
 const appState = ref({
   primary: "emerald",
   surface: null,
-  darkMode: true,
+  darkMode: false,
 });
 
 export function useLayout() {

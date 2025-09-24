@@ -1,10 +1,17 @@
 import { reactive } from 'vue'
-import type { ClientMessage, ServerMessage, WebSocketError } from '../types/message'
+import type { ClientMessage, ServerMessage } from '../types/message'
 
 interface WebSocketState {
   connected: boolean
   connecting: boolean
   error: string | null
+}
+
+// 扩展的类型定义
+export interface WebSocketError {
+  type: 'parse_error' | 'connection_error' | 'network_error'
+  error: Error
+  rawMessage?: string
 }
 
 export class WebSocketService {

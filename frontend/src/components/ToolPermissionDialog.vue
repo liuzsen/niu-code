@@ -1,214 +1,217 @@
 <template>
-  <Dialog v-model:visible="visible" modal header="工具使用权限确认" :style="{ width: '500px' }" :closable="false">
-    <div class="permission-content">
-      <div class="permission-header">
-        <i class="pi pi-shield text-2xl text-primary-500 mr-3"></i>
-        <div>
-          <h3 class="text-lg font-semibold">Claude 请求使用工具</h3>
-          <p class="text-surface-500 dark:text-surface-400">
-            请确认是否允许 Claude 使用以下工具
-          </p>
+  <Dialog v-model:visible="visible" modal :closable="false" class="w-[40%]" @show="onDialogShow" @hide="onDialogHide">
+    <template #header>
+      <div class="flex items-center">
+        <i class="pi pi-shield text-2xl text-surface-500 mr-3"></i>
+        <div class=" text-surface-600">
+          Claude 请求使用工具
         </div>
+        <Button v-if="isDev" icon="pi pi-download" severity="secondary" variant="text" size="small"
+          class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700"
+          @click="exportCurrentChat(toast)" title="导出对话" />
       </div>
+    </template>
 
-      <div class="tool-info">
-        <div class="tool-name">
-          <span class="label">工具名称:</span>
-          <span class="value font-mono">{{ request?.tool_name }}</span>
-        </div>
-
-        <div class="tool-input" v-if="request?.input">
-          <span class="label">工具参数:</span>
-          <pre class="input-content">{{ JSON.stringify(request.input, null, 2) }}</pre>
-        </div>
+    <div>
+      <div v-if="writeInput" class="flex flex-col">
+        <WriteInput :content="writeInput.content" :file_path="writeInput.file_path"></WriteInput>
       </div>
+    </div>
+    <div>
+      <div class="flex flex-col gap-2 mt-4">
+        <div class="permission-option" :class="{ 'permission-option-selected': selectedIndex === 0 }"
+          @click="allowPermission" @mouseenter="selectedIndex = 0">
+          <div class="flex items-center gap-2">
+            <i class="pi pi-check text-success-500"></i>
+            <span class="">Allow</span>
+          </div>
+        </div>
 
-      <div class="suggestions" v-if="request?.suggestions?.length">
-        <h4 class="suggestions-title">建议操作:</h4>
-        <div class="suggestion-list">
-          <Button v-for="(suggestion, index) in request.suggestions" :key="index"
-            @click="() => approveWithSuggestion(suggestion)" label="批准并记住选择" class="suggestion-btn" severity="success"
-            outlined size="small" />
+        <div v-for="(suggestion, index) in suggestions" :key="index" class="permission-option"
+          :class="{ 'permission-option-selected': selectedIndex === index + 1 }"
+          @click="allowWithSuggestion(suggestion)" @mouseenter="selectedIndex = index + 1">
+          <div class="flex items-center gap-2">
+            <i class="pi pi-lightbulb text-primary-500"></i>
+            <span class="font-medium">{{ suggestionText(suggestion) }}</span>
+          </div>
+        </div>
+
+        <div class="permission-option"
+          :class="{ 'permission-option-selected': selectedIndex === (suggestions?.length || 0) + 1 }"
+          @click="denyPermission" @mouseenter="selectedIndex = (suggestions?.length || 0) + 1">
+          <div class="flex items-center gap-2">
+            <i class="pi pi-times text-danger-500"></i>
+            <span class="font-medium">No, and tell Claude what to do differently (ESC)</span>
+          </div>
         </div>
       </div>
     </div>
-
-    <template #footer>
-      <div class="dialog-footer">
-        <Button label="拒绝" severity="danger" @click="denyPermission" class="deny-btn" size="small" />
-        <Button label="允许" severity="secondary" @click="approvePermission" class="approve-btn" size="small" />
-        <Button v-if="hasSuggestions" label="允许并记住选择" severity="success" @click="() => approveWithSuggestion()"
-          class="approve-remember-btn" size="small" />
-      </div>
-    </template>
   </Dialog>
+
+
 </template>
 
 <script setup lang="ts">
-import { computed, inject } from 'vue'
-import Button from 'primevue/button'
+import { computed, inject, ref, onUnmounted } from 'vue'
 import Dialog from 'primevue/dialog'
 import { useChatStore } from '../stores/chat'
-import type { ExtendedPermissionResult, PermissionUpdate } from '../types/message'
+import type { PermissionUpdate } from '../types/message'
 import type { MessageManager } from '../services/messageManager'
+import type { PermissionResult } from '@anthropic-ai/claude-code'
+import { Button, useToast } from 'primevue'
+import { exportCurrentChat } from '../utils/chatExporter'
+import WriteInput from './permission-renders/WriteInput.vue'
 
-interface Props {
-  chatId: string
-}
 
-const props = defineProps<Props>()
+const isDev = import.meta.env.DEV
 
+const toast = useToast()
 const chatStore = useChatStore()
+const chatId = chatStore.getCurrentChatId()
 const messageManager = inject('messageManager') as MessageManager
+
+const selectedIndex = ref(0)
+
+// 计算总选项数量
+const totalOptions = computed(() => {
+  return (suggestions.value?.length || 0) + 2 // Allow + Deny + Suggestions
+})
 
 const visible = computed({
   get: () => chatStore.pendingPermissionRequest !== null,
-  set: (val) => !val && chatStore.handlePermissionResult()
+  set: (val) => !val && denyPermission()
 })
 
 const request = computed(() => chatStore.pendingPermissionRequest)
-const hasSuggestions = computed(() => request.value?.suggestions && request.value.suggestions.length > 0)
+const suggestions = computed(() => request.value?.suggestions)
+
+const writeInput = computed(() => {
+  if (request.value?.tool_use.tool_name == 'Write') {
+    return request.value.tool_use.input
+  }
+  return undefined
+})
+
+function suggestionText(suggestion: PermissionUpdate) {
+  switch (suggestion.type) {
+    case 'setMode':
+      if (suggestion.mode == 'acceptEdits') {
+        if (suggestion.destination == 'session') {
+          return 'Yes, allow all edits during this session'
+        } else if (suggestion.destination == 'projectSettings') {
+          return 'Yes, allow all edits in this project'
+        }
+      }
+      break
+    default:
+      return suggestion
+  }
+
+  return `Unknown suggestion type: ${suggestion}`
+}
 
 // 拒绝权限
 const denyPermission = () => {
   if (!request.value) return
 
-  const result: ExtendedPermissionResult = {
-    tool_use_id: request.value.tool_use_id,
-    allowed: false,
-    remember: false
-  }
+  const result: PermissionResult = {
+    behavior: 'deny',
+    message: "",
+    interrupt: true
+  };
 
-  messageManager.sendPermissionResponse(props.chatId, result)
+  messageManager.sendPermissionResponse(chatId, result)
   chatStore.handlePermissionResult()
 }
 
 // 允许权限
-const approvePermission = () => {
+const allowPermission = () => {
   if (!request.value) return
 
-  const result: ExtendedPermissionResult = {
-    tool_use_id: request.value.tool_use_id,
-    allowed: true,
-    remember: false
-  }
-
-  messageManager.sendPermissionResponse(props.chatId, result)
+  const result: PermissionResult = {
+    behavior: 'allow',
+    updatedInput: request.value.tool_use.input as Record<string, unknown>,
+    updatedPermissions: []
+  };
+  messageManager.sendPermissionResponse(chatId, result)
   chatStore.handlePermissionResult()
 }
 
 // 允许权限并记住选择（应用建议）
-const approveWithSuggestion = (suggestion?: PermissionUpdate) => {
+const allowWithSuggestion = (suggestion: PermissionUpdate) => {
   if (!request.value) return
 
-  const result: ExtendedPermissionResult = {
-    tool_use_id: request.value.tool_use_id,
-    allowed: true,
-    remember: true,
-    suggestion: suggestion || request.value.suggestions?.[0]
-  }
-
-  messageManager.sendPermissionResponse(props.chatId, result)
+  const result: PermissionResult = {
+    behavior: 'allow',
+    updatedInput: request.value.tool_use.input as Record<string, unknown>,
+    updatedPermissions: [suggestion]
+  };
+  messageManager.sendPermissionResponse(chatId, result)
   chatStore.handlePermissionResult()
 }
+
+// 键盘导航处理
+const handleKeyDown = (event: KeyboardEvent) => {
+  // 如果对话框不可见，不处理键盘事件
+  if (!visible.value) return
+
+  const maxIndex = totalOptions.value - 1
+
+  switch (event.key) {
+    case 'ArrowUp':
+      event.preventDefault()
+      event.stopPropagation()
+      selectedIndex.value = selectedIndex.value > 0 ? selectedIndex.value - 1 : maxIndex
+      break
+    case 'ArrowDown':
+      event.preventDefault()
+      event.stopPropagation()
+      selectedIndex.value = selectedIndex.value < maxIndex ? selectedIndex.value + 1 : 0
+      break
+    case 'Enter':
+      event.preventDefault()
+      event.stopPropagation()
+      executeSelectedOption()
+      break
+  }
+}
+
+// 执行选中的选项
+const executeSelectedOption = () => {
+  if (selectedIndex.value === 0) {
+    allowPermission()
+  } else if (selectedIndex.value === (suggestions.value?.length || 0) + 1) {
+    denyPermission()
+  } else if (suggestions.value && selectedIndex.value <= suggestions.value.length) {
+    allowWithSuggestion(suggestions.value[selectedIndex.value - 1])
+  }
+}
+
+// 对话框显示时处理
+const onDialogShow = () => {
+  // 对话框显示时添加全局键盘事件监听
+  document.addEventListener('keydown', handleKeyDown)
+}
+
+// 对话框隐藏时处理
+const onDialogHide = () => {
+  // 对话框隐藏时移除全局键盘事件监听
+  document.removeEventListener('keydown', handleKeyDown)
+}
+
+// 组件卸载时移除事件监听
+onUnmounted(() => {
+  console.log("unmounted")
+  document.removeEventListener('keydown', handleKeyDown)
+})
 </script>
 
 <style scoped>
-.permission-content {
-  padding: 1rem 0;
+.permission-option {
+  @apply cursor-pointer p-2 rounded-lg border border-surface-300 transition-all duration-200;
 }
 
-.permission-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  padding: 1rem;
-  background: var(--surface-100);
-  border-radius: 0.5rem;
-}
-
-.tool-info {
-  margin-bottom: 1.5rem;
-}
-
-.tool-name {
-  display: flex;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.label {
-  font-weight: 600;
-  color: var(--text-color-secondary);
-  min-width: 100px;
-  margin-right: 0.5rem;
-}
-
-.value {
-  color: var(--text-color);
-}
-
-.tool-input {
-  display: flex;
-  flex-direction: column;
-}
-
-.input-content {
-  background: var(--surface-50);
-  border: 1px solid var(--surface-200);
-  border-radius: 0.375rem;
-  padding: 0.75rem;
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.suggestions {
-  margin-top: 1.5rem;
-}
-
-.suggestions-title {
-  font-weight: 600;
-  color: var(--text-color-secondary);
-  margin-bottom: 0.75rem;
-}
-
-.suggestion-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.suggestion-btn {
-  justify-content: flex-start;
-  text-align: left;
-}
-
-.dialog-footer {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-
-.deny-btn {
-  order: 1;
-}
-
-.approve-btn {
-  order: 2;
-}
-
-.approve-remember-btn {
-  order: 3;
-}
-
-:deep(.p-dialog-content) {
-  padding: 0 1.5rem 1.5rem 1.5rem;
-}
-
-:deep(.p-dialog-footer) {
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--surface-200);
+.permission-option-selected {
+  @apply bg-surface-300 dark:bg-orange-300;
 }
 </style>

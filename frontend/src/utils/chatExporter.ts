@@ -1,4 +1,5 @@
-import type { ChatState } from '../stores/chat'
+import type { ToastServiceMethods } from 'primevue'
+import { useChatStore, type ChatState } from '../stores/chat'
 
 export type ChatExport = ChatState
 
@@ -26,4 +27,32 @@ export function downloadChat(state: ChatState) {
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+export function exportCurrentChat(toast: ToastServiceMethods) {
+  const chatStore = useChatStore()
+  console.log(chatStore.messages.length)
+
+  if (chatStore.messages.length === 0) {
+    console.log("当前没有可导出的对话")
+    toast.add({
+      severity: 'warn',
+      summary: '提示',
+      detail: '当前没有可导出的对话',
+      life: 3000
+    })
+    return
+  }
+
+  try {
+    downloadChat(chatStore)
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: '导出失败',
+      detail: `导出对话时发生错误: ${error}`,
+      life: 5000
+    })
+  }
+
 }

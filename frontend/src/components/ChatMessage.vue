@@ -34,7 +34,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { ChatMessage } from '../types/message'
+import type { ChatMessage } from '../types/chat'
 import type { Component } from 'vue'
 
 // 导入渲染器组件

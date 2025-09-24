@@ -4,7 +4,7 @@
     <MessageInput :disabled="!isConnected" :error="error || undefined" />
 
     <!-- 权限确认对话框 -->
-    <ToolPermissionDialog v-if="false" :chat-id="currentChatId" />
+    <ToolPermissionDialog v-if="request" />
   </div>
 </template>
 
@@ -14,8 +14,10 @@ import MessageInput from './MessageInput.vue'
 import ToolPermissionDialog from './ToolPermissionDialog.vue'
 import { useConnection } from '../composables/useConnection'
 import { useChatStore } from '../stores/chat'
+import { computed } from 'vue'
 
 const { isConnected, error } = useConnection()
 const chatStore = useChatStore()
-const currentChatId = chatStore.getCurrentChatId()
+
+const request = computed(() => chatStore.pendingPermissionRequest)
 </script>
