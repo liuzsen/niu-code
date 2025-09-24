@@ -1,7 +1,8 @@
+use derive_more::From;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug, From)]
 #[serde(untagged)]
 pub enum ToolInputSchemas {
     Agent(AgentInput),
@@ -10,8 +11,8 @@ pub enum ToolInputSchemas {
     ExitPlanMode(ExitPlanModeInput),
     FileEdit(FileEditInput),
     FileMultiEdit(FileMultiEditInput),
-    FileRead(FileReadInput),
     FileWrite(FileWriteInput),
+    FileRead(FileReadInput),
     Glob(GlobInput),
     Grep(GrepInput),
     KillShell(KillShellInput),
@@ -24,7 +25,83 @@ pub enum ToolInputSchemas {
     WebSearch(WebSearchInput),
 }
 
-#[derive(Deserialize, Serialize)]
+impl From<ToolInputSchemasWithName> for ToolInputSchemas {
+    fn from(value: ToolInputSchemasWithName) -> Self {
+        match value {
+            ToolInputSchemasWithName::Bash { input } => input.into(),
+            ToolInputSchemasWithName::Edit { input } => input.into(),
+            ToolInputSchemasWithName::Glob { input } => input.into(),
+            ToolInputSchemasWithName::Agent { input } => input.into(),
+            ToolInputSchemasWithName::Grep { input } => input.into(),
+            ToolInputSchemasWithName::MultiEdit { input } => input.into(),
+            ToolInputSchemasWithName::NotebookEdit { input } => input.into(),
+            ToolInputSchemasWithName::Read { input } => input.into(),
+            ToolInputSchemasWithName::TodoWrite { input } => input.into(),
+            ToolInputSchemasWithName::WebFetch { input } => input.into(),
+            ToolInputSchemasWithName::WebSearch { input } => input.into(),
+            ToolInputSchemasWithName::Write { input } => input.into(),
+            ToolInputSchemasWithName::BashOutput { input } => input.into(),
+            ToolInputSchemasWithName::ExitPlanMode { input } => input.into(),
+            ToolInputSchemasWithName::KillShell { input } => input.into(),
+            ToolInputSchemasWithName::ListMcpResources { input } => input.into(),
+            ToolInputSchemasWithName::Mcp { input } => input.into(),
+            ToolInputSchemasWithName::ReadMcpResource { input } => input.into(),
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+#[serde(tag = "tool_name")]
+pub enum ToolInputSchemasWithName {
+    Bash { input: BashInput },
+    Edit { input: FileEditInput },
+    Glob { input: GlobInput },
+    Grep { input: GrepInput },
+    MultiEdit { input: FileMultiEditInput },
+    NotebookEdit { input: NotebookEditInput },
+    // NotebookRead
+    Read { input: FileReadInput },
+    // Task
+    TodoWrite { input: TodoWriteInput },
+    WebFetch { input: WebFetchInput },
+    WebSearch { input: WebSearchInput },
+    Write { input: FileWriteInput },
+
+    Agent { input: AgentInput },
+    BashOutput { input: BashOutputInput },
+    ExitPlanMode { input: ExitPlanModeInput },
+    KillShell { input: KillShellInput },
+    ListMcpResources { input: ListMcpResourcesInput },
+    Mcp { input: McpInput },
+    ReadMcpResource { input: ReadMcpResourceInput },
+}
+
+impl ToolInputSchemasWithName {
+    pub fn tool_name(&self) -> &'static str {
+        match self {
+            ToolInputSchemasWithName::Bash { .. } => "Bash",
+            ToolInputSchemasWithName::Edit { .. } => "Edit",
+            ToolInputSchemasWithName::Glob { .. } => "Glob",
+            ToolInputSchemasWithName::Agent { .. } => "Agent",
+            ToolInputSchemasWithName::Grep { .. } => "Grep",
+            ToolInputSchemasWithName::MultiEdit { .. } => "MultiEdit",
+            ToolInputSchemasWithName::NotebookEdit { .. } => "NotebookEdit",
+            ToolInputSchemasWithName::Read { .. } => "Read",
+            ToolInputSchemasWithName::TodoWrite { .. } => "TodoWrite",
+            ToolInputSchemasWithName::WebFetch { .. } => "WebFetch",
+            ToolInputSchemasWithName::WebSearch { .. } => "WebSearch",
+            ToolInputSchemasWithName::Write { .. } => "Write",
+            ToolInputSchemasWithName::BashOutput { .. } => "BashOutput",
+            ToolInputSchemasWithName::ExitPlanMode { .. } => "ExitPlanMode",
+            ToolInputSchemasWithName::KillShell { .. } => "KillShell",
+            ToolInputSchemasWithName::ListMcpResources { .. } => "ListMcpResources",
+            ToolInputSchemasWithName::Mcp { .. } => "Mcp",
+            ToolInputSchemasWithName::ReadMcpResource { .. } => "ReadMcpResource",
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug)]
 pub struct AgentInput {
     /// A short (3-5 word) description of the task
     pub description: String,
@@ -34,7 +111,7 @@ pub struct AgentInput {
     pub subagent_type: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct BashInput {
     /// The command to execute
     pub command: String,
@@ -60,7 +137,7 @@ pub struct BashInput {
     pub run_in_background: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct BashOutputInput {
     /// The ID of the background shell to retrieve output from
     pub bash_id: String,
@@ -69,13 +146,13 @@ pub struct BashOutputInput {
     pub filter: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct ExitPlanModeInput {
     /// The plan you came up with, that you want to run by the user for approval. Supports markdown. The plan should be pretty concise.
     pub plan: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct FileEditInput {
     /// The absolute path to the file to modify
     pub file_path: String,
@@ -88,7 +165,7 @@ pub struct FileEditInput {
     pub replace_all: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct FileEditOperation {
     /// The text to replace
     pub old_string: String,
@@ -99,7 +176,7 @@ pub struct FileEditOperation {
     pub replace_all: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct FileMultiEditInput {
     /// The absolute path to the file to modify
     pub file_path: String,
@@ -109,7 +186,7 @@ pub struct FileMultiEditInput {
     pub edits: Vec<FileEditOperation>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct FileReadInput {
     /// The absolute path to the file to read
     pub file_path: String,
@@ -121,7 +198,7 @@ pub struct FileReadInput {
     pub limit: Option<u64>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct FileWriteInput {
     /// The absolute path to the file to write (must be absolute, not relative)
     pub file_path: String,
@@ -129,7 +206,7 @@ pub struct FileWriteInput {
     pub content: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct GlobInput {
     /// The glob pattern to match files against
     pub pattern: String,
@@ -138,7 +215,7 @@ pub struct GlobInput {
     pub path: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct GrepInput {
     /// The regular expression pattern to search for in file contents
     pub pattern: String,
@@ -183,7 +260,7 @@ pub struct GrepInput {
     pub multiline: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum GrepOutputMode {
     Content,
@@ -191,26 +268,26 @@ pub enum GrepOutputMode {
     Count,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct KillShellInput {
     /// The ID of the background shell to kill
     pub shell_id: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct ListMcpResourcesInput {
     /// Optional server name to filter resources by
     #[serde(skip_serializing_if = "Option::is_none")]
     pub server: Option<String>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct McpInput {
     #[serde(flatten)]
     pub additional_properties: HashMap<String, serde_json::Value>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct NotebookEditInput {
     /// The absolute path to the Jupyter notebook file to edit (must be absolute, not relative)
     pub notebook_path: String,
@@ -227,14 +304,14 @@ pub struct NotebookEditInput {
     pub edit_mode: Option<NotebookEditMode>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum NotebookCellType {
     Code,
     Markdown,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum NotebookEditMode {
     Replace,
@@ -242,7 +319,7 @@ pub enum NotebookEditMode {
     Delete,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct ReadMcpResourceInput {
     /// The MCP server name
     pub server: String,
@@ -250,7 +327,7 @@ pub struct ReadMcpResourceInput {
     pub uri: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct TodoItem {
     pub content: String,
     pub status: TodoStatus,
@@ -258,7 +335,7 @@ pub struct TodoItem {
     pub active_form: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum TodoStatus {
     Pending,
@@ -266,13 +343,13 @@ pub enum TodoStatus {
     Completed,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct TodoWriteInput {
     /// The updated todo list
     pub todos: Vec<TodoItem>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct WebFetchInput {
     /// The URL to fetch content from
     pub url: String,
@@ -280,7 +357,7 @@ pub struct WebFetchInput {
     pub prompt: String,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct WebSearchInput {
     /// The search query to use
     pub query: String,

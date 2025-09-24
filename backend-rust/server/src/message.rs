@@ -52,8 +52,7 @@ pub struct ServerError {
 
 #[derive(Serialize)]
 pub struct CanUseToolParams {
-    pub tool_name: String,
-    pub input: cc_sdk::types::ToolInputSchemas,
+    pub tool_use: cc_sdk::types::ToolInputSchemasWithName,
     pub suggestions: Option<Vec<cc_sdk::types::PermissionUpdate>>,
 }
 

@@ -28,7 +28,7 @@ use which::which;
 
 use crate::types::{
     BoxedCanUseTollCallback, ClaudeCodeOptions, DebugCallBack, Executable, PermissionMode,
-    PermissionUpdate, SDKMessage, SDKUserMessage, ToolInputSchemas,
+    PermissionUpdate, SDKMessage, SDKUserMessage, ToolInputSchemas, ToolInputSchemasWithName,
 };
 
 pub trait PromptGenerator: Send + Unpin + 'static {
@@ -270,13 +270,13 @@ impl ClaudeWriter {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct ControlRequstMessageWrapper {
     request_id: String,
     request: ControlRequstMessage,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "subtype")]
 #[serde(rename_all = "snake_case")]
 pub enum ControlRequstMessage {
@@ -285,23 +285,23 @@ pub enum ControlRequstMessage {
     McpMessage(McpMessageRequest),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct McpMessageRequest {
     server_name: String,
     message: Value,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct HookCallbackRequest {
     callback_id: String,
     input: ToolInputSchemas,
     tool_use_id: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct CanUseToolRequest {
-    tool_name: String,
-    input: ToolInputSchemas,
+    #[serde(flatten)]
+    tool_use: ToolInputSchemasWithName,
     permission_suggestions: Option<Vec<PermissionUpdate>>,
 }
 
@@ -335,6 +335,10 @@ impl ControlHandler {
     }
 
     async fn handle_ctrl_req(&mut self, value: Value) -> Result<()> {
+        debug!(
+            "handle ctrl req: {}",
+            serde_json::to_string_pretty(&value).unwrap()
+        );
         let msg: ControlRequstMessageWrapper =
             serde_json::from_value(value.clone()).with_context(|| {
                 let msg = serde_json::to_string_pretty(&value).unwrap();
@@ -391,13 +395,12 @@ impl ControlHandler {
                 };
 
                 let CanUseToolRequest {
-                    tool_name,
-                    input,
+                    tool_use,
                     permission_suggestions,
                 } = req;
 
                 let resp = cb
-                    .call(tool_name, input, permission_suggestions)
+                    .call(tool_use, permission_suggestions)
                     .await
                     .context("CanUseTool call error")?;
 

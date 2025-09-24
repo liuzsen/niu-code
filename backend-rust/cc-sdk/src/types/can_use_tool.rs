@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::{PermissionMode, tool_input::ToolInputSchemas};
+use crate::types::{PermissionMode, ToolInputSchemasWithName, tool_input::ToolInputSchemas};
 
 #[derive(Deserialize, Serialize)]
 #[serde(tag = "behavior")]
@@ -89,8 +89,7 @@ pub enum PermissionUpdateDestination {
 pub trait CanUseToolCallBack: Send + Sync + Debug + 'static + Sized {
     fn call(
         &mut self,
-        tool_name: String,
-        input: ToolInputSchemas,
+        tool_use: ToolInputSchemasWithName,
         suggestions: Option<Vec<PermissionUpdate>>,
     ) -> impl Future<Output = anyhow::Result<PermissionResult>> + Send;
 
@@ -103,8 +102,7 @@ pub trait CanUseToolCallBack: Send + Sync + Debug + 'static + Sized {
 pub trait CanUseToolCallBackDyn: Send + Sync + Debug + 'static {
     async fn call(
         &mut self,
-        tool_name: String,
-        input: ToolInputSchemas,
+        tool_use: ToolInputSchemasWithName,
         suggestions: Option<Vec<PermissionUpdate>>,
     ) -> anyhow::Result<PermissionResult>;
 }
@@ -116,11 +114,10 @@ where
 {
     async fn call(
         &mut self,
-        tool_name: String,
-        input: ToolInputSchemas,
+        tool_use: ToolInputSchemasWithName,
         suggestions: Option<Vec<PermissionUpdate>>,
     ) -> anyhow::Result<PermissionResult> {
-        CanUseToolCallBack::call(self, tool_name, input, suggestions).await
+        CanUseToolCallBack::call(self, tool_use, suggestions).await
     }
 }
 

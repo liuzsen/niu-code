@@ -9,7 +9,7 @@ actix-ws = "0.3.0"
 anyhow.workspace = true
 async-trait.workspace = true
 cc-sdk = { version = "0.1.0", path = "../cc-sdk" }
-derive_more = { version = "2.0.1", features = ["from"] }
+derive_more.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

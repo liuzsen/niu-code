@@ -164,16 +164,14 @@ impl CanUseTool {
 impl CanUseToolCallBack for CanUseTool {
     async fn call(
         &mut self,
-        tool_name: String,
-        input: cc_sdk::types::ToolInputSchemas,
+        tool_use: cc_sdk::types::ToolInputSchemasWithName,
         suggestions: Option<Vec<cc_sdk::types::PermissionUpdate>>,
     ) -> anyhow::Result<PermissionResult> {
         let (tx, rx) = oneshot::channel();
         self.ask_box
             .send(ClaudeCliMessage::CanUseTool(
                 CanUseToolParams {
-                    tool_name,
-                    input,
+                    tool_use,
                     suggestions,
                 },
                 tx,

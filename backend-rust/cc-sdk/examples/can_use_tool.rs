@@ -49,51 +49,48 @@ struct CanUseTool {}
 impl CanUseToolCallBack for CanUseTool {
     async fn call(
         &mut self,
-        tool_name: String,
-        input: cc_sdk::types::ToolInputSchemas,
+        input: cc_sdk::types::ToolInputSchemasWithName,
         suggestions: Option<Vec<cc_sdk::types::PermissionUpdate>>,
     ) -> anyhow::Result<PermissionResult> {
-        println!("Ask permission for tool: {tool_name}");
+        println!("Ask permission for tool: {}", input.tool_name());
 
-        if let cc_sdk::types::ToolInputSchemas::Bash(bash_input) = &input {
-            println!("\n-------------------------------------------------");
-            println!(
-                "Claude want to run command: {}",
-                to_red(&bash_input.command)
-            );
-            println!(
-                "Command description: {}",
-                to_green(bash_input.description.as_deref().unwrap_or_default())
-            );
-            if let Some(sugs) = suggestions {
-                for sug in sugs {
-                    println!("other suggestions: {sug:?}")
+        match input {
+            cc_sdk::types::ToolInputSchemasWithName::Bash { input } => {
+                println!("\n-------------------------------------------------");
+                println!("Claude want to run command: {}", to_red(&input.command));
+                println!(
+                    "Command description: {}",
+                    to_green(input.description.as_deref().unwrap_or_default())
+                );
+                if let Some(sugs) = suggestions {
+                    for sug in sugs {
+                        println!("other suggestions: {sug:?}")
+                    }
+                }
+                print!("Do you want to proceed? [Y/n]: ");
+                std::io::stdout().flush()?;
+                let mut buffer = String::new();
+                std::io::stdin().read_line(&mut buffer)?;
+                match buffer.trim() {
+                    "" | "Y" | "y" => {
+                        return Ok(PermissionResult::Allow(PermissionAllow {
+                            updated_input: input.into(),
+                            updated_permissions: None,
+                        }));
+                    }
+                    _ => {
+                        return Ok(PermissionResult::Deny(PermissionDeny {
+                            message: "try other methods".to_string(),
+                            interrupt: None,
+                        }));
+                    }
                 }
             }
-            print!("Do you want to proceed? [Y/n]: ");
-            std::io::stdout().flush()?;
-            let mut buffer = String::new();
-            std::io::stdin().read_line(&mut buffer)?;
-            match buffer.trim() {
-                "" | "Y" | "y" => {
-                    return Ok(PermissionResult::Allow(PermissionAllow {
-                        updated_input: input,
-                        updated_permissions: None,
-                    }));
-                }
-                _ => {
-                    return Ok(PermissionResult::Deny(PermissionDeny {
-                        message: "try other methods".to_string(),
-                        interrupt: None,
-                    }));
-                }
-            }
+            _ => Ok(PermissionResult::Allow(PermissionAllow {
+                updated_input: input.into(),
+                updated_permissions: None,
+            })),
         }
-
-        Ok(PermissionResult::Allow(PermissionAllow {
-            updated_input: input,
-            updated_permissions: None,
-        }))
     }
 }
 
