@@ -1,12 +1,14 @@
 <template>
-    <div class="bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-zinc-700 shadow-lg rounded-xl">
+    <div class="bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-zinc-700 shadow-lg rounded-xl">
         <!-- Write Header -->
-        <div class="p-4 border-b border-surface-200 dark:border-zinc-700">
+        <div class="p-4 border-b border-surface-300 dark:border-zinc-700">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-file dark:text-surface-500"></i>
                     <span class="text-sm font-mono">File Write</span>
                 </div>
+
+                <slot name="status"></slot>
             </div>
         </div>
 
@@ -16,7 +18,7 @@
                 <!-- File Path -->
                 <div class="flex items-start gap-2">
                     <span class="font-mono text-sm font-semibold">📝</span>
-                    <code class="font-mono text-sm leading-relaxed break-all">{{ file_path }}</code>
+                    <code class="file-path">{{ toRelativePath(input.file_path) }}</code>
                 </div>
 
                 <!-- File Content (preview) -->
@@ -35,9 +37,12 @@
                         </div>
                     </div>
                     <div class=" bg-surface-200 dark:bg-surface-900 p-3 max-h-40 overflow-y-auto custom-scrollbar">
-                        <pre class="font-mono text-sm leading-relaxed break-all whitespace-pre-wrap">{{ content }}</pre>
+                        <pre
+                            class="font-mono text-sm leading-relaxed break-all whitespace-pre-wrap">{{ input.content }}</pre>
                     </div>
                 </div>
+
+                <slot name="result"></slot>
             </div>
         </div>
     </div>
@@ -45,14 +50,14 @@
     <!-- Full Content Modal -->
     <Dialog v-model:visible="showFullContent" modal class="w-[90vw] max-w-[1000px]" :dismissableMask="true">
         <template #header>
-            <div>
-                {{ file_path }}
+            <div class="file-path">
+                {{ toRelativePath(input.file_path) }}
             </div>
         </template>
         <div class="space-y-4">
             <div
                 class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar border border-surface-600">
-                <pre class="font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ content }}</pre>
+                <pre class="font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ input.content }}</pre>
             </div>
             <div class="flex justify-end gap-2">
                 <Button severity="secondary" @click="copyToClipboard" size="small">
@@ -67,7 +72,44 @@
     </Dialog>
 </template>
 
+
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import type { FileWriteInput } from '../../types/sdk-tools'
+import { toRelativePath } from '../../utils/pathProcess'
+
+interface Props {
+    input: FileWriteInput
+}
+
+const props = defineProps<Props>()
+const showFullContent = ref(false)
+
+
+// 内容长度
+const contentLength = computed(() => {
+    return props.input.content.length
+})
+
+// 复制到剪贴板
+const copyToClipboard = async () => {
+    try {
+        await navigator.clipboard.writeText(props.input.content)
+    } catch (err) {
+        console.error('Failed to copy text: ', err)
+    }
+}
+</script>
+
 <style scoped>
+@reference "../../style.css";
+
+.file-path {
+    @apply font-mono text-sm leading-relaxed break-all rounded-sm bg-surface-300 dark:bg-surface-700
+}
+
 /* Custom scrollbar styling for this component only */
 .custom-scrollbar {
     scrollbar-width: thin;
@@ -93,32 +135,3 @@
     background: #4b5563;
 }
 </style>
-
-<script setup lang="ts">
-import { computed, ref } from 'vue'
-import Button from 'primevue/button'
-
-interface Props {
-    file_path: string
-    content: string
-}
-
-const props = defineProps<Props>()
-const showFullContent = ref(false)
-
-
-
-// 内容长度
-const contentLength = computed(() => {
-    return props.content.length
-})
-
-// 复制到剪贴板
-const copyToClipboard = async () => {
-    try {
-        await navigator.clipboard.writeText(props.content)
-    } catch (err) {
-        console.error('Failed to copy text: ', err)
-    }
-}
-</script>

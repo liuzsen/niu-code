@@ -4,9 +4,21 @@
         <!-- Edit Header -->
         <div class="p-4 border-b border-surface-300 dark:border-surface-700">
             <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <i class="pi pi-file-edit dark:text-surface-500"></i>
-                    <span class="text-sm font-mono">File Edit</span>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <i class="pi pi-file-edit dark:text-surface-500"></i>
+                        <span class="text-sm font-mono font-medium">File Edit</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <code class="file-path">
+                        {{ toRelativePath(input.file_path) }}
+                        </code>
+                    </div>
+                </div>
+
+                <!-- Header slot for status or other content -->
+                <div class=" self-end">
+                    <slot name="status"></slot>
                 </div>
             </div>
         </div>
@@ -15,10 +27,6 @@
         <div class="p-4">
             <div class="space-y-4">
                 <!-- File Path -->
-                <div class="flex items-start gap-2">
-                    <span class="font-mono text-sm font-semibold">📁</span>
-                    <code class="font-mono text-sm leading-relaxed break-all">{{ input.file_path }}</code>
-                </div>
 
                 <!-- Changes Summary -->
                 <div class="space-y-3">
@@ -46,8 +54,8 @@
                 </div>
 
                 <!-- Actions -->
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
+                <div>
+                    <div class="flex items-center justify-end gap-2">
                         <Button size="small" severity="secondary" variant="text" @click="copyOldString">
                             <i class="pi pi-copy text-sm"></i>
                             Copy Old
@@ -62,6 +70,9 @@
                         </Button>
                     </div>
                 </div>
+
+                <!-- Result slot -->
+                <slot name="result"></slot>
             </div>
         </div>
     </div>
@@ -71,7 +82,9 @@
         <template #header>
             <div class="flex items-center gap-2">
                 <i class="pi pi-file-edit"></i>
-                {{ input.file_path }}
+                <code class="file-path">
+                {{ toRelativePath(input.file_path) }}
+                </code>
             </div>
         </template>
         <div class="space-y-4">
@@ -139,25 +152,23 @@
 import { computed, ref } from 'vue'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import type { FileEditInput } from '../../types/sdk-tools';
+import { toRelativePath } from '../../utils/pathProcess'
+import type { FileEditInput } from '../../types/sdk-tools'
 
 interface Props {
     input: FileEditInput
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
+
 const showFullDiff = ref(false)
 
-// 字符串长度
-const oldStringLength = computed(() => {
-    return props.input.old_string.length
-})
+// Computed properties
+const oldStringLength = computed(() => props.input.old_string.length)
+const newStringLength = computed(() => props.input.new_string.length)
+// const formattedFilePath = computed(() => props.formatPath(props.filePath))
 
-const newStringLength = computed(() => {
-    return props.input.new_string.length
-})
-
-// 复制到剪贴板
+// Copy to clipboard
 const copyOldString = async () => {
     try {
         await navigator.clipboard.writeText(props.input.old_string)
@@ -174,3 +185,11 @@ const copyNewString = async () => {
     }
 }
 </script>
+
+<style scoped>
+@reference "../../style.css";
+
+.file-path {
+    @apply font-mono text-sm leading-relaxed break-all rounded-sm bg-surface-300 dark:bg-surface-700
+}
+</style>

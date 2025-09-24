@@ -14,10 +14,10 @@
 
     <div>
       <div v-if="writeInput">
-        <WriteInput :content="writeInput.content" :file_path="writeInput.file_path"></WriteInput>
+        <FileWriteTool :input="writeInput"></FileWriteTool>
       </div>
       <div v-else-if="editInput">
-        <EditInput :input="editInput"></EditInput>
+        <FileEditTool :input="editInput"></FileEditTool>
       </div>
       <div v-else class="border border-surface-300 dark:border-surface-600 rounded-lg p-4 overflow-auto">
         <pre>{{ JSON.stringify(request, null, 2) }} </pre>
@@ -66,8 +66,8 @@ import type { MessageManager } from '../services/messageManager'
 import type { PermissionResult } from '@anthropic-ai/claude-code'
 import { Button, useToast } from 'primevue'
 import { exportCurrentChat } from '../utils/chatExporter'
-import WriteInput from './permission-renders/WriteInput.vue'
-import EditInput from './permission-renders/EditInput.vue'
+import FileEditTool from './tool-use/FileEditTool.vue'
+import FileWriteTool from './tool-use/FileWriteTool.vue'
 
 
 const isDev = import.meta.env.DEV

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
-import type { PermissionUpdate, SDKMessage } from '@anthropic-ai/claude-code'
+import type { PermissionUpdate, SDKMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
 import type {
   UserInput,
   ToolInputSchemasWithName,
@@ -14,6 +14,7 @@ export interface ChatState {
     id: string
     title: string
     createdAt: number
+    systemInit?: SDKSystemMessage
   }
 
   // 消息列表
@@ -86,6 +87,9 @@ export const useChatStore = defineStore('chat', {
 
     // 添加 Claude 消息
     addClaudeMessage(chatId: string, content: SDKMessage) {
+      if (content.type === 'system' && content.subtype === 'init') {
+        this.currentSession.systemInit = content
+      }
       const message: ChatMessage = {
         chat_id: chatId,
         data: {
@@ -174,7 +178,9 @@ export const useChatStore = defineStore('chat', {
     pendingPermissionRequest: (state: ChatState) => state.inputState.pendingRequest,
 
     // 获取工具结果
-    getToolResult: (state: ChatState) => (toolUseId: string) => state.toolResults.get(toolUseId)
+    getToolResult: (state: ChatState) => (toolUseId: string) => state.toolResults.get(toolUseId),
+
+    cwd: (state: ChatState) => state.currentSession.systemInit?.cwd
   }
 })
 

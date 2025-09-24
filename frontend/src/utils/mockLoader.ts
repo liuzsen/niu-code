@@ -64,7 +64,7 @@ export function clearMockData(): void {
 // 自动加载 mock 数据（如果在开发模式下）
 export async function autoLoadMockData(): Promise<void> {
   // 只在本地开发时生效，默认启用
-  if (isDevelopment) {
-    setMockMode(true)
-  }
+  // if (isDevelopment) {
+  //   setMockMode(true)
+  // }
 }
