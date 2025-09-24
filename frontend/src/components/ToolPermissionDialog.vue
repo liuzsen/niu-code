@@ -207,6 +207,8 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+@reference "../style.css";
+
 .permission-option {
   @apply cursor-pointer p-2 rounded-lg border border-surface-300 transition-all duration-200;
 }
