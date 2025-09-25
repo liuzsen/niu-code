@@ -122,7 +122,7 @@ impl Stream for QueryStream {
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
-        self.as_mut().receiver.poll_recv(cx)
+        self.receiver.poll_recv(cx)
     }
 }
 
@@ -178,6 +178,7 @@ impl ClaudeReader {
 
         while let Some(line) = reader.next().await {
             let line = line.context("Failed to read claude code stdout")?;
+            debug!(msg = %line, "received CLAUDE output msg");
 
             let msg: Value = serde_json::from_str(&line)?;
             let Some(ty) = &msg["type"].as_str() else {
@@ -207,6 +208,7 @@ impl ClaudeReader {
     }
 
     fn send_out_message(chan: &UnboundedSender<SDKMessage>, msg: Value) -> Result<ControlFlow<()>> {
+        debug!("send claude msg to output chan");
         let msg = serde_json::from_value(msg)?;
         if let Err(_) = chan.send(msg) {
             info!("output chan closed, exit claude reader");
@@ -390,7 +392,7 @@ impl ControlHandler {
                     "response": resp
                   }
                 });
-                tracing::error!(
+                tracing::debug!(
                     "send ctrl resp: {}",
                     serde_json::to_string_pretty(&resp).unwrap()
                 );

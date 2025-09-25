@@ -142,11 +142,14 @@ impl ChatManager {
             "ANTHROPIC_BASE_URL" => "http://127.0.0.1:3456",
             "ANTHROPIC_AUTH_TOKEN" => "your-secret-key",
         };
+        let cwd = std::env::current_dir()?;
+        let cwd = cwd.parent().unwrap();
 
         let options = ClaudeCodeOptions {
             can_use_tool: Some(Box::new(can_use_tool)),
             resume,
             env: Some(env),
+            cwd: Some(cwd.to_owned()),
             ..Default::default()
         };
         let (tx, rx) = unbounded_channel();

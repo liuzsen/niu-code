@@ -133,6 +133,7 @@ impl ClaudeCli {
     where
         ServerMessageData: From<T>,
     {
+        debug!("send claude msg to websocket");
         self.ws_writer
             .send_msg(ServerMessage {
                 chat_id: self.chat_id.clone(),
