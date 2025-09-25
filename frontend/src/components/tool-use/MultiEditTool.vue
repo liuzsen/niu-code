@@ -39,7 +39,7 @@
                             <div
                                 class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
                                 <div class="text-xs text-red-600 dark:text-red-400 mb-1">Old Content:</div>
-                                <div class="max-h-24 overflow-y-auto custom-scrollbar">
+                                <div class="max-h-24 overflow-y-auto custom-scrollbar-dark">
                                     <pre
                                         class="font-mono text-xs leading-relaxed whitespace-pre-wrap break-all">{{ edit.old_string }}</pre>
                                 </div>
@@ -47,7 +47,7 @@
                             <div
                                 class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-2">
                                 <div class="text-xs text-green-600 dark:text-green-400 mb-1">New Content:</div>
-                                <div class="max-h-24 overflow-y-auto custom-scrollbar">
+                                <div class="max-h-24 overflow-y-auto custom-scrollbar-dark">
                                     <pre
                                         class="font-mono text-xs leading-relaxed whitespace-pre-wrap break-all">{{ edit.new_string }}</pre>
                                 </div>
@@ -81,7 +81,7 @@
             </div>
         </template>
         <div class="space-y-4">
-            <div class="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
+            <div class="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar-dark">
                 <div v-for="(edit, index) in input.edits" :key="index"
                     class="border border-surface-300 dark:border-surface-600 rounded-lg p-4">
                     <div class="text-sm font-semibold mb-3 flex items-center gap-2">
@@ -95,7 +95,7 @@
                         <div>
                             <div class="text-sm font-semibold mb-2 text-red-600 dark:text-red-400">Old Content</div>
                             <div
-                                class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 max-h-[40vh] overflow-y-auto custom-scrollbar">
+                                class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 max-h-[40vh] overflow-y-auto custom-scrollbar-dark">
                                 <pre
                                     class="font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ edit.old_string }}</pre>
                             </div>
@@ -103,7 +103,7 @@
                         <div>
                             <div class="text-sm font-semibold mb-2 text-green-600 dark:text-green-400">New Content</div>
                             <div
-                                class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 max-h-[40vh] overflow-y-auto custom-scrollbar">
+                                class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 max-h-[40vh] overflow-y-auto custom-scrollbar-dark">
                                 <pre
                                     class="font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ edit.new_string }}</pre>
                             </div>
@@ -119,33 +119,6 @@
         </div>
     </Dialog>
 </template>
-
-<style scoped>
-/* Custom scrollbar styling for this component only */
-.custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #374151 transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-    border: none;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #374151;
-    border-radius: 3px;
-    border: none;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #4b5563;
-}
-</style>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'

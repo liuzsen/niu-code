@@ -36,7 +36,7 @@
                             </Button>
                         </div>
                     </div>
-                    <div class=" bg-surface-200 dark:bg-surface-900 p-3 max-h-40 overflow-y-auto custom-scrollbar">
+                    <div class=" bg-surface-200 dark:bg-surface-900 p-3 max-h-40 overflow-y-auto custom-scrollbar-dark">
                         <pre
                             class="font-mono text-sm leading-relaxed break-all whitespace-pre-wrap">{{ input.content }}</pre>
                     </div>
@@ -56,7 +56,7 @@
         </template>
         <div class="space-y-4">
             <div
-                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar border border-surface-600">
+                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar-dark border border-surface-600">
                 <pre class="font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ input.content }}</pre>
             </div>
             <div class="flex justify-end gap-2">
@@ -108,30 +108,5 @@ const copyToClipboard = async () => {
 
 .file-path {
     @apply font-mono text-sm leading-relaxed break-all rounded-sm bg-surface-300 dark:bg-surface-700
-}
-
-/* Custom scrollbar styling for this component only */
-.custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #374151 transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-    border: none;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #374151;
-    border-radius: 3px;
-    border: none;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #4b5563;
 }
 </style>

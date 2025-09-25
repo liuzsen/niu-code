@@ -35,7 +35,7 @@
                             <i class="pi pi-minus"></i>
                             Old Content ({{ oldStringLength }} chars)
                         </div>
-                        <div class="max-h-32 overflow-y-auto custom-scrollbar">
+                        <div class="max-h-32 overflow-y-auto custom-scrollbar-dark">
                             <pre
                                 class="font-mono text-sm leading-relaxed whitespace-pre-wrap break-all">{{ input.old_string }}</pre>
                         </div>
@@ -46,7 +46,7 @@
                             <i class="pi pi-plus"></i>
                             New Content ({{ newStringLength }} chars)
                         </div>
-                        <div class="max-h-32 overflow-y-auto custom-scrollbar">
+                        <div class="max-h-32 overflow-y-auto custom-scrollbar-dark">
                             <pre
                                 class="font-mono text-sm leading-relaxed whitespace-pre-wrap break-all">{{ input.new_string }}</pre>
                         </div>
@@ -92,14 +92,14 @@
                 <div>
                     <div class="text-sm font-semibold mb-2 text-red-600 dark:text-red-400">Old Content</div>
                     <div
-                        class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 max-h-[50vh] overflow-y-auto custom-scrollbar">
+                        class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 max-h-[50vh] overflow-y-auto custom-scrollbar-dark">
                         <pre class="font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ input.old_string }}</pre>
                     </div>
                 </div>
                 <div>
                     <div class="text-sm font-semibold mb-2 text-green-600 dark:text-green-400">New Content</div>
                     <div
-                        class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 max-h-[50vh] overflow-y-auto custom-scrollbar">
+                        class="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 max-h-[50vh] overflow-y-auto custom-scrollbar-dark">
                         <pre class="font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ input.new_string }}</pre>
                     </div>
                 </div>
@@ -120,33 +120,6 @@
         </div>
     </Dialog>
 </template>
-
-<style scoped>
-/* Custom scrollbar styling for this component only */
-.custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: #374151 transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-    border: none;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #374151;
-    border-radius: 3px;
-    border: none;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #4b5563;
-}
-</style>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'

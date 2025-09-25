@@ -126,7 +126,7 @@ function suggestionText(suggestion: PermissionUpdate) {
         }
       }
       break
-    case "addRules":
+    case "addRules": {
       const rule = suggestion.rules[0];
       if (rule.toolName == "Bash") {
         if (suggestion.destination == 'localSettings') {
@@ -136,6 +136,7 @@ function suggestionText(suggestion: PermissionUpdate) {
         }
       }
       break
+    }
     default:
       return suggestion
   }
