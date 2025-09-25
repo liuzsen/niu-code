@@ -10,6 +10,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     AppHeader: typeof import('./src/components/AppHeader.vue')['default']
     BashRenderer: typeof import('./src/components/renderers/BashRenderer.vue')['default']
+    BashTool: typeof import('./src/components/tool-use/BashTool.vue')['default']
     Button: typeof import('primevue/button')['default']
     ChatLayout: typeof import('./src/components/ChatLayout.vue')['default']
     ChatMessage: typeof import('./src/components/ChatMessage.vue')['default']

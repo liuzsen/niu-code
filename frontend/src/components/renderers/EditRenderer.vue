@@ -1,5 +1,5 @@
 <template>
-    <FileEditTool :input="data">
+    <FileEditTool :input="input">
         <template #status>
             <div>
                 <div v-if="state === 'pending'" class="flex items-center gap-2 ml-auto">
@@ -30,16 +30,15 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { EditData } from '../../utils/messageExtractors'
 import { cleanToolResult } from '../../utils/messageExtractors'
 import { useChatStore } from '../../stores/chat'
 import FileEditTool from '../tool-use/FileEditTool.vue'
 import ProgressSpinner from 'primevue/progressspinner'
-import type { SDKMessage } from '@anthropic-ai/claude-code'
+import type { FileEditInput } from '../../types/sdk-tools'
 
 interface Props {
-    message: SDKMessage
-    data: EditData
+    id: string
+    input: FileEditInput
 }
 
 const props = defineProps<Props>()
@@ -47,7 +46,7 @@ const chatStore = useChatStore()
 
 // 获取命令执行结果
 const editResult = computed(() => {
-    return chatStore.getToolResult(props.data.id)
+    return chatStore.getToolResult(props.id)
 })
 
 type EditState = "pending" | "error" | "ok"

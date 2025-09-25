@@ -88,3 +88,4 @@ export type ToolInputSchemasWithName = | {
     tool_name: "ReadMcpResource"
     input: ReadMcpResourceInput
 }
+

@@ -5,11 +5,9 @@
 <script setup lang="ts">
 import { computed, watch, nextTick, onMounted } from 'vue'
 import { useMarkdownRenderer } from '../../utils/markdownRenderer'
-import type { SDKMessage } from '@anthropic-ai/claude-code';
 
 interface Props {
-  message: SDKMessage
-  data: string
+  input: string
 }
 
 const props = defineProps<Props>();
@@ -17,7 +15,7 @@ const props = defineProps<Props>();
 const { markdownContainer, renderMarkdown, renderCharts } = useMarkdownRenderer()
 
 const md = computed(() => {
-  return props.data
+  return props.input
 })
 
 // 计算渲染内容

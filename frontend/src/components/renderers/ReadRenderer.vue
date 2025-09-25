@@ -33,7 +33,7 @@
                 <!-- File Path -->
                 <div class="flex items-start gap-2">
                     <span class="font-mono text-sm font-semibold">📖</span>
-                    <code class="font-mono text-sm leading-relaxed break-all">{{ data.file_path }}</code>
+                    <code class="font-mono text-sm leading-relaxed break-all">{{ input.file_path }}</code>
                 </div>
 
                 <!-- File Content (preview) -->
@@ -75,7 +75,7 @@
         <template #header>
             <div class="flex items-center gap-2">
                 <i class="pi pi-file-import"></i>
-                {{ data.file_path }}
+                {{ input.file_path }}
             </div>
         </template>
         <div class="space-y-4">
@@ -125,16 +125,15 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { ReadData } from '../../utils/messageExtractors'
 import { useChatStore } from '../../stores/chat'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import type { SDKMessage } from '@anthropic-ai/claude-code'
+import type { FileReadInput } from '../../types/sdk-tools'
 
 interface Props {
-    message: SDKMessage
-    data: ReadData
+    id: string
+    input: FileReadInput
 }
 
 const props = defineProps<Props>()
@@ -143,7 +142,7 @@ const showFullContent = ref(false)
 
 // 获取工具结果
 const readResult = computed(() => {
-    return chatStore.getToolResult(props.data.id)
+    return chatStore.getToolResult(props.id)
 })
 
 type ReadState = "pending" | "error" | "ok"

@@ -54,10 +54,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import type { SDKSystemMessage } from '@anthropic-ai/claude-code'
-import type { SDKMessage } from '@anthropic-ai/claude-code';
 
 interface Props {
-  message: SDKMessage
   data: SDKSystemMessage
 }
 

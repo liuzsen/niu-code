@@ -8,7 +8,7 @@
 
         <!-- Todo List Content -->
         <div class="space-y-1">
-            <div v-for="(todo, index) in data.todos" :key="index"
+            <div v-for="(todo, index) in input.todos" :key="index"
                 class="flex items-start gap-3 p-2 rounded-lg transition-colors hover:bg-surface-200 dark:hover:bg-surface-900">
                 <!-- Status Icon -->
                 <div class="flex-shrink-0 mt-0.5">
@@ -29,12 +29,11 @@
 </template>
 
 <script setup lang="ts">
-import type { SDKMessage } from '@anthropic-ai/claude-code';
-import type { TodoWriteData } from '../../utils/messageExtractors'
+import type { TodoWriteInput } from '../../types/sdk-tools';
 
 interface Props {
-    message: SDKMessage
-    data: TodoWriteData
+    id: string
+    input: TodoWriteInput
 }
 
 defineProps<Props>()

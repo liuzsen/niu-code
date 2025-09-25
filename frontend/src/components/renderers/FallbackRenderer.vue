@@ -1,14 +1,12 @@
 <template>
   <div class="fallback-renderer">
-    <pre class="json-content">{{ JSON.stringify(message, null, 2) }}</pre>
+    <pre class="json-content">{{ JSON.stringify(data, null, 2) }}</pre>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { SDKMessage } from '@anthropic-ai/claude-code';
 
 interface Props {
-  message: SDKMessage
   data: unknown
 }
 

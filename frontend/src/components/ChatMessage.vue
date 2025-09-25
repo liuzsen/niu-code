@@ -15,10 +15,41 @@
           <MarkdownRenderer v-if="message.data.from === 'human'" :content="message.data.content.content" />
 
           <!-- Agent 消息-->
-          <div v-else-if="rendererInfo">
-            <component :is="rendererInfo.component" :message="rendererInfo.props.message"
-              :data="rendererInfo.props.data" />
+          <div v-else>
+            <div v-if="assistant_text">
+              <TextRenderer :input="assistant_text"></TextRenderer>
+            </div>
+            <div v-else-if="systemt_init">
+              <SystemRenderer :data="systemt_init"></SystemRenderer>
+            </div>
+            <div v-else-if="result_msg">
+              <ResultRenderer :data="result_msg"></ResultRenderer>
+            </div>
+            <div v-else-if="tool_use" :key="tool_use.id">
+              <EditRenderer v-if="tool_use.tool_use.tool_name == 'Edit'" :id="tool_use.id"
+                :input="tool_use.tool_use.input">
+              </EditRenderer>
+              <WriteRenderer v-else-if="tool_use.tool_use.tool_name == 'Write'" :id="tool_use.id"
+                :input="tool_use.tool_use.input">
+              </WriteRenderer>
+              <BashRenderer v-else-if="tool_use.tool_use.tool_name == 'Bash'" :id="tool_use.id"
+                :input="tool_use.tool_use.input">
+              </BashRenderer>
+              <MultiEditRenderer v-else-if="tool_use.tool_use.tool_name == 'MultiEdit'" :id="tool_use.id"
+                :input="tool_use.tool_use.input">
+              </MultiEditRenderer>
+              <ReadRenderer v-else-if="tool_use.tool_use.tool_name == 'Read'" :id="tool_use.id"
+                :input="tool_use.tool_use.input">
+              </ReadRenderer>
+              <TodoWriteRenderer v-else-if="tool_use.tool_use.tool_name == 'TodoWrite'" :id="tool_use.id"
+                :input="tool_use.tool_use.input"></TodoWriteRenderer>
+            </div>
+            <div v-else>
+              <FallbackRenderer :data="message"></FallbackRenderer>
+            </div>
           </div>
+
+
         </div>
 
         <div class="flex justify-end mt-0.5 text-gray-500">
@@ -35,12 +66,10 @@
 import { computed } from 'vue'
 
 import type { ChatMessage } from '../types/chat'
-import type { Component } from 'vue'
 
 // 导入渲染器组件
 import SystemRenderer from './renderers/SystemRenderer.vue'
 import TextRenderer from './renderers/TextRenderer.vue'
-import BashRenderer from './renderers/BashRenderer.vue'
 import TodoWriteRenderer from './renderers/TodoWriteRenderer.vue'
 import WriteRenderer from './renderers/WriteRenderer.vue'
 import ResultRenderer from './renderers/ResultRenderer.vue'
@@ -48,9 +77,9 @@ import EditRenderer from './renderers/EditRenderer.vue'
 import MultiEditRenderer from './renderers/MultiEditRenderer.vue'
 import ReadRenderer from './renderers/ReadRenderer.vue'
 import FallbackRenderer from './renderers/FallbackRenderer.vue'
-import { extract_system_init, extract_assistant_text, extract_bash, extract_todo_write, extract_write, extract_edit, extract_multi_edit, extract_read, extract_result } from '../utils/messageExtractors'
+import { extract_system_init, extract_assistant_text, extract_result, extract_tool_use } from '../utils/messageExtractors'
 import MarkdownRenderer from './renderers/MarkdownRenderer.vue'
-import type { SDKMessage } from '@anthropic-ai/claude-code'
+import BashRenderer from './renderers/BashRenderer.vue'
 
 interface Props {
   message: ChatMessage
@@ -58,97 +87,38 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// 渲染器结果类型
-interface RendererResult {
-  component: Component
-  props: {
-    message: SDKMessage
-    data: unknown
-  }
-}
-
-// 数据提取函数类型
-type DataExtractor<T> = (message: SDKMessage) => T | null
-
-// 渲染器配置
-interface RendererConfig<T> {
-  component: Component
-  extractor: DataExtractor<T>
-}
-
-// 渲染器配置数组
-const rendererConfigs: Array<RendererConfig<unknown>> = [
-  {
-    component: SystemRenderer,
-    extractor: extract_system_init
-  },
-  {
-    component: TextRenderer,
-    extractor: extract_assistant_text
-  },
-  {
-    component: BashRenderer,
-    extractor: extract_bash
-  },
-  {
-    component: TodoWriteRenderer,
-    extractor: extract_todo_write
-  },
-  {
-    component: WriteRenderer,
-    extractor: extract_write
-  },
-  {
-    component: EditRenderer,
-    extractor: extract_edit
-  },
-  {
-    component: MultiEditRenderer,
-    extractor: extract_multi_edit
-  },
-  {
-    component: ReadRenderer,
-    extractor: extract_read
-  },
-  {
-    component: ResultRenderer,
-    extractor: extract_result
-  }
-]
-
-// 获取适合的渲染器组件和提取的数据
-const getRendererWithContent = (message: SDKMessage): RendererResult => {
-  // 按照优先级顺序尝试每个提取函数
-  for (const config of rendererConfigs) {
-    const data = config.extractor(message)
-    if (data !== null) {
-      return {
-        component: config.component,
-        props: {
-          message,
-          data: data
-        }
-      }
-    }
+const tool_use = computed(() => {
+  if (props.message.data.from != "agent") {
+    return undefined
   }
 
-  // 如果没有匹配的渲染器，返回降级渲染器
-  return {
-    component: FallbackRenderer,
-    props: {
-      message,
-      data: null
-    }
-  }
-}
-
-// 获取消息的渲染器信息
-const rendererInfo = computed(() => {
-  if (props.message.data.from !== 'agent') return null
-
-  const claudeMessage = props.message.data.content
-  return getRendererWithContent(claudeMessage)
+  return extract_tool_use(props.message.data.content)
 })
+
+const assistant_text = computed(() => {
+  if (props.message.data.from != 'agent') {
+    return undefined
+  }
+
+  return extract_assistant_text(props.message.data.content)
+})
+
+const systemt_init = computed(() => {
+  if (props.message.data.from != 'agent') {
+    return undefined
+  }
+
+  return extract_system_init(props.message.data.content)
+})
+
+const result_msg = computed(() => {
+  if (props.message.data.from != 'agent') {
+    return undefined
+  }
+
+  return extract_result(props.message.data.content)
+})
+
 
 // 格式化时间
 const formatTime = computed(() => {

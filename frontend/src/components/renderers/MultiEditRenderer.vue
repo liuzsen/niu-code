@@ -34,12 +34,12 @@
                 <!-- File Path -->
                 <div class="flex items-start gap-2">
                     <span class="font-mono text-sm font-semibold">📁</span>
-                    <code class="font-mono text-sm leading-relaxed break-all">{{ data.file_path }}</code>
+                    <code class="font-mono text-sm leading-relaxed break-all">{{ input.file_path }}</code>
                 </div>
 
                 <!-- Edit List -->
                 <div class="space-y-3">
-                    <div v-for="(edit, index) in data.edits" :key="index"
+                    <div v-for="(edit, index) in input.edits" :key="index"
                         class="border border-surface-300 dark:border-surface-600 rounded-lg p-3">
                         <div class="text-xs text-surface-500 mb-2 flex items-center gap-2">
                             <i class="pi pi-code"></i>
@@ -96,13 +96,13 @@
         <template #header>
             <div class="flex items-center gap-2">
                 <i class="pi pi-file-multiple"></i>
-                Multi Edit: {{ data.file_path }}
+                Multi Edit: {{ input.file_path }}
                 <span class="text-sm text-surface-500">({{ editCount }} changes)</span>
             </div>
         </template>
         <div class="space-y-4">
             <div class="space-y-3 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                <div v-for="(edit, index) in data.edits" :key="index"
+                <div v-for="(edit, index) in input.edits" :key="index"
                     class="border border-surface-300 dark:border-surface-600 rounded-lg p-4">
                     <div class="text-sm font-semibold mb-3 flex items-center gap-2">
                         <i class="pi pi-code"></i>
@@ -169,17 +169,16 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { MultiEditData } from '../../utils/messageExtractors'
 import { cleanToolResult } from '../../utils/messageExtractors'
 import { useChatStore } from '../../stores/chat'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import type { SDKMessage } from '@anthropic-ai/claude-code'
+import type { FileMultiEditInput } from '../../types/sdk-tools'
 
 interface Props {
-    message: SDKMessage
-    data: MultiEditData
+    id: string
+    input: FileMultiEditInput
 }
 
 const props = defineProps<Props>()
@@ -188,7 +187,7 @@ const showFullEdits = ref(false)
 
 // 获取工具结果
 const multiEditResult = computed(() => {
-    return chatStore.getToolResult(props.data.id)
+    return chatStore.getToolResult(props.id)
 })
 
 type MultiEditState = "pending" | "error" | "ok"
@@ -207,7 +206,7 @@ const state = computed<MultiEditState>(() => {
 
 // 显示编辑数量
 const editCount = computed(() => {
-    return props.data.edits.length
+    return props.input.edits.length
 })
 
 // 显示结果文本

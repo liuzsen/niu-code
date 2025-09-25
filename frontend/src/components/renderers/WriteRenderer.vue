@@ -1,5 +1,5 @@
 <template>
-    <FileWriteTool :input="data">
+    <FileWriteTool :input="input">
         <template #status>
             <div class="flex items-center gap-2 flex-1">
                 <!-- Status indicator -->
@@ -31,16 +31,15 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { WriteData } from '../../utils/messageExtractors'
 import { cleanToolResult } from '../../utils/messageExtractors'
 import { useChatStore } from '../../stores/chat'
 import ProgressSpinner from 'primevue/progressspinner'
-import type { SDKMessage } from '@anthropic-ai/claude-code'
 import FileWriteTool from '../tool-use/FileWriteTool.vue'
+import type { FileWriteInput } from '../../types/sdk-tools'
 
 interface Props {
-    message: SDKMessage
-    data: WriteData
+    id: string
+    input: FileWriteInput
 }
 
 const props = defineProps<Props>()
@@ -48,7 +47,7 @@ const chatStore = useChatStore()
 
 // 获取命令执行结果
 const writeResult = computed(() => {
-    return chatStore.getToolResult(props.data.id)
+    return chatStore.getToolResult(props.id)
 })
 
 type WriteState = "pending" | "error" | "ok"
