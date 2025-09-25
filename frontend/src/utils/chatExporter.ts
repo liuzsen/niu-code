@@ -5,10 +5,12 @@ export type ChatExport = ChatState
 
 // 导出对话为 JSON
 export function exportChat(state: ChatState): string {
-  console.log('Exporting chat state...', state)
+  console.log("export chat: ", state)
   const exportData = {
-    ...state,
-    toolResults: Object.fromEntries(state.toolResults)
+    currentSession: state.currentSession,
+    messages: state.messages,
+    toolResults: Object.fromEntries(state.toolResults),
+    inputState: state.inputState,
   }
 
   return JSON.stringify(exportData, null, 2)

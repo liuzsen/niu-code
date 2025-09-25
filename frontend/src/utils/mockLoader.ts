@@ -1,11 +1,7 @@
 import { ref, computed } from 'vue'
 import { useChatStore } from '../stores/chat'
 
-// 是否在开发环境
-const isDevelopment = import.meta.env.DEV
-
-// 是否显示 mock 开关（只在开发环境显示）
-export const showMockToggle = import.meta.env.DEV
+export const isDevelopment = import.meta.env.DEV
 
 // 获取 .local/mocks 目录下的所有 JSON 文件
 const mockFileModules = import.meta.glob('/.local/mocks/*.json')

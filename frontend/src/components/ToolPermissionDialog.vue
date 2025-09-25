@@ -6,7 +6,7 @@
         <div class=" text-surface-600">
           Claude 请求使用工具
         </div>
-        <Button v-if="isDev" icon="pi pi-download" severity="secondary" variant="text" size="small"
+        <Button v-if="isDevelopment" icon="pi pi-download" severity="secondary" variant="text" size="small"
           class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700"
           @click="exportCurrentChat(toast)" title="导出对话" />
       </div>
@@ -76,9 +76,7 @@ import FileEditTool from './tool-use/FileEditTool.vue'
 import FileWriteTool from './tool-use/FileWriteTool.vue'
 import BashTool from './tool-use/BashTool.vue'
 import MultiEditTool from './tool-use/MultiEditTool.vue'
-
-
-const isDev = import.meta.env.DEV
+import { isDevelopment } from '../utils/mockLoader'
 
 const toast = useToast()
 const chatStore = useChatStore()
