@@ -232,6 +232,8 @@ impl ClaudeWriter {
         tokio::spawn(async move {
             if let Err(err) = self.run().await {
                 warn!(?err, "ClaudeWriter error");
+            } else {
+                info!("ClaudeWriter exited")
             }
         });
     }
@@ -239,9 +241,13 @@ impl ClaudeWriter {
     async fn run(mut self) -> anyhow::Result<()> {
         loop {
             select! {
-                Some(p) = self.prompt.next() => {
+                prompt = self.prompt.next() => {
+                    let Some(prompt) = prompt else {
+                        info!("no more prompt available");
+                        return Ok(());
+                    };
                     debug!("send prompt msg to cli");
-                    self.write_msg(p.to_sdk_msg()).await?;
+                    self.write_msg(prompt.to_sdk_msg()).await?;
                 }
                 Some(msg) = self.receiver.recv() => {
                     self.handle_msg(msg).await?;
@@ -303,6 +309,34 @@ pub struct CanUseToolRequest {
     #[serde(flatten)]
     tool_use: ToolInputSchemasWithName,
     permission_suggestions: Option<Vec<PermissionUpdate>>,
+}
+
+#[test]
+fn feature() {
+    let s = r#"
+   {
+  "request": {
+    "input": {
+      "file_path": "/data/home/sen/code/projects/ai/zsen-cc-web/backend-rust/.local/test-hello.py",
+      "new_string": "def fn_a():\n    pass\n\n\ndef fn_b():\n    pass",
+      "old_string": "def aaa():\n    pass\n\n\ndef bbb():\n    pass"
+    },
+    "permission_suggestions": [
+      {
+        "destination": "session",
+        "mode": "acceptEdits",
+        "type": "setMode"
+      }
+    ],
+    "subtype": "can_use_tool",
+    "tool_name": "Edit"
+  },
+  "request_id": "59810d3a-9c9e-47bb-85dd-3767df15b93d",
+  "type": "control_request"
+} 
+    "#;
+    let req: ControlRequstMessageWrapper = serde_json::from_str(s).unwrap();
+    dbg!(req);
 }
 
 impl ControlHandler {
