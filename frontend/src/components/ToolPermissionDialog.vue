@@ -19,6 +19,12 @@
       <div v-else-if="editInput">
         <FileEditTool :input="editInput"></FileEditTool>
       </div>
+      <div v-else-if="request?.tool_use.tool_name == 'Bash'">
+        <BashTool :input="request.tool_use.input"></BashTool>
+      </div>
+      <div v-else-if="request?.tool_use.tool_name == 'MultiEdit'">
+        <MultiEditTool :input="request.tool_use.input"></MultiEditTool>
+      </div>
       <div v-else class="border border-surface-300 dark:border-surface-600 rounded-lg p-4 overflow-auto">
         <pre>{{ JSON.stringify(request, null, 2) }} </pre>
       </div>
@@ -38,7 +44,7 @@
           @click="allowWithSuggestion(suggestion)" @mouseenter="selectedIndex = index + 1">
           <div class="flex items-center gap-2">
             <i class="pi pi-lightbulb text-primary-500"></i>
-            <span class="font-medium">{{ suggestionText(suggestion) }}</span>
+            <span class="font-medium" v-html="suggestionText(suggestion)"></span>
           </div>
         </div>
 
@@ -68,6 +74,8 @@ import { Button, useToast } from 'primevue'
 import { exportCurrentChat } from '../utils/chatExporter'
 import FileEditTool from './tool-use/FileEditTool.vue'
 import FileWriteTool from './tool-use/FileWriteTool.vue'
+import BashTool from './tool-use/BashTool.vue'
+import MultiEditTool from './tool-use/MultiEditTool.vue'
 
 
 const isDev = import.meta.env.DEV
@@ -115,6 +123,16 @@ function suggestionText(suggestion: PermissionUpdate) {
           return 'Yes, allow all edits during this session'
         } else if (suggestion.destination == 'projectSettings') {
           return 'Yes, allow all edits in this project'
+        }
+      }
+      break
+    case "addRules":
+      const rule = suggestion.rules[0];
+      if (rule.toolName == "Bash") {
+        if (suggestion.destination == 'localSettings') {
+          const cmd = rule.ruleContent?.replace(":*", "");
+          const cmd_html = `<span class="text-orange-500 font-bold">${cmd}</span>`
+          return `Yes and don't ask again for commands ${cmd_html} in ${chatStore.cwd}`
         }
       }
       break

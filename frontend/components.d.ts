@@ -28,6 +28,7 @@ declare module 'vue' {
     MessageList: typeof import('./src/components/MessageList.vue')['default']
     MultiEditMessage: typeof import('./src/components/message/MultiEditMessage.vue')['default']
     MultiEditRenderer: typeof import('./src/components/message/MultiEditRenderer.vue')['default']
+    MultiEditTool: typeof import('./src/components/tool-use/MultiEditTool.vue')['default']
     ProgressSpinner: typeof import('primevue/progressspinner')['default']
     ReadMessage: typeof import('./src/components/message/ReadMessage.vue')['default']
     ReadRenderer: typeof import('./src/components/message/ReadRenderer.vue')['default']
