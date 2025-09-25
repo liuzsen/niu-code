@@ -1,70 +1,91 @@
 import { ref, computed } from 'vue'
 import { useChatStore } from '../stores/chat'
 
-// Mock 数据文件路径
-const MOCK_DATA_PATH = '/.local/mock-chat-session.json'
-
-// 响应式的 mock 模式状态
-const mockModeEnabled = ref(false)
-
 // 是否在开发环境
 const isDevelopment = import.meta.env.DEV
 
 // 是否显示 mock 开关（只在开发环境显示）
 export const showMockToggle = import.meta.env.DEV
 
-// 当前的 mock 模式状态
-export const isMockMode = computed(() => isDevelopment && mockModeEnabled.value)
+// 获取 .local/mocks 目录下的所有 JSON 文件
+const mockFileModules = import.meta.glob('/.local/mocks/*.json')
 
-// 设置 mock 模式
-export function setMockMode(enabled: boolean): void {
+export const mockFiles = (() => {
+  const paths = Object.keys(mockFileModules)
+  console.log('Raw glob paths:', paths)
+
+  return paths.map(path => {
+    // 提取文件名：从任意路径格式中提取纯文件名
+    const filename = path.split('/').pop()?.replace('.json', '') || path
+    console.log(`Processing path: "${path}" -> "${filename}"`)
+    return filename
+  })
+})()
+
+// 响应式的当前选中的 mock 文件
+const selectedMockFile = ref<string | null>(null)
+
+// 当前的 mock 模式状态
+export const isMockMode = computed(() => isDevelopment && selectedMockFile.value !== null)
+
+// 获取当前选中的 mock 文件
+export const currentMockFile = computed(() => selectedMockFile.value)
+
+// 加载指定的 mock 文件
+export async function loadMockFile(filename: string): Promise<void> {
   if (!isDevelopment) {
     return
   }
 
-  mockModeEnabled.value = enabled
-  console.log(`Mock mode ${enabled ? 'enabled' : 'disabled'}`)
-
-  // 如果启用，立即加载数据
-  if (enabled) {
-    loadMockData().catch(console.error)
-  } else {
-    clearMockData()
-  }
-}
-
-// 切换 mock 模式
-export function toggleMockMode(): void {
-  setMockMode(!mockModeEnabled.value)
-}
-
-// 加载 mock 数据
-export async function loadMockData(): Promise<void> {
-  const chatStore = useChatStore()
-
   try {
+    const chatStore = useChatStore()
     chatStore.clearAll()
-    const mockData = await import(/* @vite-ignore */ MOCK_DATA_PATH)
+
+    console.log(`Looking for mock file: "${filename}"`)
+    console.log('Available paths:', Object.keys(mockFileModules))
+
+    // 通过文件名查找对应的模块
+    const found = Object.keys(mockFileModules).find(path => {
+      const pathFilename = path.split('/').pop()?.replace('.json', '')
+      return pathFilename === filename
+    })
+
+    if (!found) {
+      throw new Error(`Mock file not found for ${filename}. Available paths: ${Object.keys(mockFileModules).join(', ')}`)
+    }
+
+    const mockData = await mockFileModules[found]()
     chatStore.loadFromJson(JSON.stringify(mockData))
 
-    console.log('Mock data loaded successfully')
+    selectedMockFile.value = filename
+    console.log(`Mock file ${filename} loaded successfully from ${found}`)
   } catch (error) {
-    console.error('Failed to load mock data:', error)
+    console.error(`Failed to load mock file ${filename}:`, error)
     throw error
   }
 }
 
 // 清空 mock 数据，回到正常模式
 export function clearMockData(): void {
+  if (!isDevelopment) {
+    return
+  }
+
   const chatStore = useChatStore()
   chatStore.clearAll()
+  selectedMockFile.value = null
   console.log('Mock data cleared, back to normal mode')
 }
 
-// 自动加载 mock 数据（如果在开发模式下）
-export async function autoLoadMockData(): Promise<void> {
-  // 只在本地开发时生效，默认启用
-  // if (isDevelopment) {
-  //   setMockMode(true)
-  // }
+// 设置选中的 mock 文件
+export function setSelectedMockFile(filename: string | null): void {
+  if (!isDevelopment) {
+    return
+  }
+
+  if (filename === null) {
+    clearMockData()
+  } else {
+    loadMockFile(filename).catch(console.error)
+  }
 }

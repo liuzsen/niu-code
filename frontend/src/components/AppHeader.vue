@@ -15,14 +15,10 @@
         Connect
       </Button>
 
-      <!-- Mock Mode Toggle (Dev only) -->
-      <div v-if="showMockToggle"
-        class="flex items-center space-x-2 px-3 py-1 rounded-lg bg-surface-200 dark:bg-surface-700">
-        <span class="text-sm font-medium"
-          :class="{ 'text-green-600 dark:text-green-400': mockModeActive, 'text-surface-600 dark:text-surface-400': !mockModeActive }">
-          Mock
-        </span>
-        <ToggleSwitch v-model="mockModeActive" @change="handleMockModeChange" size="small" />
+      <!-- Mock File Selector (Dev only) -->
+      <div v-if="showMockToggle" class="flex items-center space-x-2">
+        <Dropdown :options="mockOptions" v-model="selectedMockOption" @change="handleMockFileChange" optionLabel="label"
+          optionValue="value" placeholder="选择 Mock 文件" class="w-48" size="small" />
       </div>
 
       <button type="button"
@@ -36,26 +32,39 @@
 
 <script setup lang="ts">
 import Button from 'primevue/button'
-import ToggleSwitch from 'primevue/toggleswitch'
-import { ref, watch, onMounted } from 'vue'
+import Dropdown from 'primevue/dropdown'
+import { ref, computed, onMounted } from 'vue'
 import { useConnection } from '../composables/useConnection'
 import { useLayout } from '../composables/useLayout'
-import { showMockToggle, isMockMode, toggleMockMode } from '../utils/mockLoader'
+import { showMockToggle, mockFiles, currentMockFile, setSelectedMockFile } from '../utils/mockLoader'
+import { useToast } from 'primevue/usetoast'
 
 const { connectionStatus, isConnecting, isConnected, connect } = useConnection()
 const { isDarkMode, toggleDarkMode } = useLayout()
+const toast = useToast()
 
-// Mock mode state
-const mockModeActive = ref(false)
+// Mock file selector options
+const mockOptions = computed(() => [
+  { label: '正常模式', value: null },
+  ...mockFiles.map(filename => ({ label: filename, value: filename }))
+])
 
-// Sync with mock loader state
-watch(isMockMode, (newValue) => {
-  mockModeActive.value = newValue
-}, { immediate: true })
+// Current selected option
+const selectedMockOption = ref<string | null>(currentMockFile.value)
 
-// Handle mock mode toggle change
-const handleMockModeChange = () => {
-  toggleMockMode()
+// Handle mock file selection change
+const handleMockFileChange = () => {
+  try {
+    setSelectedMockFile(selectedMockOption.value)
+  } catch {
+    toast.add({
+      severity: 'error',
+      summary: '加载失败',
+      detail: `无法加载 mock 文件`,
+      life: 3000
+    })
+    selectedMockOption.value = null
+  }
 }
 
 // Auto-connect on component mount
