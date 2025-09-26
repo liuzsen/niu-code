@@ -33,14 +33,15 @@
                 <div class="flex items-start gap-2">
                     <span class="font-mono text-sm font-semibold">📖</span>
                     <code
-                        class="font-mono text-sm leading-relaxed break-all bg-surface-400 dark:bg-surface-600 px-1 rounded-sm">{{ toRelativePath(input.file_path) }}</code>
+                        class="font-mono text-sm leading-relaxed break-all bg-surface-400 dark:bg-surface-800 px-1 rounded-sm">{{ toRelativePath(input.file_path) }}</code>
                 </div>
 
                 <!-- File Content (preview) -->
                 <div v-if="fileContent">
                     <div class="flex items-center justify-between mb-2">
-                        <div class="text-surface-600 text-xs">File Content ({{ contentLength }} chars, {{ lineCount }}
-                            lines):</div>
+                        <div class="text-surface-600 dark:text-surface-500 text-xs">{{ contentLength }}
+                            chars, {{ lineCount }}
+                            lines</div>
                         <div class="flex items-center gap-2">
                             <Button size="small" severity="secondary" variant="text" @click="copyToClipboard">
                                 <i class="pi pi-copy text-sm"></i>
@@ -51,11 +52,6 @@
                                 View Full
                             </Button>
                         </div>
-                    </div>
-                    <div
-                        class="bg-surface-200 dark:bg-surface-950 p-3 max-h-40 overflow-y-auto custom-scrollbar-dark rounded-sm">
-                        <pre
-                            class="font-mono text-sm leading-relaxed whitespace-pre-wrap break-all">{{ fileContent }}</pre>
                     </div>
                 </div>
 
