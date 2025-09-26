@@ -1,9 +1,8 @@
 <template>
-  <div class="border border-surface-400 dark:border-surface-500 rounded-lg my-2 bg-surface-card">
+  <div class="m-2 border border-surface-400 dark:border-surface-500 rounded-sm">
     <!-- Status Section -->
     <div>
-      <div
-        class="flex justify-between items-center px-4 py-3 bg-gradient-to-br from-surface-ground to-surface-card border-b border-surface-400 dark:border-surface-500">
+      <div class="flex justify-between items-center px-4 py-3 border-b border-surface-400 dark:border-surface-500">
         <div class="flex items-center gap-2 font-semibold text-sm"
           :class="props.data.subtype === 'success' ? 'text-green-600' : 'text-red-600'">
           <i :class="props.data.subtype === 'success' ? 'pi pi-check-circle' : 'pi pi-exclamation-circle'"></i>

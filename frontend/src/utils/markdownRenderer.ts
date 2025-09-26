@@ -36,7 +36,7 @@ export const createMarkedRenderer = (): Renderer => {
     }
 
     const langClass = language ? `language-${language}` : ''
-    return `<pre class="!bg-gray-700 !dark:bg-surface-900 !text-surface-200"><code class="${langClass}">${code}</code></pre>`
+    return `<pre class="dark:!bg-surface-800 !bg-gray-900 !text-surface-200"><code class="${langClass}">${code}</code></pre>`
   }
 
   return renderer

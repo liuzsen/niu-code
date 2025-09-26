@@ -1,12 +1,11 @@
 <template>
-    <div
-        class="bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-surface-700 shadow-lg rounded-xl">
+    <div>
         <!-- Read Header -->
-        <div class="p-4 border-b border-surface-300 dark:border-surface-700">
+        <div class="p-4 border-b border-surface-200 dark:border-surface-700">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-file-import dark:text-surface-500"></i>
-                    <span class="text-sm font-mono">File Read</span>
+                    <span class="font-mono font-bold">File Read</span>
                 </div>
 
                 <div class="flex items-center gap-2 flex-1">
@@ -29,17 +28,18 @@
 
         <!-- Read Content -->
         <div class="p-4">
-            <div class="space-y-4">
+            <div>
                 <!-- File Path -->
                 <div class="flex items-start gap-2">
                     <span class="font-mono text-sm font-semibold">📖</span>
-                    <code class="font-mono text-sm leading-relaxed break-all">{{ input.file_path }}</code>
+                    <code
+                        class="font-mono text-sm leading-relaxed break-all bg-surface-400 dark:bg-surface-600 px-1 rounded-sm">{{ toRelativePath(input.file_path) }}</code>
                 </div>
 
                 <!-- File Content (preview) -->
                 <div v-if="fileContent">
                     <div class="flex items-center justify-between mb-2">
-                        <div class="text-surface-500 text-xs">File Content ({{ contentLength }} chars, {{ lineCount }}
+                        <div class="text-surface-600 text-xs">File Content ({{ contentLength }} chars, {{ lineCount }}
                             lines):</div>
                         <div class="flex items-center gap-2">
                             <Button size="small" severity="secondary" variant="text" @click="copyToClipboard">
@@ -53,7 +53,7 @@
                         </div>
                     </div>
                     <div
-                        class="bg-surface-200 dark:bg-surface-900 p-3 max-h-40 overflow-y-auto custom-scrollbar-dark rounded-lg">
+                        class="bg-surface-200 dark:bg-surface-950 p-3 max-h-40 overflow-y-auto custom-scrollbar-dark rounded-sm">
                         <pre
                             class="font-mono text-sm leading-relaxed whitespace-pre-wrap break-all">{{ fileContent }}</pre>
                     </div>
@@ -103,6 +103,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import type { FileReadInput } from '../../types/sdk-tools'
+import { toRelativePath } from '../../utils/pathProcess'
 
 interface Props {
     id: string

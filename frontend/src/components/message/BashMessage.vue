@@ -28,7 +28,7 @@
                 </div>
             </template>
             <template #result>
-                <div v-if="resultText" class="mt-3">
+                <div v-if="resultText" class="">
                     <div class="flex items-start gap-2">
                         <pre class="text-gray-300 font-mono text-sm leading-relaxed break-all whitespace-pre-wrap">{{ resultText
                         }}</pre>

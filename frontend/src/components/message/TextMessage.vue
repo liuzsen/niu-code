@@ -1,5 +1,8 @@
 <template>
-  <div ref="markdownContainer" class="markdown-body !bg-transparent dark:!text-surface-300" v-html="renderedContent" />
+  <div class="p-4">
+    <div ref="markdownContainer" class="markdown-body dark:!text-surface-300 !bg-transparent"
+      v-html="renderedContent" />
+  </div>
 </template>
 
 <script setup lang="ts">

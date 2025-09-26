@@ -1,12 +1,11 @@
 <template>
-    <div
-        class="bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-surface-700 shadow-lg rounded-xl">
+    <div>
         <!-- MultiEdit Header -->
-        <div class="p-4 border-b border-surface-300 dark:border-surface-700">
+        <div class="p-3 border-b border-surface-100 dark:border-surface-700">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-file-multiple dark:text-surface-500"></i>
-                    <span class="text-sm font-mono">Multi Edit</span>
+                    <span class="font-mono font-bold">Multi Edit</span>
                     <span class="text-xs text-surface-500">({{ editCount }} changes)</span>
                 </div>
 
@@ -27,8 +26,8 @@
                 <!-- Edit List -->
                 <div class="space-y-3">
                     <div v-for="(edit, index) in input.edits" :key="index"
-                        class="border border-surface-300 dark:border-surface-600 rounded-lg p-3">
-                        <div class="text-xs text-surface-500 mb-2 flex items-center gap-2">
+                        class="border border-surface-500 dark:border-surface-600 rounded-lg p-2">
+                        <div class="text-xs text-gray-600 mb-2 flex items-center gap-2">
                             <i class="pi pi-code"></i>
                             Edit #{{ index + 1 }}
                             <span v-if="edit.replace_all"

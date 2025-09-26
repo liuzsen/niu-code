@@ -1,6 +1,6 @@
 <template>
   <div
-    class="animate-attention bg-surface-50 dark:bg-surface-800 rounded-xl p-2 border border-surface-500 dark:border-surface-700 outline-none"
+    class="animate-attention bg-surface-50 dark:bg-surface-900 rounded-sm p-2 border border-surface-500 dark:border-surface-700 outline-none mx-4 mb-3"
     tabindex="0" ref="permissionContainer" @keydown="handleKeyDown">
     <div class="flex flex-col gap-1">
       <div class="flex mb-2 items-center ">
@@ -206,7 +206,7 @@ watch(() => props.request, (newRequest) => {
 }
 
 .permission-option-selected {
-  @apply bg-surface-300 dark:bg-surface-600;
+  @apply bg-surface-300 dark:bg-orange-600;
 }
 
 /* Attention animation for permission requests - all-around shadow glow */

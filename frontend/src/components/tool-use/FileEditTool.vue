@@ -1,18 +1,16 @@
 <template>
-    <div
-        class="bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-surface-700 shadow-lg rounded-xl">
+    <div>
         <!-- Edit Header -->
-        <div class="p-4 border-b border-surface-300 dark:border-surface-700">
+        <div class="p-4 border-b border-surface-100 dark:border-surface-700">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">
                     <div class="flex items-center gap-2">
                         <i class="pi pi-file-edit dark:text-surface-500"></i>
-                        <span class="text-sm font-mono font-medium">File Edit</span>
+                        <span class="text-sm font-mono font-extrabold">File Edit</span>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <code class="file-path">
+                    <div
+                        class="flex items-center gap-2 font-mono text-sm break-all rounded-sm bg-surface-400 dark:bg-surface-700 px-1">
                         {{ toRelativePath(input.file_path) }}
-                        </code>
                     </div>
                 </div>
 
@@ -158,11 +156,3 @@ const copyNewString = async () => {
     }
 }
 </script>
-
-<style scoped>
-@reference "../../style.css";
-
-.file-path {
-    @apply font-mono text-sm leading-relaxed break-all rounded-sm bg-surface-300 dark:bg-surface-700
-}
-</style>

@@ -5,14 +5,16 @@
       :class="{ 'flex-row-reverse space-x-reverse': message.data.from === 'human' }">
       <div class="flex flex-col flex-1">
 
-        <div class="flex gap-2 text-sm px-2 mb-0.5">
+        <div class="flex gap-2 text-sm px-0 mb-0.5">
           <p v-if="message.data.from === 'human'" class=" text-green-500">Human</p>
           <p v-if="message.data.from === 'agent'" class=" dark:text-orange-300 text-surface-700">Main Agent</p>
         </div>
 
-        <div class=" rounded-xl p-4 text-sm bg-surface-200 dark:bg-surface-800">
+        <div class=" rounded-lg text-sm bg-surface-300 dark:bg-surface-900">
           <!-- 用户消息 -->
-          <MarkdownRenderer v-if="message.data.from === 'human'" :content="message.data.content.content" />
+          <div v-if="message.data.from === 'human'" class="p-4">
+            <MarkdownRenderer :content="message.data.content.content" />
+          </div>
 
           <!-- Agent 消息-->
           <div v-else>

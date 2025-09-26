@@ -1,12 +1,12 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-4 p-4">
     <div class="flex justify-between items-center pb-2 border-b border-surface-500">
       <div class="flex items-center gap-2">
         <i class="pi pi-cog"></i>
         <span class="font-semibold text-surface-900 dark:text-surface-400">系统信息</span>
       </div>
       <span class="px-2 py-1 text-xs rounded-xl bg-surface-400 dark:bg-surface-900 dark:text-orange-400">{{ model
-        }}</span>
+      }}</span>
     </div>
 
     <div class="space-y-2 text-xs flex flex-col gap-1 dark:text-surface-300 font-medium dark:font-semibold">

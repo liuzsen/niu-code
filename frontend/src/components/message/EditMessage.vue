@@ -1,5 +1,5 @@
 <template>
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col">
         <FileEditTool :input="input">
             <template #status>
                 <div>
@@ -23,9 +23,9 @@
             </template>
 
             <template #result v-if="resultText">
-                <div class="border-t border-surface-300 dark:border-surface-700 pt-3">
+                <div class="border-t border-surface-100 dark:border-surface-700 pt-3">
                     <div class="text-xs mb-2">Result:</div>
-                    <div class="bg-surface-50 dark:bg-surface-900 rounded-lg p-3">
+                    <div class="bg-surface-50 dark:bg-surface-950 rounded-lg p-3">
                         <pre
                             class="font-mono text-sm leading-relaxed break-all whitespace-pre-wrap">{{ resultText }}</pre>
                     </div>
