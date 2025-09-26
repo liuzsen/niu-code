@@ -48,6 +48,11 @@
               <ExitPlanModeMessage v-else-if="tool_use.tool_use.tool_name == 'ExitPlanMode'" :id="tool_use.id"
                 :input="tool_use.tool_use.input"></ExitPlanModeMessage>
             </div>
+            <div v-else-if="unknown_tool_use" :key="unknown_tool_use.id">
+              <UnknownToolUseMessage :id="unknown_tool_use.id" :name="unknown_tool_use.tool_use.tool_name"
+                :input="unknown_tool_use.tool_use.input">
+              </UnknownToolUseMessage>
+            </div>
             <div v-else>
               <FallbackRenderer :data="message"></FallbackRenderer>
             </div>
@@ -78,10 +83,11 @@ import EditRenderer from './message/EditMessage.vue'
 import MultiEditRenderer from './message/MultiEditMessage.vue'
 import ReadRenderer from './message/ReadMessage.vue'
 import FallbackRenderer from './message/FallbackMessage.vue'
-import { extract_system_init, extract_assistant_text, extract_result, extract_tool_use } from '../utils/messageExtractors'
+import { extract_system_init, extract_assistant_text, extract_result, extract_tool_use, extract_unknown_tool_use } from '../utils/messageExtractors'
 import MarkdownRenderer from './message/MarkdownRenderer.vue'
 import BashRenderer from './message/BashMessage.vue'
 import ExitPlanModeMessage from './message/ExitPlanModeMessage.vue'
+import UnknownToolUseMessage from './message/UnknownToolUseMessage.vue'
 
 interface Props {
   message: ChatMessage
@@ -96,6 +102,15 @@ const tool_use = computed(() => {
 
   return extract_tool_use(props.message.data.content)
 })
+
+const unknown_tool_use = computed(() => {
+  if (props.message.data.from != "agent") {
+    return undefined
+  }
+
+  return extract_unknown_tool_use(props.message.data.content)
+})
+
 
 const assistant_text = computed(() => {
   if (props.message.data.from != 'agent') {

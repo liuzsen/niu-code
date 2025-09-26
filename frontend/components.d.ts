@@ -35,6 +35,7 @@ declare module 'vue' {
     TextMessage: typeof import('./src/components/message/TextMessage.vue')['default']
     TodoWriteMessage: typeof import('./src/components/message/TodoWriteMessage.vue')['default']
     ToolPermissionDialog: typeof import('./src/components/ToolPermissionDialog.vue')['default']
+    UnknownToolUseMessage: typeof import('./src/components/message/UnknownToolUseMessage.vue')['default']
     WriteMessage: typeof import('./src/components/message/WriteMessage.vue')['default']
   }
 }

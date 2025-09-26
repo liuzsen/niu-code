@@ -25,6 +25,17 @@ export function cleanToolResult(content: unknown): string {
   return content
 }
 
+export function extractToolUseError(text: string) {
+  const regex = /<[^>]+>(.*?)<\/[^>]+>/s;
+  const match = text.match(regex);
+
+  if (match) {
+    return match[1];
+  }
+
+  return text;
+}
+
 // Bash 数据类型
 export interface BashData {
   command: string
@@ -75,6 +86,32 @@ export function extract_assistant_text(sdkMessage: SDKMessage): string | null {
 export interface ToolUseBlock {
   id: string;
   tool_use: ToolInputSchemasWithName
+}
+
+export interface UnkownToolUseBlock {
+  id: string;
+  tool_use: {
+    tool_name: string
+    input: unknown
+  }
+}
+
+export function extract_unknown_tool_use(sdkMessage: SDKMessage): UnkownToolUseBlock | null {
+  if (!is_assistant_msg(sdkMessage)) return null
+
+  const content = sdkMessage.message.content[0]
+  if (content.type != 'tool_use') {
+    return null
+  }
+
+  // 类型安全的返回结构
+  return {
+    id: content.id,
+    tool_use: {
+      tool_name: content.name,
+      input: content.input
+    }
+  }
 }
 
 export function extract_tool_use(sdkMessage: SDKMessage): ToolUseBlock | null {
