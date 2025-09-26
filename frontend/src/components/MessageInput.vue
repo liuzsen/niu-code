@@ -1,11 +1,10 @@
 <template>
   <div class="min-h-0">
-    <div
-      class="bg-surface-0 dark:bg-surface-800 border border-surface-400 dark:border-surface-500 rounded-2xl p-3 shadow-sm">
+    <div class="bg-surface-50 dark:bg-surface-800 border-surface-200 dark:border-surface-500 rounded-2xl p-3 shadow-sm">
       <!-- Input Area -->
       <div class="mb-1">
         <Textarea v-model="messageInput" ref="textareaRef" placeholder="在这里输入消息，按 Enter 发送..."
-          class="w-full resize-none border-0 bg-transparent !text-surface-300 min-h-8 max-h-32"
+          class="w-full resize-none border-0 bg-transparent !text-amber-700 dark:!text-amber-600 min-h-8 max-h-32"
           :disabled="computedDisabled" :auto-resize="true" @keydown.enter.prevent="handleKeydown"
           :title="disabledTooltip" />
       </div>

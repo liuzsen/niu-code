@@ -4,7 +4,7 @@
     ref="messagesContainer">
     <ChatMessage v-for="(message, index) in displayMessages" :key="`${message.chat_id}-${index}`" :message="message" />
 
-    <div v-if="displayMessages.length === 0" class="text-center mt-12" style="color: var(--text-color-secondary)">
+    <div v-if="displayMessages.length === 0" class="text-center mt-12">
       <i class="pi pi-comments text-4xl mb-4 block"></i>
       <p>Welcome to Claude Code Web</p>
       <p class="text-sm mt-2">Connect to start chatting with Claude</p>
