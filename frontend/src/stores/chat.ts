@@ -90,6 +90,7 @@ export const useChatStore = defineStore('chat', {
     // 添加 Claude 消息
     addClaudeMessage(chatId: string, content: SDKMessage) {
       if (content.type === 'system' && content.subtype === 'init') {
+        if (this.currentSession.systemInit) return
         this.currentSession.systemInit = content
       }
       const message: ChatMessage = {
