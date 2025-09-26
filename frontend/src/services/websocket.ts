@@ -17,9 +17,6 @@ export interface WebSocketError {
 export class WebSocketService {
   private ws: WebSocket | null = null
   private url: string
-  private reconnectAttempts = 0
-  private maxReconnectAttempts = 5
-  private reconnectDelay = 1000
 
   // 类型安全的消息处理器
   private messageHandlers: Set<(message: ServerMessage) => void> = new Set()
@@ -64,7 +61,6 @@ export class WebSocketService {
           console.log('WebSocket connected')
           this.state.connected = true
           this.state.connecting = false
-          this.reconnectAttempts = 0
           resolve()
         }
 
@@ -77,7 +73,7 @@ export class WebSocketService {
           this.state.connected = false
           this.state.connecting = false
           this.ws = null
-          this.attemptReconnect()
+          // this.attemptReconnect()
         }
 
         this.ws.onerror = (error) => {
@@ -160,33 +156,6 @@ export class WebSocketService {
         })
       })
     }
-  }
-
-  private attemptReconnect(): void {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this.state.error = 'Max reconnection attempts reached'
-
-      // 通知错误处理器
-      this.errorHandlers.forEach(handler => {
-        handler({
-          type: 'connection_error',
-          error: new Error('Max reconnection attempts reached')
-        })
-      })
-
-      return
-    }
-
-    this.reconnectAttempts++
-    const delay = this.reconnectDelay * this.reconnectAttempts
-
-    console.log(`Attempting reconnect ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${delay}ms`)
-
-    setTimeout(() => {
-      this.connect().catch(error => {
-        console.error('Reconnection failed:', error)
-      })
-    }, delay)
   }
 }
 
