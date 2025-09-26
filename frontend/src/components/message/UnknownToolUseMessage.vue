@@ -50,7 +50,7 @@
 import { computed } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import { useToolUseHandler } from '../../composables/useToolUseHandler'
-import { extractToolUseError } from '../../utils/messageExtractors'
+import { extractTaggedContent } from '../../utils/messageExtractors'
 
 interface Props {
     id: string
@@ -69,9 +69,9 @@ const resultText = computed(() => {
         return "No Result Content"
     }
     if (typeof content == 'string') {
-        return extractToolUseError(content)
+        return extractTaggedContent(content)
     } else if (content[0]?.type == 'text') {
-        return extractToolUseError(content[0].text)
+        return extractTaggedContent(content[0].text)
     } else {
         return JSON.stringify(content, undefined, 2)
     }

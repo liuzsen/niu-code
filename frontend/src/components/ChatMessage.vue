@@ -21,6 +21,9 @@
             <div v-if="assistant_text">
               <TextRenderer :input="assistant_text"></TextRenderer>
             </div>
+            <div v-else-if="claude_user_text">
+              <ClaudeUserMessage :content="claude_user_text"></ClaudeUserMessage>
+            </div>
             <div v-else-if="systemt_init">
               <SystemRenderer :data="systemt_init"></SystemRenderer>
             </div>
@@ -83,11 +86,12 @@ import EditRenderer from './message/EditMessage.vue'
 import MultiEditRenderer from './message/MultiEditMessage.vue'
 import ReadRenderer from './message/ReadMessage.vue'
 import FallbackRenderer from './message/FallbackMessage.vue'
-import { extract_system_init, extract_assistant_text, extract_result, extract_tool_use, extract_unknown_tool_use } from '../utils/messageExtractors'
+import { extract_system_init, extract_assistant_text, extract_result, extract_tool_use, extract_unknown_tool_use, extract_claude_user_text } from '../utils/messageExtractors'
 import MarkdownRenderer from './message/MarkdownRenderer.vue'
 import BashRenderer from './message/BashMessage.vue'
 import ExitPlanModeMessage from './message/ExitPlanModeMessage.vue'
 import UnknownToolUseMessage from './message/UnknownToolUseMessage.vue'
+import ClaudeUserMessage from './message/ClaudeUserMessage.vue'
 
 interface Props {
   message: ChatMessage
@@ -119,6 +123,15 @@ const assistant_text = computed(() => {
 
   return extract_assistant_text(props.message.data.content)
 })
+
+const claude_user_text = computed(() => {
+  if (props.message.data.from != 'agent') {
+    return undefined
+  }
+
+  return extract_claude_user_text(props.message.data.content)
+})
+
 
 const systemt_init = computed(() => {
   if (props.message.data.from != 'agent') {

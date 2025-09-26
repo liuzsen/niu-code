@@ -13,6 +13,7 @@ declare module 'vue' {
     BashTool: typeof import('./src/components/tool-use/BashTool.vue')['default']
     ChatLayout: typeof import('./src/components/ChatLayout.vue')['default']
     ChatMessage: typeof import('./src/components/ChatMessage.vue')['default']
+    ClaudeUserMessage: typeof import('./src/components/message/ClaudeUserMessage.vue')['default']
     EditMessage: typeof import('./src/components/message/EditMessage.vue')['default']
     ExitPlanModeMessage: typeof import('./src/components/message/ExitPlanModeMessage.vue')['default']
     ExitPlanModeOptions: typeof import('./src/components/ExitPlanModeOptions.vue')['default']
@@ -33,6 +34,7 @@ declare module 'vue' {
     TextMessage: typeof import('./src/components/message/TextMessage.vue')['default']
     TodoWriteMessage: typeof import('./src/components/message/TodoWriteMessage.vue')['default']
     UnknownToolUseMessage: typeof import('./src/components/message/UnknownToolUseMessage.vue')['default']
+    UserMessage: typeof import('./src/components/message/UserMessage.vue')['default']
     WriteMessage: typeof import('./src/components/message/WriteMessage.vue')['default']
   }
 }

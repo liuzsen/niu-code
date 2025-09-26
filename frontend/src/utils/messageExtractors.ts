@@ -25,7 +25,7 @@ export function cleanToolResult(content: unknown): string {
   return content
 }
 
-export function extractToolUseError(text: string) {
+export function extractTaggedContent(text: string) {
   const regex = /<[^>]+>(.*?)<\/[^>]+>/s;
   const match = text.match(regex);
 
@@ -81,6 +81,22 @@ export function extract_assistant_text(sdkMessage: SDKMessage): string | null {
     }
   }
   return null
+}
+
+export function extract_claude_user_text(sdkMessage: SDKMessage): string | null {
+  if (sdkMessage.type !== 'user') {
+    return null
+  }
+  console.log("111", sdkMessage)
+  if (sdkMessage.message.role != "user") {
+    return null
+  }
+  console.log("222", sdkMessage)
+  if (typeof sdkMessage.message.content != "string") {
+    return null
+  }
+  console.log("333", sdkMessage)
+  return sdkMessage.message.content
 }
 
 export interface ToolUseBlock {
