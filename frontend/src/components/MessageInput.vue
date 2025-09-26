@@ -14,9 +14,6 @@
       <div class="flex items-center justify-between">
         <!-- Left Tool Buttons -->
         <div class="flex items-center gap-2">
-          <Select v-model="chatStore.currentSession.permissionMode" :options="permissionModeOptions" optionLabel="label"
-            optionValue="value" @change="onPermissionModeChange" placeholder="模式" class="min-w-20 h-7 text-sm"
-            severity="secondary" variant="text" size="small" />
           <Button icon="pi pi-face-smile" severity="secondary" variant="text" size="small"
             class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
           <Button icon="pi pi-at" severity="secondary" variant="text" size="small"
@@ -40,6 +37,11 @@
 
         <!-- Right Side Buttons -->
         <div class="flex items-center gap-2">
+          <Select v-model="chatStore.currentSession.permissionMode" :options="permissionModeOptions" optionLabel="label"
+            optionValue="value" @change="onPermissionModeChange" class="h-7 text-sm permission-select"
+            :label-class="'px-2 pt-1 pb-0.5'" variant="filled" size="small"
+            :pt="{ dropdownIcon: { class: ' bg-red' } }">
+          </Select>
 
           <!-- Send Button -->
           <Button @click="sendUserInput" :disabled="computedDisabled || !messageInput.trim()" icon="pi pi-arrow-up"
@@ -166,3 +168,9 @@ const onPermissionModeChange = () => {
   wsService.sendMessage(message)
 }
 </script>
+
+<style scoped>
+.permission-select :deep(.p-select-dropdown) {
+  display: none;
+}
+</style>
