@@ -11,3 +11,7 @@ export function toRelativePath(path: string): string {
     }
     return new_path;
 }
+
+export function extractFileName(filePath: string): string {
+    return filePath.split('/').pop()?.split('\\').pop() || '';
+}

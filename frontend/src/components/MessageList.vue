@@ -1,6 +1,6 @@
 <template>
   <div
-    class=" bg-surface-200 dark:bg-surface-900 flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar-light rounded-xl border-x border-y border-surface-300 dark:border-surface-700"
+    class=" bg-surface-100 dark:bg-surface-900 flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar-light rounded-xl border-x border-y border-surface-300 dark:border-surface-700"
     ref="messagesContainer">
     <ChatMessage v-for="(message, index) in displayMessages" :key="`${message.chat_id}-${index}`" :message="message" />
 

@@ -10,7 +10,7 @@
           <p v-if="message.data.from === 'agent'" class=" dark:text-orange-300 text-surface-700">Main Agent</p>
         </div>
 
-        <div class=" rounded-xl p-4 text-sm bg-surface-100 dark:bg-surface-800">
+        <div class=" rounded-xl p-4 text-sm bg-surface-200 dark:bg-surface-800">
           <!-- 用户消息 -->
           <MarkdownRenderer v-if="message.data.from === 'human'" :content="message.data.content.content" />
 

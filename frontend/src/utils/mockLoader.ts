@@ -8,12 +8,10 @@ const mockFileModules = import.meta.glob('/.local/mocks/*.json')
 
 export const mockFiles = (() => {
   const paths = Object.keys(mockFileModules)
-  console.log('Raw glob paths:', paths)
 
   return paths.map(path => {
     // 提取文件名：从任意路径格式中提取纯文件名
     const filename = path.split('/').pop()?.replace('.json', '') || path
-    console.log(`Processing path: "${path}" -> "${filename}"`)
     return filename
   })
 })()
@@ -36,9 +34,6 @@ export async function loadMockFile(filename: string): Promise<void> {
   try {
     const chatStore = useChatStore()
     chatStore.clearAll()
-
-    console.log(`Looking for mock file: "${filename}"`)
-    console.log('Available paths:', Object.keys(mockFileModules))
 
     // 通过文件名查找对应的模块
     const found = Object.keys(mockFileModules).find(path => {

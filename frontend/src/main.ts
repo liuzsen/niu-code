@@ -20,5 +20,4 @@ initMessageManager(chatStore)
 import { messageManager } from './services/messageManager'
 app.provide('messageManager', messageManager)
 
-
 app.mount('#app')

@@ -17,7 +17,7 @@
 
       <!-- Mock File Selector (Dev only) -->
       <div v-if="isDevelopment" class="flex items-center space-x-2">
-        <Dropdown :options="mockOptions" v-model="selectedMockOption" @change="handleMockFileChange" optionLabel="label"
+        <Select :options="mockOptions" v-model="selectedMockOption" @change="handleMockFileChange" optionLabel="label"
           optionValue="value" placeholder="选择 Mock 文件" class="w-48" size="small" />
       </div>
 
@@ -32,7 +32,6 @@
 
 <script setup lang="ts">
 import Button from 'primevue/button'
-import Dropdown from 'primevue/dropdown'
 import { ref, computed, onMounted } from 'vue'
 import { useConnection } from '../composables/useConnection'
 import { useLayout } from '../composables/useLayout'
