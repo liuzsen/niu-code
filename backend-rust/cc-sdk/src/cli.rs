@@ -2,7 +2,6 @@ use std::{
     collections::HashMap,
     ffi::OsStr,
     fmt::Debug,
-    ops::ControlFlow,
     path::{Path, PathBuf},
     pin::Pin,
     process::Stdio,
@@ -10,6 +9,7 @@ use std::{
 };
 
 use anyhow::{Context as _, Result, bail};
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use tokio::{
@@ -109,14 +109,21 @@ impl From<String> for Prompt {
     }
 }
 
+pub type QueryStreamItem = Result<SDKMessage, ClaudeStreamError>;
+
 pub struct QueryStream {
-    receiver: UnboundedReceiver<SDKMessage>,
+    receiver: UnboundedReceiver<QueryStreamItem>,
     writer_chan: Option<UnboundedSender<ClaudeWriterMessage>>,
     claude_sys_info: Option<ClaudeSysInfo>,
 }
 
+#[derive(Display, Debug)]
+pub enum ClaudeStreamError {
+    CannotDeserialize(String),
+}
+
 impl Stream for QueryStream {
-    type Item = SDKMessage;
+    type Item = QueryStreamItem;
 
     fn poll_next(
         mut self: std::pin::Pin<&mut Self>,
@@ -129,7 +136,7 @@ impl Stream for QueryStream {
 struct ClaudeReader {
     stdout: tokio::process::ChildStdout,
     ctrl_chan: UnboundedSender<ControlMessage>,
-    output_chan: UnboundedSender<SDKMessage>,
+    output_chan: UnboundedSender<QueryStreamItem>,
 }
 
 struct ClaudeWriter {
@@ -197,9 +204,7 @@ impl ClaudeReader {
                     warn!(msg = line, "control_cancel_request is unsupported");
                 }
                 _ => {
-                    if Self::send_out_message(&output_chan, msg)?.is_break() {
-                        break;
-                    }
+                    Self::send_out_message(&output_chan, msg)?;
                 }
             }
         }
@@ -207,15 +212,19 @@ impl ClaudeReader {
         Ok(())
     }
 
-    fn send_out_message(chan: &UnboundedSender<SDKMessage>, msg: Value) -> Result<ControlFlow<()>> {
+    fn send_out_message(chan: &UnboundedSender<QueryStreamItem>, msg: Value) -> Result<()> {
         debug!("send claude msg to output chan");
-        let msg = serde_json::from_value(msg)?;
-        if let Err(_) = chan.send(msg) {
-            info!("output chan closed, exit claude reader");
-            return Ok(ControlFlow::Break(()));
+        match serde_json::from_value(msg) {
+            Ok(msg) => {
+                chan.send(Ok(msg)).context("output chan closed")?;
+            }
+            Err(err) => {
+                let msg = Err(ClaudeStreamError::CannotDeserialize(format!("{err}")));
+                chan.send(msg).context("output chan closed")?;
+            }
         }
 
-        Ok(ControlFlow::Continue(()))
+        Ok(())
     }
 
     fn send_ctrl_resp(chan: &UnboundedSender<ControlMessage>, msg: Value) {
@@ -279,6 +288,7 @@ impl ClaudeWriter {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct ControlRequstMessageWrapper {
     request_id: String,
     request: ControlRequstMessage,
@@ -287,6 +297,7 @@ pub struct ControlRequstMessageWrapper {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "subtype")]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum ControlRequstMessage {
     CanUseTool(CanUseToolRequest),
     HookCallback(HookCallbackRequest),
@@ -294,12 +305,14 @@ pub enum ControlRequstMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct McpMessageRequest {
     server_name: String,
     message: Value,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct HookCallbackRequest {
     callback_id: String,
     input: ToolInputSchemas,
@@ -307,38 +320,11 @@ pub struct HookCallbackRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct CanUseToolRequest {
     #[serde(flatten)]
     tool_use: ToolInputSchemasWithName,
     permission_suggestions: Option<Vec<PermissionUpdate>>,
-}
-
-#[test]
-fn feature() {
-    let s = r#"
-   {
-  "request": {
-    "input": {
-      "file_path": "/data/home/sen/code/projects/ai/zsen-cc-web/backend-rust/.local/test-hello.py",
-      "new_string": "def fn_a():\n    pass\n\n\ndef fn_b():\n    pass",
-      "old_string": "def aaa():\n    pass\n\n\ndef bbb():\n    pass"
-    },
-    "permission_suggestions": [
-      {
-        "destination": "session",
-        "mode": "acceptEdits",
-        "type": "setMode"
-      }
-    ],
-    "subtype": "can_use_tool",
-    "tool_name": "Edit"
-  },
-  "request_id": "59810d3a-9c9e-47bb-85dd-3767df15b93d",
-  "type": "control_request"
-} 
-    "#;
-    let req: ControlRequstMessageWrapper = serde_json::from_str(s).unwrap();
-    dbg!(req);
 }
 
 impl ControlHandler {

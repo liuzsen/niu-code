@@ -3,7 +3,7 @@ use std::task::ready;
 use anyhow::{Context, Result};
 use cc_sdk::{
     StreamExt as _,
-    cli::{PromptGenerator, QueryStream},
+    cli::{ClaudeStreamError, PromptGenerator, QueryStream},
     types::{
         APIUserMessage, CanUseToolCallBack, PermissionMode, PermissionResult, SDKMessage,
         SDKUserMessage,
@@ -20,7 +20,9 @@ use tracing::{debug, warn};
 
 use crate::{
     chat::WsSender,
-    message::{CanUseToolParams, ChatId, ClaudeSystemInfo, ServerMessage, ServerMessageData},
+    message::{
+        CanUseToolParams, ChatId, ClaudeSystemInfo, ServerError, ServerMessage, ServerMessageData,
+    },
 };
 
 pub type Responder<T> = oneshot::Sender<T>;
@@ -144,10 +146,21 @@ impl ClaudeCli {
         Ok(())
     }
 
-    fn handle_claude_msg(&mut self, msg: SDKMessage) -> Result<()> {
+    fn handle_claude_msg(&mut self, msg: Result<SDKMessage, ClaudeStreamError>) -> Result<()> {
         self.forward_claude_msg(msg)?;
 
         Ok(())
+    }
+}
+
+impl From<Result<SDKMessage, ClaudeStreamError>> for ServerMessageData {
+    fn from(value: Result<SDKMessage, ClaudeStreamError>) -> Self {
+        match value {
+            Ok(msg) => msg.into(),
+            Err(err) => ServerMessageData::ServerError(ServerError {
+                error: err.to_string(),
+            }),
+        }
     }
 }
 

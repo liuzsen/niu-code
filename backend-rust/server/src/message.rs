@@ -47,7 +47,7 @@ pub enum ServerMessageData {
 
 #[derive(Serialize)]
 pub struct ServerError {
-    error: String,
+    pub error: String,
 }
 
 #[derive(Serialize)]

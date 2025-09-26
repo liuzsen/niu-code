@@ -185,6 +185,7 @@ async fn main() -> anyhow::Result<()> {
     tx.send(prompt.to_owned()).unwrap();
 
     while let Some(msg) = claude.next().await {
+        let msg = msg.unwrap();
         println!(
             "Got claude msg:\n{}",
             serde_json::to_string_pretty(&msg).unwrap()

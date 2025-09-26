@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct SDKMessageBase {
     pub uuid: String,
     pub session_id: String,
@@ -10,6 +11,7 @@ pub struct SDKMessageBase {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum SDKMessage {
     Assistant(SDKAssistantMessage),
     User(SDKUserMessagePack),
@@ -19,6 +21,7 @@ pub enum SDKMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct SDKAssistantMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -35,12 +38,14 @@ pub enum APIUserMessageRole {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
+#[serde(deny_unknown_fields)]
 pub enum SDKUserMessagePack {
     Replay(SDKUserMessageReplay),
     UserMessage(SDKUserMessage),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct SDKUserMessage {
     pub uuid: Option<String>,
     pub session_id: String,
@@ -49,6 +54,7 @@ pub struct SDKUserMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct APIUserMessage {
     /// TODO: support more content type
     ///
@@ -64,6 +70,7 @@ impl SDKUserMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct SDKUserMessageReplay {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -72,6 +79,7 @@ pub struct SDKUserMessageReplay {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct SDKPermissionDenial {
     pub tool_name: String,
     pub tool_use_id: String,
@@ -81,6 +89,7 @@ pub struct SDKPermissionDenial {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "subtype")]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum SDKResultMessage {
     Success(SDKResultSuccessMessage),
     ErrorMaxTurns(SDKResultErrorMessage),
@@ -88,6 +97,7 @@ pub enum SDKResultMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct SDKResultSuccessMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -104,6 +114,7 @@ pub struct SDKResultSuccessMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct SDKResultErrorMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -133,12 +144,14 @@ pub struct ModelUsage {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "subtype")]
 #[serde(rename_all = "snake_case")]
+#[serde(deny_unknown_fields)]
 pub enum SDKSystemMessage {
     Init(SDKSystemInitMessage),
     CompactBoundary(SDKCompactBoundaryMessage),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct SDKSystemInitMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -185,12 +198,14 @@ pub enum ApiKeySource {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct MCPServerStatus {
     pub name: String,
     pub status: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct SDKPartialAssistantMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -199,6 +214,7 @@ pub struct SDKPartialAssistantMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct SDKCompactBoundaryMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -206,6 +222,7 @@ pub struct SDKCompactBoundaryMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
 pub struct CompactMetadata {
     pub trigger: CompactMetadataTrigger,
     pub pre_tokens: u64,

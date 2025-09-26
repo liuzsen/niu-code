@@ -82,6 +82,7 @@ async fn main() -> anyhow::Result<()> {
     )
     .await?;
     while let Some(msg) = claude.next().await {
+        let msg = msg.unwrap();
         println!("{}", serde_json::to_string_pretty(&msg).unwrap());
     }
 
