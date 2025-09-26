@@ -3,7 +3,7 @@
         <FileEditTool :input="input">
             <template #status>
                 <div>
-                    <div v-if="state === 'pending'" class="flex items-center gap-2 ml-auto">
+                    <div v-if="state === 'running'" class="flex items-center gap-2 ml-auto">
                         <ProgressSpinner class="w-3 h-3" stroke-width="4" />
                         <span class="text-xs">Editing...</span>
                     </div>
@@ -33,8 +33,8 @@
             </template>
         </FileEditTool>
 
-        <PermissionOptions v-if="pendingPermissionRequest && state === 'pending'" :request="pendingPermissionRequest!"
-            @permission-selected="handlePermission">
+        <PermissionOptions v-if="pendingPermissionRequest && state === 'running'" :request="pendingPermissionRequest!"
+            v-model="state">
             <template #question>
                 <div class="font-semibold">
                     {{ `Do you want to make this edit to ${extractFileName(input.file_path)}?` }}
@@ -45,9 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { cleanToolResult } from '../../utils/messageExtractors'
-import { useChatStore } from '../../stores/chat'
+import { useToolUseHandler } from '../../composables/useToolUseHandler'
 import FileEditTool from '../tool-use/FileEditTool.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import type { FileEditInput } from '../../types/sdk-tools'
@@ -60,44 +58,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const chatStore = useChatStore()
-const pendingPermissionRequest = computed(() => chatStore.pendingPermissionRequest)
 
-// 获取命令执行结果
-const editResult = computed(() => {
-    return chatStore.getToolResult(props.id)
-})
-
-type EditState = "pending" | "error" | "ok" | "rejected"
-
-const state = ref<EditState>("pending")
-
-watch(editResult, () => {
-    if (state.value == 'rejected') {
-        return
-    }
-    if (editResult.value) {
-        if (editResult.value.is_error) {
-            state.value = "error"
-        } else {
-            state.value = "ok"
-        }
-    }
-}, {
-    immediate: true
-})
-
-const handlePermission = (result: "allow" | "deny") => {
-    if (result == 'deny') {
-        state.value = "rejected"
-    }
-}
-
-// 显示结果文本
-const resultText = computed(() => {
-    if (editResult.value) {
-        return cleanToolResult(editResult.value.content)
-    }
-    return undefined
-})
+const { pendingPermissionRequest, state, resultText } = useToolUseHandler(props.id)
 </script>

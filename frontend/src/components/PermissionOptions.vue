@@ -11,7 +11,7 @@
         @click="allowPermission" @mouseenter="selectedIndex = 0">
         <div class="flex items-center gap-2 ">
           <i class="pi pi-check text-green-500"></i>
-          <span class="">Allow</span>
+          <span class="">Yes</span>
         </div>
       </div>
 
@@ -44,14 +44,13 @@ import type { MessageManager } from '../services/messageManager'
 import type { ToolPermissionRequest } from '../stores/chat'
 import { useChatStore } from '../stores/chat'
 import { useToast } from 'primevue'
+import type { ToolUseState } from '../types'
 
 const props = defineProps<{
   request: ToolPermissionRequest | null
 }>()
 
-const emit = defineEmits<{
-  permissionSelected: ["allow" | "deny"]
-}>()
+const tool_use_state = defineModel<ToolUseState>({ required: true })
 
 const chatStore = useChatStore()
 const messageManager = inject('messageManager') as MessageManager
@@ -107,7 +106,7 @@ const sendPermissionResponse = (result: PermissionResult) => {
 
 const denyPermission = () => {
   if (!props.request) return
-  emit('permissionSelected', 'deny')
+  tool_use_state.value = 'rejected'
 
   const result: PermissionResult = {
     behavior: 'deny',
@@ -120,7 +119,6 @@ const denyPermission = () => {
 
 const allowPermission = () => {
   if (!props.request) return
-  emit('permissionSelected', 'allow')
 
   const result: PermissionResult = {
     behavior: 'allow',
@@ -133,7 +131,6 @@ const allowPermission = () => {
 
 const allowWithSuggestion = (suggestion: PermissionUpdate) => {
   if (!props.request) return
-  emit('permissionSelected', 'allow')
 
   const result: PermissionResult = {
     behavior: 'allow',

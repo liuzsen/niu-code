@@ -1,0 +1,1 @@
+export type ToolUseState = "running" | "error" | "ok" | "rejected"

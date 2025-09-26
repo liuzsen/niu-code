@@ -12,8 +12,7 @@
                     <span class="text-sm font-mono text-gray-300">Terminal</span>
                 </div>
 
-                <div class="flex items-center gap-2 flex-1">
-                    <span class="text-sm ml-2 text-gray-300">></span>
+                <div class="flex items-center gap-2 flex-1 ml-8">
                     <span v-if="input.description" class="text-sm text-gray-300">
                         {{ input.description }}
                     </span>
