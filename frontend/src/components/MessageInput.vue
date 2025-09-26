@@ -14,8 +14,9 @@
       <div class="flex items-center justify-between">
         <!-- Left Tool Buttons -->
         <div class="flex items-center gap-2">
-          <Button icon="pi pi-paperclip" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+          <Select v-model="chatStore.currentSession.permissionMode" :options="permissionModeOptions" optionLabel="label"
+            optionValue="value" @change="onPermissionModeChange" placeholder="模式" class="min-w-20 h-7 text-sm"
+            severity="secondary" variant="text" size="small" />
           <Button icon="pi pi-face-smile" severity="secondary" variant="text" size="small"
             class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
           <Button icon="pi pi-at" severity="secondary" variant="text" size="small"
@@ -61,10 +62,14 @@
 import { ref, watch, nextTick, computed, inject } from 'vue'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
+import Select from 'primevue/select'
 import { useChatStore } from '../stores/chat'
 import type { MessageManager } from '../services/messageManager'
+import type { ClientMessage } from '../types/message'
 import { exportCurrentChat } from '../utils/chatExporter'
 import { useToast } from 'primevue'
+import type { PermissionMode } from '@anthropic-ai/claude-code'
+import { wsService } from '../services/websocket'
 
 const toast = useToast()
 
@@ -77,6 +82,16 @@ const props = defineProps<Props>()
 
 const messageInput = ref('')
 const textareaRef = ref()
+
+// export type PermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
+// 权限模式状态
+const permissionMode = ref<PermissionMode>('default')
+const permissionModeOptions = [
+  { label: 'default', value: 'default' },
+  { label: 'plan', value: 'plan' },
+  { label: 'acceptEdits', value: 'acceptEdits' },
+  { label: 'bypassPermissions', value: 'bypassPermissions' },
+]
 
 // 注入 messageManager
 const messageManager = inject('messageManager') as MessageManager
@@ -135,4 +150,19 @@ watch(messageInput, async () => {
     textarea.scrollTop = textarea.scrollHeight
   }
 })
+
+// 权限模式变更处理
+const onPermissionModeChange = () => {
+  // 发送模式更新消息到服务器
+  const chatId = chatStore.getCurrentChatId()
+  const message: ClientMessage = {
+    chat_id: chatId,
+    data: {
+      kind: 'set_mode',
+      mode: permissionMode.value
+    }
+  }
+
+  wsService.sendMessage(message)
+}
 </script>

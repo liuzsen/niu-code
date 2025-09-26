@@ -21,7 +21,6 @@ pub enum SDKMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct SDKAssistantMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -38,7 +37,6 @@ pub enum APIUserMessageRole {
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
-#[serde(deny_unknown_fields)]
 pub enum SDKUserMessagePack {
     Replay(SDKUserMessageReplay),
     UserMessage(SDKUserMessage),
@@ -70,7 +68,6 @@ impl SDKUserMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct SDKUserMessageReplay {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -97,7 +94,6 @@ pub enum SDKResultMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct SDKResultSuccessMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -114,7 +110,6 @@ pub struct SDKResultSuccessMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct SDKResultErrorMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -151,7 +146,6 @@ pub enum SDKSystemMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct SDKSystemInitMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -205,7 +199,6 @@ pub struct MCPServerStatus {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct SDKPartialAssistantMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,
@@ -214,7 +207,6 @@ pub struct SDKPartialAssistantMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct SDKCompactBoundaryMessage {
     #[serde(flatten)]
     pub base: SDKMessageBase,

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
-import type { PermissionUpdate, SDKMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
+import type { PermissionMode, PermissionUpdate, SDKMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
 import type {
   UserInput,
   ToolInputSchemasWithName,
@@ -15,6 +15,7 @@ export interface ChatState {
     title: string
     createdAt: number
     systemInit?: SDKSystemMessage
+    permissionMode: PermissionMode
   }
 
   // 消息列表
@@ -61,7 +62,8 @@ export const useChatStore = defineStore('chat', {
     currentSession: {
       id: uuidv4(),
       title: '新对话',
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      permissionMode: 'default'
     },
     messages: [],
     toolResults: new Map(),
@@ -153,7 +155,8 @@ export const useChatStore = defineStore('chat', {
       this.currentSession = {
         id: uuidv4(),
         title: '新对话',
-        createdAt: Date.now()
+        createdAt: Date.now(),
+        permissionMode: "default"
       }
       this.messages = []
       this.toolResults = new Map()

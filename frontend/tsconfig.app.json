@@ -14,5 +14,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
+    "src/components/ChatLayout.vue",
+    ".local/ChatStatus.vue",
   ]
 }

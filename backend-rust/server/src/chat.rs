@@ -99,15 +99,24 @@ impl ChatManager {
                 self.forward_to_cli(&chat_id, ClaudeCliMessage::UserInput(prompt.content))?;
             }
             crate::message::ClientMessageData::PermissionResp(permission_result) => {
+                if !self.claudes.contains_key(&chat_id) {
+                    self.build_claude_cli(conn_id, &chat_id, None).await?;
+                }
                 self.forward_to_cli(
                     &chat_id,
                     ClaudeCliMessage::PermissionResp(permission_result),
                 )?;
             }
-            crate::message::ClientMessageData::SetMode(mode) => {
+            crate::message::ClientMessageData::SetMode { mode } => {
+                if !self.claudes.contains_key(&chat_id) {
+                    self.build_claude_cli(conn_id, &chat_id, None).await?;
+                }
                 self.forward_to_cli(&chat_id, ClaudeCliMessage::SetMode(mode))?;
             }
             crate::message::ClientMessageData::GetInfo => {
+                if !self.claudes.contains_key(&chat_id) {
+                    self.build_claude_cli(conn_id, &chat_id, None).await?;
+                }
                 self.forward_to_cli(&chat_id, ClaudeCliMessage::GetInfo)?;
             }
         }

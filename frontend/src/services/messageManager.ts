@@ -59,7 +59,6 @@ export class MessageManager {
 
     // 乐观更新
     this.chatStore.addUserMessage(chatId, {
-      kind: 'user_input',
       content
     })
 

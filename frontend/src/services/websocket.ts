@@ -119,6 +119,7 @@ export class WebSocketService {
 
   // 发送消息 - 纯网络通信，不处理业务逻辑
   sendMessage(message: ClientMessage): void {
+    console.log("send message:", message)
     if (!this.state.connected || !this.ws) {
       throw new Error('WebSocket not connected')
     }

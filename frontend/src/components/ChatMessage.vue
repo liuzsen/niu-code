@@ -45,15 +45,14 @@
               </ReadRenderer>
               <TodoWriteRenderer v-else-if="tool_use.tool_use.tool_name == 'TodoWrite'" :id="tool_use.id"
                 :input="tool_use.tool_use.input"></TodoWriteRenderer>
+              <ExitPlanModeMessage v-else-if="tool_use.tool_use.tool_name == 'ExitPlanMode'" :id="tool_use.id"
+                :input="tool_use.tool_use.input"></ExitPlanModeMessage>
             </div>
             <div v-else>
               <FallbackRenderer :data="message"></FallbackRenderer>
             </div>
           </div>
-
-
         </div>
-
         <div class="flex justify-end mt-0.5 text-gray-500">
           <p class="text-xs mr-2">
             {{ formatTime }}
@@ -82,6 +81,7 @@ import FallbackRenderer from './message/FallbackMessage.vue'
 import { extract_system_init, extract_assistant_text, extract_result, extract_tool_use } from '../utils/messageExtractors'
 import MarkdownRenderer from './message/MarkdownRenderer.vue'
 import BashRenderer from './message/BashMessage.vue'
+import ExitPlanModeMessage from './message/ExitPlanModeMessage.vue'
 
 interface Props {
   message: ChatMessage

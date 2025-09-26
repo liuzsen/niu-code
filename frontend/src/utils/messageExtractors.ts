@@ -14,6 +14,13 @@ export function cleanToolResult(content: unknown): string {
     return errorMatch[1].trim()
   }
 
+  const targetPhrase = "Here's the result of running `cat -n` on a snippet of the edited file";
+  const index = content.indexOf(targetPhrase);
+
+  if (index > 0) {
+    return content.substring(0, index).trim();
+  }
+
   // 如果没有错误标签，返回原内容
   return content
 }

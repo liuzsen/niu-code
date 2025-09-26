@@ -10,13 +10,12 @@ export interface ClientMessage {
 }
 
 export type ClientMessageData =
-    | UserInput
+    | { kind: "user_input" } & UserInput
     | { kind: 'permission_resp' } & PermissionResult
-    | { kind: 'set_mode' } & PermissionMode
+    | { kind: 'set_mode', mode: PermissionMode }
     | { kind: 'get_info' };
 
 export interface UserInput {
-    kind: 'user_input',
     content: string,
     resume?: string
 }

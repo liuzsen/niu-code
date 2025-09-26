@@ -7,23 +7,23 @@ use serde::{Deserialize, Serialize};
 
 pub type ChatId = String;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct ClientMessage {
     pub chat_id: ChatId,
     pub data: ClientMessageData,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(tag = "kind")]
 #[serde(rename_all = "snake_case")]
 pub enum ClientMessageData {
     UserInput(UserInput),
     PermissionResp(PermissionResult),
-    SetMode(PermissionMode),
+    SetMode { mode: PermissionMode },
     GetInfo,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct UserInput {
     pub content: String,
     pub resume: Option<String>,

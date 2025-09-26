@@ -288,7 +288,6 @@ impl ClaudeWriter {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct ControlRequstMessageWrapper {
     request_id: String,
     request: ControlRequstMessage,
@@ -320,7 +319,6 @@ pub struct HookCallbackRequest {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct CanUseToolRequest {
     #[serde(flatten)]
     tool_use: ToolInputSchemasWithName,
@@ -440,6 +438,7 @@ impl ControlHandler {
     async fn handle_ctrl_resp(&mut self, mut msg: Value) {
         if let Value::String(id) = &msg["response"]["request_id"] {
             let Some(chan) = self.resp_chans.remove(id) else {
+                debug!("no response listener for {id}");
                 return;
             };
             let resp = msg.as_object_mut().unwrap().remove("response").unwrap();

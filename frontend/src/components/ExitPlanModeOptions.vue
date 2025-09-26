@@ -5,31 +5,30 @@
     <div class="flex flex-col gap-1">
       <div class="flex mb-2 items-center ">
         <img src="@/assets/snowflake.svg" class="w-4 h-4 mr-2 animate-spin" alt="snowflake" />
-        <slot name="question"></slot>
+        <div>
+          Would you like to proceed?
+        </div>
       </div>
       <div class="permission-option" :class="{ 'permission-option-selected': selectedIndex === 0 }"
-        @click="allowPermission" @mouseenter="selectedIndex = 0">
+        @click="allowWithSuggestion" @mouseenter="selectedIndex = 0">
         <div class="flex items-center gap-2 ">
           <i class="pi pi-check text-green-500"></i>
-          <span class="">Yes</span>
+          <span class="">Yes, and auto-accept edits</span>
+        </div>
+      </div>
+      <div class="permission-option" :class="{ 'permission-option-selected': selectedIndex === 1 }"
+        @click="allowPermission" @mouseenter="selectedIndex = 1">
+        <div class="flex items-center gap-2 ">
+          <i class="pi pi-check text-gray-500"></i>
+          <span class="">Yes, and manualy approve edits</span>
         </div>
       </div>
 
-      <div v-for="(suggestion, index) in suggestions" :key="index" class="permission-option"
-        :class="{ 'permission-option-selected': selectedIndex === index + 1 }" @click="allowWithSuggestion(suggestion)"
-        @mouseenter="selectedIndex = index + 1">
-        <div class="flex items-center gap-2">
-          <i class="pi pi-lightbulb text-orange-500"></i>
-          <span class="font-medium" v-html="suggestionText(suggestion)"></span>
-        </div>
-      </div>
-
-      <div class="permission-option"
-        :class="{ 'permission-option-selected': selectedIndex === (suggestions?.length || 0) + 1 }"
-        @click="denyPermission" @mouseenter="selectedIndex = (suggestions?.length || 0) + 1">
+      <div class="permission-option" :class="{ 'permission-option-selected': selectedIndex === 2 }"
+        @click="denyPermission" @mouseenter="selectedIndex = 2">
         <div class="flex items-center gap-2">
           <i class="pi pi-times text-red-500"></i>
-          <span class="font-medium">No, and tell Claude what to do differently (ESC)</span>
+          <span class="font-medium">No, keep planning (ESC)</span>
         </div>
       </div>
     </div>
@@ -37,8 +36,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, watch, nextTick, useTemplateRef } from 'vue'
-import type { PermissionUpdate } from '../types/message'
+import { ref, inject, onMounted, watch, nextTick, useTemplateRef } from 'vue'
 import type { PermissionResult } from '@anthropic-ai/claude-code'
 import type { MessageManager } from '../services/messageManager'
 import type { ToolPermissionRequest } from '../stores/chat'
@@ -49,9 +47,6 @@ import type { ToolUseState } from '../types'
 const props = defineProps<{
   request: ToolPermissionRequest | null
 }>()
-const emit = defineEmits<{
-  (e: "confirmed", choise: "allow" | "deny"): void
-}>()
 
 const tool_use_state = defineModel<ToolUseState>({ required: true })
 
@@ -60,37 +55,6 @@ const messageManager = inject('messageManager') as MessageManager
 const selectedIndex = ref(0) // 当前选中状态（键盘和鼠标悬停都修改这个）
 const chatId = chatStore.getCurrentChatId()
 const permissionContainer = useTemplateRef("permissionContainer")
-
-const suggestions = computed(() => props.request?.suggestions)
-
-function suggestionText(suggestion: PermissionUpdate) {
-  switch (suggestion.type) {
-    case 'setMode':
-      if (suggestion.mode == 'acceptEdits') {
-        if (suggestion.destination == 'session') {
-          return 'Yes, allow all edits during this session'
-        } else if (suggestion.destination == 'projectSettings') {
-          return 'Yes, allow all edits in this project'
-        }
-      }
-      break
-    case "addRules": {
-      const rule = suggestion.rules[0];
-      if (rule.toolName == "Bash") {
-        if (suggestion.destination == 'localSettings') {
-          const cmd = rule.ruleContent?.replace(":*", "");
-          const cmd_html = `<span class="text-orange-500 font-bold">${cmd}</span>`
-          return `Yes and don't ask again for commands ${cmd_html} in ${chatStore.cwd}`
-        }
-      }
-      break
-    }
-    default:
-      return suggestion
-  }
-
-  return `Unknown suggestion type: ${suggestion}`
-}
 
 const toast = useToast()
 
@@ -110,7 +74,6 @@ const sendPermissionResponse = (result: PermissionResult) => {
 const denyPermission = () => {
   if (!props.request) return
   tool_use_state.value = 'rejected'
-  emit('confirmed', 'deny')
 
   const result: PermissionResult = {
     behavior: 'deny',
@@ -123,7 +86,7 @@ const denyPermission = () => {
 
 const allowPermission = () => {
   if (!props.request) return
-  emit('confirmed', 'allow')
+  tool_use_state.value = 'ok'
 
   const result: PermissionResult = {
     behavior: 'allow',
@@ -134,37 +97,32 @@ const allowPermission = () => {
   sendPermissionResponse(result)
 }
 
-const allowWithSuggestion = (suggestion: PermissionUpdate) => {
+const allowWithSuggestion = () => {
   if (!props.request) return
-  emit('confirmed', 'allow')
+  tool_use_state.value = 'ok'
 
   const result: PermissionResult = {
     behavior: 'allow',
     updatedInput: props.request.tool_use.input as Record<string, unknown>,
-    updatedPermissions: [suggestion]
+    updatedPermissions: [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }],
   };
+  chatStore.currentSession.permissionMode = 'acceptEdits'
   sendPermissionResponse(result)
 }
-
-// 计算总选项数量
-const totalOptions = computed(() => {
-  return (suggestions.value?.length || 0) + 2 // Allow + Deny + Suggestions
-})
 
 // 键盘导航处理 - 基于元素本身的键盘事件，只在组件有焦点时触发
 const handleKeyDown = (event: KeyboardEvent) => {
   if (!props.request) return
 
-  const maxIndex = totalOptions.value - 1
 
   switch (event.key) {
     case 'ArrowUp':
       event.preventDefault()
-      selectedIndex.value = selectedIndex.value > 0 ? selectedIndex.value - 1 : maxIndex
+      selectedIndex.value = (selectedIndex.value + 2) % 3
       break
     case 'ArrowDown':
       event.preventDefault()
-      selectedIndex.value = selectedIndex.value < maxIndex ? selectedIndex.value + 1 : 0
+      selectedIndex.value = (selectedIndex.value + 1) % 3
       break
     case 'Enter':
       event.preventDefault()
@@ -181,11 +139,11 @@ const handleKeyDown = (event: KeyboardEvent) => {
 // 执行选中的选项
 const executeSelectedOption = () => {
   if (selectedIndex.value === 0) {
+    allowWithSuggestion()
+  } else if (selectedIndex.value === 1) {
     allowPermission()
-  } else if (selectedIndex.value === (suggestions.value?.length || 0) + 1) {
+  } else if (selectedIndex.value === 2) {
     denyPermission()
-  } else if (suggestions.value && selectedIndex.value <= suggestions.value.length) {
-    allowWithSuggestion(suggestions.value[selectedIndex.value - 1])
   }
 }
 
@@ -217,7 +175,7 @@ watch(() => props.request, (newRequest) => {
 
 /* Attention animation for permission requests - all-around shadow glow */
 .animate-attention {
-  animation: shadow-glow 3s ease-in-out infinite;
+  animation: shadow-glow 2s ease-in-out infinite;
 }
 
 @keyframes shadow-glow {
