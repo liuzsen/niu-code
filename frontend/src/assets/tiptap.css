@@ -1,0 +1,35 @@
+/* 增加选择器优先级确保样式生效 */
+.ProseMirror.tiptap {
+    outline: none;
+    min-height: 5em;
+}
+
+.tiptap blockquote {
+    border-left: 3px solid rgba(85, 87, 85, 0.2);
+    margin: 0;
+    padding-left: 1em;
+}
+
+.tiptap code {
+    background-color: #2a2929f9;
+    color: #ffffff;
+    padding: 0.25em 0.5em;
+    border-radius: 0.25rem;
+    font-size: 0.875em;
+    width: 100%;
+    display: inline-block;
+}
+
+.tiptap ul {
+    list-style-type: disc;
+    padding-left: 1.5em;
+}
+
+.tiptap ol {
+    list-style-type: decimal;
+    padding-left: 1.5em;
+}
+
+.tiptap li {
+    list-style-type: inherit;
+}

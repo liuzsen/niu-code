@@ -3,10 +3,10 @@
     <div class="bg-surface-50 dark:bg-surface-800 border-surface-200 dark:border-surface-500 rounded-2xl p-3 shadow-sm">
       <!-- Input Area -->
       <div class="mb-1">
-        <Textarea v-model="messageInput" ref="textareaRef" placeholder="在这里输入消息，按 Enter 发送..."
-          class="w-full resize-none border-0 bg-transparent !text-amber-700 dark:!text-amber-600 min-h-8 max-h-32"
-          :disabled="computedDisabled" :auto-resize="true" @keydown.enter.prevent="handleKeydown"
-          :title="disabledTooltip" />
+        <div ref="editorRef" class="w-full resize-none border-0 bg-transparent min-h-20 px-2
+          text-zinc-800 leading-6 custom-tiptap-editor" :title="disabledTooltip">
+          <EditorContent :editor="editor" />
+        </div>
       </div>
 
       <!-- Toolbar -->
@@ -43,8 +43,10 @@
           </Select>
 
           <!-- Send Button -->
-          <Button @click="sendUserInput" :disabled="computedDisabled || !messageInput.trim()" icon="pi pi-arrow-up"
-            severity="secondary" size="small" class="rounded-full w-8 h-8 p-0 shrink-0 dark:bg-surface-950"
+          <Button @click="sendUserInput" :disabled="computedDisabled || !editorContent.trim()" icon="pi pi-arrow-up"
+            severity="secondary" size="small"
+            class="rounded-full w-10 h-10 p-0 shrink-0 dark:bg-surface-950 dark:text-surface-300 bg-surface-300 text-surface-700"
+            v-tooltip.top="{ value: 'shift + ctrl + enter', pt: { text: 'bg-surface-300 dark:bg-surface-950 text-xs' } }"
             :title="disabledTooltip" />
         </div>
       </div>
@@ -60,17 +62,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, computed, inject } from 'vue'
+import { ref, watch, computed, inject, onMounted, onBeforeUnmount } from 'vue'
 import Button from 'primevue/button'
-import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import { useChatStore } from '../stores/chat'
 import type { MessageManager } from '../services/messageManager'
 import type { ClientMessage } from '../types/message'
 import { exportCurrentChat } from '../utils/chatExporter'
 import { useToast } from 'primevue'
-import type { PermissionMode } from '@anthropic-ai/claude-code'
 import { wsService } from '../services/websocket'
+import { EditorContent, useEditor } from '@tiptap/vue-3'
+import StarterKit from '@tiptap/starter-kit'
+import { htmlToMarkdown } from '../utils/contentConverter'
 
 const toast = useToast()
 
@@ -81,12 +84,9 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const messageInput = ref('')
-const textareaRef = ref()
+const editorContent = ref('')
+const editorRef = ref<HTMLElement>()
 
-// export type PermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan';
-// 权限模式状态
-const permissionMode = ref<PermissionMode>('default')
 const permissionModeOptions = [
   { label: 'default', value: 'default' },
   { label: 'plan', value: 'plan' },
@@ -124,31 +124,62 @@ const disabledTooltip = computed(() => {
 })
 
 const sendUserInput = () => {
-  if (!messageInput.value.trim()) return
+  if (!editor.value || editor.value.isEmpty) return
+
+  const htmlContent = editor.value.getHTML()
+  const textContent = editor.value.getText()
+
+  if (!textContent.trim()) return
 
   const chatId = chatStore.getCurrentChatId()
-  messageManager.sendUserInput(chatId, messageInput.value.trim())
-  messageInput.value = ''
+
+  // 将 HTML 转换为 Markdown
+  const markdownContent = htmlToMarkdown(htmlContent)
+
+  console.log(markdownContent)
+
+  messageManager.sendUserInput(chatId, markdownContent)
+  editor.value.commands.clearContent();
 }
 
-const handleKeydown = (e: KeyboardEvent) => {
-  if (e.shiftKey) {
-    // Insert newline when Shift+Enter is pressed
-    e.preventDefault()
-    messageInput.value += '\n'
-    console.log("new line")
-  } else {
-    // Send message when Enter is pressed without Shift
+
+// 初始化 TipTap 编辑器
+const editor = useEditor({
+  content: '',
+  extensions: [
+    StarterKit
+  ],
+  editable: !computedDisabled.value,
+  autofocus: true,
+})
+
+// 监听禁用状态变化
+watch(computedDisabled, (disabled) => {
+  if (editor.value) {
+    editor.value.setEditable(!disabled)
+  }
+})
+
+// 键盘事件监听
+const handleKeyDown = (event: KeyboardEvent) => {
+  // 检测 Ctrl+Shift+Enter
+  if (event.ctrlKey && event.shiftKey && event.key === 'Enter') {
+    console.log("send msg")
+    event.preventDefault()
     sendUserInput()
   }
 }
 
-// Auto-scroll to bottom when content changes
-watch(messageInput, async () => {
-  await nextTick()
-  if (textareaRef.value?.$el) {
-    const textarea = textareaRef.value.$el
-    textarea.scrollTop = textarea.scrollHeight
+// 在组件挂载时添加键盘事件监听
+onMounted(() => {
+  document.addEventListener('keydown', handleKeyDown)
+})
+
+// 组件卸载时清理
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', handleKeyDown)
+  if (editor.value) {
+    editor.value.destroy()
   }
 })
 
@@ -160,12 +191,14 @@ const onPermissionModeChange = () => {
     chat_id: chatId,
     data: {
       kind: 'set_mode',
-      mode: permissionMode.value
+      mode: chatStore.currentSession.permissionMode
     }
   }
 
   wsService.sendMessage(message)
 }
+
+import '../assets/tiptap.css'
 </script>
 
 <style scoped>

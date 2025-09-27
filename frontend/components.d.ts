@@ -34,7 +34,9 @@ declare module 'vue' {
     TextMessage: typeof import('./src/components/message/TextMessage.vue')['default']
     TodoWriteMessage: typeof import('./src/components/message/TodoWriteMessage.vue')['default']
     UnknownToolUseMessage: typeof import('./src/components/message/UnknownToolUseMessage.vue')['default']
-    UserMessage: typeof import('./src/components/message/UserMessage.vue')['default']
     WriteMessage: typeof import('./src/components/message/WriteMessage.vue')['default']
+  }
+  export interface GlobalDirectives {
+    Tooltip: typeof import('primevue/tooltip')['default']
   }
 }
