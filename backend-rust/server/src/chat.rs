@@ -1,5 +1,6 @@
 use std::{
     collections::HashMap,
+    fmt::Display,
     sync::{Arc, OnceLock},
 };
 
@@ -10,7 +11,7 @@ use tracing::{debug, info, warn};
 
 use crate::{
     claude::{CanUseTool, ClaudeCli, ClaudeCliMessage, PromptGen},
-    message::{ChatId, ClientMessage, ServerMessage},
+    message::{ChatId, ClientMessage, ServerError, ServerMessage},
 };
 
 static MAILBOX_SENDER: OnceLock<UnboundedSender<ChatManagerMessage>> = OnceLock::new();
@@ -65,80 +66,90 @@ impl ChatManager {
         }
     }
 
-    pub async fn run(mut self) -> anyhow::Result<()> {
+    pub async fn run(mut self) {
         while let Some(msg) = self.mailbox.recv().await {
-            self.handle_msg(msg).await?;
+            self.handle_msg(msg).await;
         }
-
-        Ok(())
     }
 
-    async fn handle_msg(&mut self, msg: ChatManagerMessage) -> Result<()> {
+    async fn handle_msg(&mut self, msg: ChatManagerMessage) {
         match msg {
             ChatManagerMessage::NewConnect { conn_id, ws_writer } => {
                 debug!("register connection endpoint in manager");
                 self.connections.insert(conn_id, ws_writer);
             }
             ChatManagerMessage::ClientMessage { conn_id, msg } => {
-                self.handle_client_msg(conn_id, msg).await?
+                self.handle_client_msg(conn_id, msg).await;
             }
         }
-
-        Ok(())
     }
 
-    async fn handle_client_msg(&mut self, conn_id: u32, msg: ClientMessage) -> Result<()> {
+    async fn handle_client_msg(&mut self, conn_id: u32, msg: ClientMessage) {
         debug!(conn_id, chat_id = msg.chat_id, "handle client msg");
         let chat_id = msg.chat_id;
         match msg.data {
             crate::message::ClientMessageData::UserInput(prompt) => {
                 if !self.claudes.contains_key(&chat_id) {
                     self.build_claude_cli(conn_id, &chat_id, prompt.resume)
-                        .await?;
+                        .await;
                 }
-                self.forward_to_cli(&chat_id, ClaudeCliMessage::UserInput(prompt.content))?;
+                self.forward_to_cli(&chat_id, ClaudeCliMessage::UserInput(prompt.content));
             }
             crate::message::ClientMessageData::PermissionResp(permission_result) => {
                 if !self.claudes.contains_key(&chat_id) {
-                    self.build_claude_cli(conn_id, &chat_id, None).await?;
+                    self.build_claude_cli(conn_id, &chat_id, None).await;
                 }
                 self.forward_to_cli(
                     &chat_id,
                     ClaudeCliMessage::PermissionResp(permission_result),
-                )?;
+                );
             }
             crate::message::ClientMessageData::SetMode { mode } => {
                 if !self.claudes.contains_key(&chat_id) {
-                    self.build_claude_cli(conn_id, &chat_id, None).await?;
+                    self.build_claude_cli(conn_id, &chat_id, None).await;
                 }
-                self.forward_to_cli(&chat_id, ClaudeCliMessage::SetMode(mode))?;
+                self.forward_to_cli(&chat_id, ClaudeCliMessage::SetMode(mode));
             }
             crate::message::ClientMessageData::GetInfo => {
                 if !self.claudes.contains_key(&chat_id) {
-                    self.build_claude_cli(conn_id, &chat_id, None).await?;
+                    self.build_claude_cli(conn_id, &chat_id, None).await;
                 }
-                self.forward_to_cli(&chat_id, ClaudeCliMessage::GetInfo)?;
+                self.forward_to_cli(&chat_id, ClaudeCliMessage::GetInfo);
+            }
+            crate::message::ClientMessageData::Stop => {
+                if let Some(claude) = self.claudes.remove(&chat_id) {
+                    log_err(claude.send(ClaudeCliMessage::Stop));
+                }
             }
         }
-
-        Ok(())
     }
 
-    fn forward_to_cli(&mut self, chat_id: &ChatId, msg: ClaudeCliMessage) -> anyhow::Result<()> {
-        let Some(cli) = self.claudes.get(chat_id) else {
+    fn forward_to_cli(&mut self, chat_id: &ChatId, msg: ClaudeCliMessage) {
+        let Some(claude) = self.claudes.get(chat_id) else {
             info!("Claude cli not found");
-            return Ok(());
+            return;
         };
 
-        if let Err(_) = cli.send(msg) {
+        if let Err(_) = claude.send(msg) {
             warn!("Claude cli dead");
             self.claudes.remove(chat_id);
         }
-
-        Ok(())
     }
 
-    async fn build_claude_cli(
+    async fn build_claude_cli(&mut self, conn_id: u32, chat_id: &ChatId, resume: Option<String>) {
+        if let Err(err) = self.build_claude_cli_inner(conn_id, chat_id, resume).await {
+            let ws_writer = self.connections.get(&conn_id).unwrap();
+            let err = format!("Cannot spawn Claude cli: {err:?}");
+
+            // no need to handle error if ws is closed
+            let _ = ws_writer.send_msg(ServerMessage {
+                chat_id: chat_id.clone(),
+                data: crate::message::ServerMessageData::ServerError(ServerError { error: err }),
+            });
+        }
+    }
+
+    async fn build_claude_cli_inner(
         &mut self,
         conn_id: u32,
         chat_id: &ChatId,
@@ -182,4 +193,10 @@ impl ChatManager {
 
 pub trait WsWriter: Send + 'static + Sync {
     fn send_msg(&self, msg: ServerMessage) -> Result<()>;
+}
+
+fn log_err<E: Display>(result: Result<(), E>) {
+    if let Err(err) = result {
+        info!(%err, "error occured");
+    }
 }

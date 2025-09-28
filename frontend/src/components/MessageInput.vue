@@ -141,6 +141,7 @@ const sendUserInput = () => {
 
   messageManager.sendUserInput(chatId, markdownContent)
   editor.value.commands.clearContent();
+  editor.value.commands.focus();
 }
 
 

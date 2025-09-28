@@ -21,6 +21,7 @@ pub enum ClientMessageData {
     PermissionResp(PermissionResult),
     SetMode { mode: PermissionMode },
     GetInfo,
+    Stop,
 }
 
 #[derive(Deserialize, Serialize)]

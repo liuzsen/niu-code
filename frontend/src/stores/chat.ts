@@ -7,8 +7,11 @@ import type {
   ToolInputSchemasWithName,
 } from '../types/message'
 import type { ChatMessage } from '../types'
+import { appCommands } from '../components/slash-commands/SlashCommandSuggestion'
 
 export interface ChatState {
+  systemInfo?: ChatSystemInfo
+
   // 会话信息
   currentSession: {
     id: string
@@ -17,7 +20,6 @@ export interface ChatState {
     systemInit?: SDKSystemMessage
     permissionMode: PermissionMode
   }
-  systemInfo?: ChatSystemInfo
 
   // 消息列表
   messages: ChatMessage[]
@@ -115,7 +117,7 @@ export const useChatStore = defineStore('chat', {
     setSystemInfo(commands: SlashCommand[], models: ModelInfo[]) {
       console.log("set system info")
       this.systemInfo = {
-        commands,
+        commands: commands.concat(appCommands),
         models
       }
     },
@@ -168,7 +170,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     // 清空所有数据
-    clearAll(): void {
+    reset(): void {
       this.currentSession = {
         id: uuidv4(),
         title: '新对话',

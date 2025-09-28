@@ -33,7 +33,7 @@ export async function loadMockFile(filename: string): Promise<void> {
 
   try {
     const chatStore = useChatStore()
-    chatStore.clearAll()
+    chatStore.reset()
 
     // 通过文件名查找对应的模块
     const found = Object.keys(mockFileModules).find(path => {
@@ -63,7 +63,7 @@ export function clearMockData(): void {
   }
 
   const chatStore = useChatStore()
-  chatStore.clearAll()
+  chatStore.reset()
   selectedMockFile.value = null
   console.log('Mock data cleared, back to normal mode')
 }

@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     ffi::OsStr,
     fmt::Debug,
+    ops::ControlFlow,
     path::{Path, PathBuf},
     pin::Pin,
     process::Stdio,
@@ -18,7 +19,7 @@ use tokio::{
     select,
     sync::{
         mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
-        oneshot,
+        oneshot, watch,
     },
 };
 use tokio_stream::{Stream, StreamExt};
@@ -115,11 +116,13 @@ pub struct QueryStream {
     receiver: UnboundedReceiver<QueryStreamItem>,
     writer_chan: Option<UnboundedSender<ClaudeWriterMessage>>,
     claude_sys_info: Option<ClaudeSysInfo>,
+    stop_notify: StopNotify,
 }
 
 #[derive(Display, Debug)]
 pub enum ClaudeStreamError {
     CannotDeserialize(String),
+    CannotWriteToClaude(String),
 }
 
 impl Stream for QueryStream {
@@ -134,15 +137,17 @@ impl Stream for QueryStream {
 }
 
 struct ClaudeReader {
-    stdout: tokio::process::ChildStdout,
+    claude_stream: FramedRead<tokio::process::ChildStdout, LinesCodec>,
     ctrl_chan: UnboundedSender<ControlMessage>,
     output_chan: UnboundedSender<QueryStreamItem>,
+    stop_notify: StopNotify,
 }
 
 struct ClaudeWriter {
     prompt: Box<dyn PromptGenerator>,
     claude_stdin: ChildStdin,
     receiver: UnboundedReceiver<ClaudeWriterMessage>,
+    stop_notify: StopNotify,
 }
 
 struct ControlHandler {
@@ -150,6 +155,7 @@ struct ControlHandler {
     wirter_chan: Option<UnboundedSender<ClaudeWriterMessage>>,
     can_use_cb: Option<BoxedCanUseTollCallback>,
     resp_chans: HashMap<String, oneshot::Sender<Value>>,
+    stop_notify: StopNotify,
 }
 
 pub enum ClaudeWriterMessage {
@@ -170,41 +176,23 @@ impl ClaudeReader {
         tokio::spawn(async move {
             if let Err(err) = self.run().await {
                 warn!(?err, "ClaudeReader error");
+            } else {
+                info!("ClaudeReader exited")
             }
         });
     }
 
-    async fn run(self) -> Result<()> {
-        let Self {
-            ctrl_chan,
-            output_chan,
-            stdout,
-        } = self;
-
-        let mut reader = FramedRead::new(stdout, LinesCodec::new());
-
-        while let Some(line) = reader.next().await {
-            let line = line.context("Failed to read claude code stdout")?;
-            debug!(msg = %line, "received CLAUDE output msg");
-
-            let msg: Value = serde_json::from_str(&line)?;
-            let Some(ty) = &msg["type"].as_str() else {
-                warn!(?msg, "Unkown message type from claude");
-                continue;
-            };
-
-            match *ty {
-                "control_response" => {
-                    Self::send_ctrl_resp(&ctrl_chan, msg);
+    async fn run(mut self) -> Result<()> {
+        loop {
+            select! {
+                line = self.claude_stream.next() => {
+                    if self.handle_claude_msg(line)?.is_break() {
+                        break;
+                    }
                 }
-                "control_request" => {
-                    Self::send_ctrl_req(&ctrl_chan, msg);
-                }
-                "control_cancel_request" => {
-                    warn!(msg = line, "control_cancel_request is unsupported");
-                }
-                _ => {
-                    Self::send_out_message(&output_chan, msg)?;
+                Some(notify) = self.stop_notify.wait_notify() => {
+                    self.handle_stop(notify).await?;
+                    return Ok(());
                 }
             }
         }
@@ -212,28 +200,94 @@ impl ClaudeReader {
         Ok(())
     }
 
-    fn send_out_message(chan: &UnboundedSender<QueryStreamItem>, msg: Value) -> Result<()> {
+    async fn handle_stop(&mut self, reason: StopReason) -> Result<()> {
+        info!(?reason, "Claude Reader exiting...");
+        match reason {
+            StopReason::NoMoreClaudeMsg => unreachable!(),
+            StopReason::InvalidClaudeOutput => unreachable!(),
+            StopReason::ParseClaudeSDKMessage => unreachable!(),
+            StopReason::User => {}
+            StopReason::OutStreamDropped => {}
+            StopReason::CannotWriteToClaude(err) => {
+                self.output_chan
+                    .send(Err(ClaudeStreamError::CannotWriteToClaude(err)))?;
+            }
+            StopReason::ParseClaudeControlRequest(err) => {
+                self.output_chan
+                    .send(Err(ClaudeStreamError::CannotDeserialize(err)))?;
+            }
+        }
+
+        Ok(())
+    }
+
+    fn handle_claude_msg(
+        &mut self,
+        line: Option<std::result::Result<String, tokio_util::codec::LinesCodecError>>,
+    ) -> Result<ControlFlow<()>, anyhow::Error> {
+        let Some(line) = line else {
+            info!("claude exited. reader exiting...");
+            self.stop_notify.notify(StopReason::NoMoreClaudeMsg);
+            return Ok(ControlFlow::Break(()));
+        };
+
+        let line = line.context("Failed to read claude code stdout")?;
+        debug!(msg = %line, "received CLAUDE output msg");
+        let msg: Value = serde_json::from_str(&line)?;
+        let ty = match msg["type"].as_str() {
+            Some(ty) => ty,
+            _ => {
+                self.stop_notify.notify(StopReason::InvalidClaudeOutput);
+                bail!("Unkown message type from claude")
+            }
+        };
+        match ty {
+            "control_response" => {
+                self.send_ctrl_resp(msg);
+            }
+            "control_request" => {
+                self.send_ctrl_req(msg);
+            }
+            "control_cancel_request" => {
+                warn!(msg = line, "control_cancel_request is unsupported");
+            }
+            _ => {
+                self.send_out_message(msg)?;
+            }
+        }
+
+        Ok(ControlFlow::Continue(()))
+    }
+
+    fn send_out_message(&self, msg: Value) -> Result<()> {
         debug!("send claude msg to output chan");
         match serde_json::from_value(msg) {
             Ok(msg) => {
-                chan.send(Ok(msg)).context("output chan closed")?;
+                self.output_chan
+                    .send(Ok(msg))
+                    .context("output chan closed")?;
             }
             Err(err) => {
+                self.stop_notify.notify(StopReason::ParseClaudeSDKMessage);
+
                 let msg = Err(ClaudeStreamError::CannotDeserialize(format!("{err}")));
-                chan.send(msg).context("output chan closed")?;
+                self.output_chan.send(msg).context("output chan closed")?;
+                bail!("Parse ClaudeSDKMessage failed")
             }
         }
 
         Ok(())
     }
 
-    fn send_ctrl_resp(chan: &UnboundedSender<ControlMessage>, msg: Value) {
-        chan.send(ControlMessage::ControlResponse(msg))
+    fn send_ctrl_resp(&self, msg: Value) {
+        self.ctrl_chan
+            .send(ControlMessage::ControlResponse(msg))
             .expect("ctrl chan closed before reader");
     }
 
-    fn send_ctrl_req(chan: &UnboundedSender<ControlMessage>, msg: Value) {
-        chan.send(ControlMessage::ControlRequest(msg))
+    fn send_ctrl_req(&self, msg: Value) {
+        self.ctrl_chan
+            .send(ControlMessage::ControlRequest(msg))
             .expect("ctrl chan closed before reader");
     }
 }
@@ -263,8 +317,19 @@ impl ClaudeWriter {
                 Some(msg) = self.receiver.recv() => {
                     self.handle_msg(msg).await?;
                 }
+                Some(notify) = self.stop_notify.wait_notify() => {
+                    info!("notify writer");
+                    self.handle_stop(notify).await?;
+                    return Ok(());
+                }
             }
         }
+    }
+
+    async fn handle_stop(&mut self, reason: StopReason) -> Result<()> {
+        info!(?reason, "ClaudeWriter exiting...");
+
+        Ok(())
     }
 
     async fn handle_msg(&mut self, msg: ClaudeWriterMessage) -> anyhow::Result<()> {
@@ -281,9 +346,21 @@ impl ClaudeWriter {
         let mut msg = serde_json::to_string(&msg)
             .with_context(|| format!("Failed to serialize msg: {msg:?}"))?;
         msg.push('\n');
-        self.claude_stdin.write_all(msg.as_bytes()).await?;
+        let result = self
+            .claude_stdin
+            .write_all(msg.as_bytes())
+            .await
+            .context("write claude failed");
 
-        Ok(())
+        match &result {
+            Ok(()) => {}
+            Err(err) => {
+                let reason = StopReason::CannotWriteToClaude(format!("{err:?}"));
+                self.stop_notify.notify(reason);
+            }
+        }
+
+        result
     }
 }
 
@@ -330,26 +407,47 @@ impl ControlHandler {
         tokio::spawn(async move {
             if let Err(err) = self.run().await {
                 warn!(?err, "ControlHandler error");
+            } else {
+                info!("ControlHandler exited")
             }
         });
     }
 
     async fn run(mut self) -> anyhow::Result<()> {
-        while let Some(msg) = self.receiver.recv().await {
-            match msg {
-                ControlMessage::ControlRequest(value) => {
-                    self.handle_ctrl_req(value).await?;
+        loop {
+            select! {
+                msg = self.receiver.recv() => {
+                    let Some(msg) = msg else {
+                        return Ok(());
+                    };
+                    self.handle_msg(msg).await?;
                 }
-                ControlMessage::ControlResponse(value) => {
-                    self.handle_ctrl_resp(value).await;
-                }
-                ControlMessage::RegisterResponseChan { id, chan } => {
-                    self.register_resp_chan(id, chan);
+                Some(notify) = self.stop_notify.wait_notify() => {
+                    self.handle_stop(notify).await?;
+                    return Ok(());
                 }
             }
         }
+    }
 
-        info!("No more message. ControlHandler exited");
+    async fn handle_stop(&mut self, reason: StopReason) -> Result<()> {
+        info!(?reason, "ControlHandler exiting...");
+
+        Ok(())
+    }
+
+    async fn handle_msg(&mut self, msg: ControlMessage) -> Result<(), anyhow::Error> {
+        match msg {
+            ControlMessage::ControlRequest(value) => {
+                self.handle_ctrl_req(value).await?;
+            }
+            ControlMessage::ControlResponse(value) => {
+                self.handle_ctrl_resp(value).await;
+            }
+            ControlMessage::RegisterResponseChan { id, chan } => {
+                self.register_resp_chan(id, chan);
+            }
+        }
 
         Ok(())
     }
@@ -359,11 +457,18 @@ impl ControlHandler {
             "handle ctrl req: {}",
             serde_json::to_string_pretty(&value).unwrap()
         );
-        let msg: ControlRequstMessageWrapper =
-            serde_json::from_value(value.clone()).with_context(|| {
-                let msg = serde_json::to_string_pretty(&value).unwrap();
-                format!("Cannot deserialize control request msg: {msg}")
-            })?;
+        let msg = serde_json::from_value(value.clone()).with_context(|| {
+            let msg = serde_json::to_string_pretty(&value).unwrap();
+            format!("Cannot deserialize control request msg: {msg}")
+        });
+        let msg: ControlRequstMessageWrapper = match msg {
+            Ok(m) => m,
+            Err(err) => {
+                let reason = StopReason::ParseClaudeControlRequest(format!("{err:?}"));
+                self.stop_notify.notify(reason);
+                return Err(err);
+            }
+        };
 
         let res = self.process_control_request(msg.request).await;
         match res {
@@ -474,6 +579,15 @@ pub struct ClaudeSysInfo {
     pub models: Vec<ModelInfo>,
 }
 
+impl Drop for QueryStream {
+    fn drop(&mut self) {
+        if self.stop_notify.rx.has_changed().unwrap() {
+            return;
+        }
+        self.stop_notify.notify(StopReason::OutStreamDropped);
+    }
+}
+
 impl QueryStream {
     pub async fn new<T>(prompt: T, mut options: ClaudeCodeOptions) -> anyhow::Result<Self>
     where
@@ -491,10 +605,14 @@ impl QueryStream {
         let (ctrl_tx, ctrl_rx) = unbounded_channel();
         let (out_tx, out_rx) = unbounded_channel();
 
+        let notify = StopNotify::new();
+
+        let claude_stream = FramedRead::new(child.inner.stdout.take().unwrap(), LinesCodec::new());
         let reader = ClaudeReader {
-            stdout: child.inner.stdout.take().unwrap(),
+            claude_stream,
             ctrl_chan: ctrl_tx.clone(),
             output_chan: out_tx,
+            stop_notify: notify.clone(),
         };
         reader.spawn();
 
@@ -505,6 +623,7 @@ impl QueryStream {
                 prompt: stream,
                 claude_stdin: child.inner.stdin.take().unwrap(),
                 receiver: rx,
+                stop_notify: notify.clone(),
             };
             writer_tx = Some(tx);
             writer.spawn();
@@ -516,6 +635,7 @@ impl QueryStream {
             wirter_chan: writer_tx.clone(),
             can_use_cb: can_use_tool_cb,
             resp_chans: Default::default(),
+            stop_notify: notify.clone(),
         };
         ctrl_handler.spawn();
 
@@ -525,10 +645,24 @@ impl QueryStream {
             sys_info = Some(info);
         }
 
+        {
+            let mut notify = notify.clone();
+            tokio::spawn(async move {
+                debug!("waiting for stop notification");
+                if let Some(reason) = notify.wait_notify().await {
+                    info!(?reason, "Killing Claude cli");
+                    if let Err(err) = child.inner.kill().await {
+                        warn!(%err, "Failed to kill Claude Cli")
+                    }
+                }
+            });
+        }
+
         Ok(Self {
             receiver: out_rx,
             writer_chan: writer_tx,
             claude_sys_info: sys_info,
+            stop_notify: notify.clone(),
         })
     }
 
@@ -561,6 +695,10 @@ impl QueryStream {
             supported_commands: commands,
             models,
         })
+    }
+
+    pub fn stop(self) {
+        self.stop_notify.notify(StopReason::User);
     }
 
     pub fn interrupt(&self) -> Result<()> {
@@ -900,6 +1038,7 @@ fn spawn_cc_cli(prompt: &Prompt, options: &ClaudeCodeOptions) -> anyhow::Result<
     };
 
     let mut cmd = Command::new(command);
+    cmd.kill_on_drop(true);
     cmd.args(args);
 
     cmd.stdout(Stdio::piped());
@@ -967,4 +1106,37 @@ fn find_command_real_path(cmd: &str) -> Result<Option<PathBuf>> {
     let path = which(cmd).with_context(|| format!("Failed to find command path: {cmd}"))?;
 
     Ok(Some(path))
+}
+
+#[derive(Clone, Debug)]
+enum StopReason {
+    User,
+    OutStreamDropped,
+    NoMoreClaudeMsg,
+    ParseClaudeSDKMessage,
+    InvalidClaudeOutput,
+    CannotWriteToClaude(String),
+    ParseClaudeControlRequest(String),
+}
+
+#[derive(Clone)]
+struct StopNotify {
+    rx: watch::Receiver<Option<StopReason>>,
+    tx: watch::Sender<Option<StopReason>>,
+}
+
+impl StopNotify {
+    fn new() -> Self {
+        let (tx, rx) = watch::channel(None);
+        Self { rx, tx }
+    }
+
+    async fn wait_notify(&mut self) -> Option<StopReason> {
+        self.rx.changed().await.unwrap();
+        self.rx.borrow_and_update().clone()
+    }
+
+    fn notify(&self, reason: StopReason) {
+        self.tx.send(Some(reason)).unwrap();
+    }
 }

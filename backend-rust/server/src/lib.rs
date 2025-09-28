@@ -7,11 +7,9 @@ pub mod claude;
 pub mod message;
 pub mod websocket;
 
-pub async fn start_manager() -> anyhow::Result<()> {
+pub async fn start_manager() {
     let (tx, rx) = unbounded_channel();
     set_manager_mailbox(tx);
     let manager = ChatManager::new(rx);
-    manager.run().await?;
-
-    Ok(())
+    manager.run().await;
 }

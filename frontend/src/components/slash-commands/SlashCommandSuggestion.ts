@@ -8,6 +8,67 @@ import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
 import { useChatStore } from '../../stores/chat'
 import type { SlashCommand } from '@anthropic-ai/claude-code'
 
+export const appCommands: SlashCommand[] = [
+  {
+    'name': 'clear (reset, new)',
+    'description': 'Clear conversation history and free up context',
+    "argumentHint": ""
+  }
+]
+
+const defaultCommands = [
+  {
+    "name": "compact",
+    "description": "Clear conversation history but keep a summary in context. Optional: /compact [instructions for summarization]",
+    "argumentHint": "<optional custom summarization instructions>"
+  },
+  {
+    "name": "context",
+    "description": "Visualize current context usage as a colored grid",
+    "argumentHint": ""
+  },
+  {
+    "name": "cost",
+    "description": "Show the total cost and duration of the current session",
+    "argumentHint": ""
+  },
+  {
+    "name": "init",
+    "description": "Initialize a new CLAUDE.md file with codebase documentation",
+    "argumentHint": ""
+  },
+  {
+    "name": "output-style:new",
+    "description": "Create a custom output style",
+    "argumentHint": ""
+  },
+  {
+    "name": "pr-comments",
+    "description": "Get comments from a GitHub pull request",
+    "argumentHint": ""
+  },
+  {
+    "name": "release-notes",
+    "description": "View release notes",
+    "argumentHint": ""
+  },
+  {
+    "name": "todos",
+    "description": "List current todo items",
+    "argumentHint": ""
+  },
+  {
+    "name": "review",
+    "description": "Review a pull request",
+    "argumentHint": ""
+  },
+  {
+    "name": "security-review",
+    "description": "Complete a security review of the pending changes on the current branch",
+    "argumentHint": ""
+  }
+];
+
 interface UpdatePositionParams {
   x: number
   y: number
@@ -26,12 +87,94 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
     name: sdkCommand.name,
     description: sdkCommand.description,
     command: ({ editor, range }) => {
-      editor.chain().focus().deleteRange(range).insertContent(`/${sdkCommand.name} `).run()
+      if (sdkCommand.name == 'clear (reset, new)') {
+        editor.chain().focus().clearContent(true).run()
+        const store = useChatStore()
+        wsService.sendMessage({ chat_id: store.getCurrentChatId(), data: { kind: 'stop' } })
+        store.reset()
+      }
+      else {
+        editor.chain().focus().deleteRange(range).insertContent(`/${sdkCommand.name} `).run()
+      }
     }
   }
 }
 
 export type SelectedCommand = CommandItem;
+
+interface CommandScore {
+  item: CommandItem
+  score: number
+  matchType: 'exact' | 'prefix' | 'wordStart' | 'substring' | 'description' | 'none'
+}
+
+// 计算命令匹配分数
+const calculateCommandScore = (item: CommandItem, query: string): CommandScore => {
+  const lowerQuery = query.toLowerCase()
+  const lowerName = item.name.toLowerCase()
+  const lowerDescription = item.description.toLowerCase()
+
+  // 精确匹配名称
+  if (lowerName === lowerQuery) {
+    return { item, score: 100, matchType: 'exact' }
+  }
+
+  // 前缀匹配名称
+  if (lowerName.startsWith(lowerQuery)) {
+    return { item, score: 80, matchType: 'prefix' }
+  }
+
+  // 词首匹配（匹配每个单词的首字母）
+  const nameWords = lowerName.split(/[\s\-_(),]+/)
+  const queryChars = lowerQuery.split('')
+  let wordStartMatch = true
+  let charIndex = 0
+
+  for (const word of nameWords) {
+    if (charIndex >= queryChars.length) break
+    if (word.startsWith(queryChars[charIndex])) {
+      charIndex++
+    } else {
+      wordStartMatch = false
+      break
+    }
+  }
+
+  if (wordStartMatch && charIndex === queryChars.length) {
+    return { item, score: 60, matchType: 'wordStart' }
+  }
+
+  // 子字符串匹配名称
+  if (lowerName.includes(lowerQuery)) {
+    return { item, score: 40, matchType: 'substring' }
+  }
+
+  // 描述匹配
+  if (lowerDescription.includes(lowerQuery)) {
+    return { item, score: 20, matchType: 'description' }
+  }
+
+  return { item, score: 0, matchType: 'none' }
+}
+
+// 智能排序函数
+const sortCommandsByRelevance = (commands: CommandItem[], query: string): CommandItem[] => {
+  if (!query) return commands
+
+  const scoredCommands = commands
+    .map(item => calculateCommandScore(item, query))
+    .filter(score => score.score > 0)
+    .sort((a, b) => {
+      // 按分数降序排列
+      if (b.score !== a.score) {
+        return b.score - a.score
+      }
+      // 分数相同时，按名称字母顺序排列
+      return a.item.name.localeCompare(b.item.name)
+    })
+
+  return scoredCommands.map(score => score.item)
+}
 
 const updatePosition = (editor: Editor, element: HTMLElement) => {
   const virtualElement = {
@@ -52,6 +195,7 @@ const updatePosition = (editor: Editor, element: HTMLElement) => {
 
 import { exitSuggestion } from '@tiptap/suggestion'
 import { PluginKey } from '@tiptap/pm/state'
+import { wsService } from '../../services/websocket'
 
 export type CommandSuggestionProps = SuggestionProps<CommandItem, SelectedCommand>
 export type CommandSuggestionOptions = SuggestionOptions<CommandItem, SelectedCommand>
@@ -69,15 +213,16 @@ export const suggestionOptions: CommandSuggestionOptions = {
   items: ({ query }: { query: string }) => {
     try {
       const chatStore = useChatStore()
-      if (!chatStore.systemInfo?.commands) {
-        return []
+      let commands;
+      if (chatStore.systemInfo) {
+        commands = chatStore.systemInfo.commands
+      } else {
+        commands = defaultCommands.concat(appCommands)
       }
-      const dynamicCommands = chatStore.systemInfo.commands.map(convertSDKSlashCommandToCommandItem)
-      return dynamicCommands
-        .filter(item =>
-          item.name.toLowerCase().includes(query.toLowerCase()) ||
-          item.description.toLowerCase().includes(query.toLowerCase())
-        )
+
+      const dynamicCommands = commands.map(convertSDKSlashCommandToCommandItem)
+
+      return sortCommandsByRelevance(dynamicCommands, query)
     } catch {
       // 如果 Pinia 还未初始化，返回空数组
       return []

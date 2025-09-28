@@ -34,6 +34,7 @@ pub enum ClaudeCliMessage {
     SetMode(PermissionMode),
     GetInfo,
     CanUseTool(CanUseToolParams, CanUseToolReponder),
+    Stop,
 }
 
 pub type ClaudeReceiver = UnboundedReceiver<ClaudeCliMessage>;
@@ -79,6 +80,10 @@ impl ClaudeCli {
                     self.handle_claude_msg(msg)?;
                 }
                 Some(msg) = self.mailbox.recv() => {
+                    if msg.is_stop() {
+                        stream.stop();
+                        return Ok(());
+                    }
                     self.handle_msg(&stream, msg).await?;
                 }
             }
@@ -113,6 +118,9 @@ impl ClaudeCli {
                     warn!("There's already a can_use_tool_responder!");
                 }
                 self.can_use_tool_responder = Some(responder);
+            }
+            ClaudeCliMessage::Stop => {
+                unreachable!()
             }
         }
 
@@ -226,6 +234,12 @@ impl ClaudeCliMessage {
             ClaudeCliMessage::SetMode(..) => "SetMode",
             ClaudeCliMessage::GetInfo => "GetInfo",
             ClaudeCliMessage::CanUseTool(..) => "CanUseTool",
+            ClaudeCliMessage::Stop => "Stop",
         }
+    }
+
+    #[must_use]
+    pub fn is_stop(&self) -> bool {
+        matches!(self, Self::Stop)
     }
 }
