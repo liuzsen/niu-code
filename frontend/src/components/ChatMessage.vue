@@ -1,9 +1,9 @@
 <template>
   <div class="flex w-full dark:text-surface-300 font-normal"
     :class="{ 'justify-end': message.data.from === 'human', 'justify-start': message.data.from === 'agent' }">
-    <div class="flex items-start w-full space-x-2 max-w-3xl"
+    <div class="flex items-start w-full space-x-2 max-w-full"
       :class="{ 'flex-row-reverse space-x-reverse': message.data.from === 'human' }">
-      <div class="flex flex-col flex-1">
+      <div class="flex flex-col w-full">
 
         <div class="flex gap-2 text-sm px-0 mb-0.5">
           <p v-if="message.data.from === 'human'" class=" text-green-500">Human</p>
