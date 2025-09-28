@@ -18,6 +18,7 @@ export class MessageManager {
     // 注册 WebSocket 消息处理器
     this.ws.onMessage(this.handleServerMessage.bind(this))
     this.ws.onError(this.handleServerError.bind(this))
+    this.ws.onConnected(this.handleWsConnected.bind(this))
   }
 
   // 处理服务端消息
@@ -38,6 +39,15 @@ export class MessageManager {
         this.handleSystemInfo(message)
         break
     }
+  }
+
+  private handleWsConnected() {
+    this.ws.sendMessage({
+      chat_id: this.chatStore.getCurrentChatId(),
+      data: {
+        kind: 'get_info'
+      }
+    })
   }
 
   // 处理 WebSocket 错误
@@ -125,10 +135,9 @@ export class MessageManager {
     this.chatStore.setSessionInputState(false, 'error', '服务器错误')
   }
 
-  // 处理系统信息（暂时不做处理，因为类型定义有问题）
   private handleSystemInfo(message: ServerMessage) {
-    console.log('System info received:', message.data)
-    // TODO: 实现系统信息处理
+    if (message.data.kind != 'system_info') { return }
+    this.chatStore.setSystemInfo(message.data.commands, message.data.models)
   }
 }
 

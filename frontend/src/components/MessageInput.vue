@@ -4,7 +4,7 @@
       <!-- Input Area -->
       <div class="mb-1">
         <div ref="editorRef" class="w-full resize-none border-0 bg-transparent min-h-20 px-2
-          text-zinc-800 leading-6 custom-tiptap-editor" :title="disabledTooltip">
+          text-zinc-800 dark:text-slate-200 custom-tiptap-editor" :title="disabledTooltip">
           <EditorContent :editor="editor" />
         </div>
       </div>
@@ -74,6 +74,7 @@ import { wsService } from '../services/websocket'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { htmlToMarkdown } from '../utils/contentConverter'
+import { SlashCommandsExtension, suggestionOptions } from './slash-commands'
 
 const toast = useToast()
 
@@ -147,7 +148,10 @@ const sendUserInput = () => {
 const editor = useEditor({
   content: '',
   extensions: [
-    StarterKit
+    StarterKit,
+    SlashCommandsExtension.configure({
+      suggestion: suggestionOptions,
+    }),
   ],
   editable: !computedDisabled.value,
   autofocus: true,

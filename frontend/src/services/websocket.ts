@@ -21,6 +21,7 @@ export class WebSocketService {
   // 类型安全的消息处理器
   private messageHandlers: Set<(message: ServerMessage) => void> = new Set()
   private errorHandlers: Set<(error: WebSocketError) => void> = new Set()
+  private ConnectedHandlers: Set<() => void> = new Set()
 
   public state = reactive<WebSocketState>({
     connected: false,
@@ -30,6 +31,10 @@ export class WebSocketService {
 
   constructor(url: string) {
     this.url = url
+  }
+
+  onConnected(handler: () => void) {
+    this.ConnectedHandlers.add(handler)
   }
 
   // 注册消息处理器
@@ -61,6 +66,9 @@ export class WebSocketService {
           console.log('WebSocket connected')
           this.state.connected = true
           this.state.connecting = false
+          this.ConnectedHandlers.forEach(handler => {
+            handler()
+          })
           resolve()
         }
 

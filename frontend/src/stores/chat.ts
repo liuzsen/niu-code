@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { v4 as uuidv4 } from 'uuid'
 import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
-import type { PermissionMode, PermissionUpdate, SDKMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
+import type { ModelInfo, PermissionMode, PermissionUpdate, SDKMessage, SDKSystemMessage, SlashCommand } from '@anthropic-ai/claude-code'
 import type {
   UserInput,
   ToolInputSchemasWithName,
@@ -17,6 +17,7 @@ export interface ChatState {
     systemInit?: SDKSystemMessage
     permissionMode: PermissionMode
   }
+  systemInfo?: ChatSystemInfo
 
   // 消息列表
   messages: ChatMessage[]
@@ -39,11 +40,17 @@ export interface ToolPermissionRequest {
   chat_id: string
 }
 
+export interface ChatSystemInfo {
+  commands: SlashCommand[],
+  models: ModelInfo[]
+}
+
 export interface ChatStore {
   currentSession: ChatState['currentSession']
   messages: ChatState['messages']
   toolResults: ChatState['toolResults']
   inputState: ChatState['inputState']
+  systemInfo?: ChatState['systemInfo']
 
   // Actions
   addUserMessage: (chatId: string, content: UserInput) => void
@@ -52,6 +59,7 @@ export interface ChatStore {
   setSessionInputState: (disabled: boolean, reason: InputDisableReason, pendingRequest?: ToolPermissionRequest | string) => void
   handlePermissionResult: () => void
   getCurrentChatId: () => string
+  setSystemInfo: (commands: SlashCommand[], models: ModelInfo[]) => void
 
   loadFromJson: (jsonString: string) => void
   clearAll: () => void
@@ -65,6 +73,7 @@ export const useChatStore = defineStore('chat', {
       createdAt: Date.now(),
       permissionMode: 'default'
     },
+    systemInfo: undefined,
     messages: [],
     toolResults: new Map(),
     inputState: {
@@ -103,6 +112,13 @@ export const useChatStore = defineStore('chat', {
       this.messages.push(message)
     },
 
+    setSystemInfo(commands: SlashCommand[], models: ModelInfo[]) {
+      console.log("set system info")
+      this.systemInfo = {
+        commands,
+        models
+      }
+    },
 
     // 设置工具结果
     setToolResult(toolUseId: string, result: ToolResultBlockParam) {
