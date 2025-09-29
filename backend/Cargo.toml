@@ -22,6 +22,8 @@ derive_more = { version = "2.0.1", features = ["from", "display"] }
 actix-web = "4.11.0"
 anyhow.workspace = true
 derive_more = "2.0.1"
+serde.workspace = true
+serde_json.workspace = true
 server = { version = "0.1.0", path = "server" }
 tokio.workspace = true
 tracing.workspace = true

@@ -16,3 +16,6 @@ tokio.workspace = true
 tokio-stream.workspace = true
 tokio-util.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+walkdir = "2.5.0"

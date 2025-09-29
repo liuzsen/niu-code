@@ -4,6 +4,8 @@ use server::websocket::ws_handler;
 use tokio::signal;
 use tracing::{Level, info};
 
+mod api;
+
 #[actix_web::main]
 async fn main() -> Result<()> {
     init()?;
@@ -16,9 +18,17 @@ async fn main() -> Result<()> {
         std::process::exit(0);
     });
 
-    let server = HttpServer::new(|| App::new().route("/api/connect", web::get().to(ws_handler)))
-        .bind(("127.0.0.1", 33333))?
-        .run();
+    let server = HttpServer::new(|| {
+        App::new()
+            .service(
+                web::scope("/api")
+                    .route("/connect", web::get().to(ws_handler))
+                    .route("/load_sessions", web::get().to(api::load_sessions)),
+            )
+            .route("/api/connect", web::get().to(ws_handler))
+    })
+    .bind(("127.0.0.1", 33333))?
+    .run();
     server.await?;
 
     Ok(())
