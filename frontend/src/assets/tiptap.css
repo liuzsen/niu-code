@@ -10,9 +10,13 @@
     padding-left: 1em;
 }
 
-.tiptap code {
-    background-color: #2a2929f9;
-    color: #ffffff;
+.tiptap p code {
+    background-color: var(--color-neutral-300);
+}
+
+.tiptap pre code {
+    background-color: var(--color-slate-400);
+    color: var(--color-slate-900);
     padding: 0.25em 0.5em;
     border-radius: 0.25rem;
     font-size: 0.875em;

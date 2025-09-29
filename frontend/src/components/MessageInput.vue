@@ -3,7 +3,7 @@
     <div class="bg-surface-50 dark:bg-surface-800 border-surface-200 dark:border-surface-500 rounded-2xl p-3 shadow-sm">
       <!-- Input Area -->
       <div class="mb-1">
-        <div ref="editorRef" class="w-full resize-none border-0 bg-transparent min-h-20 px-2
+        <div class="w-full resize-none border-0 bg-transparent min-h-20 px-2 focus:outline-2
           text-zinc-800 dark:text-slate-200 custom-tiptap-editor" :title="disabledTooltip">
           <EditorContent :editor="editor" />
         </div>
@@ -43,8 +43,8 @@
           </Select>
 
           <!-- Send Button -->
-          <Button @click="sendUserInput" :disabled="computedDisabled || !editorContent.trim()" icon="pi pi-arrow-up"
-            severity="secondary" size="small"
+          <Button @click="sendUserInput" :disabled="computedDisabled" icon="pi pi-arrow-up" severity="secondary"
+            size="small"
             class="rounded-full w-10 h-10 p-0 shrink-0 dark:bg-surface-950 dark:text-surface-300 bg-surface-300 text-surface-700"
             v-tooltip.top="{ value: 'shift + ctrl + enter', pt: { text: 'bg-surface-300 dark:bg-surface-950 text-xs' } }"
             :title="disabledTooltip" />
@@ -62,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, inject, onMounted, onBeforeUnmount } from 'vue'
+import { watch, computed, inject, onMounted, onBeforeUnmount } from 'vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { useChatStore } from '../stores/chat'
@@ -84,9 +84,6 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-
-const editorContent = ref('')
-const editorRef = ref<HTMLElement>()
 
 const permissionModeOptions = [
   { label: 'default', value: 'default' },
@@ -127,10 +124,10 @@ const disabledTooltip = computed(() => {
 const sendUserInput = () => {
   if (!editor.value || editor.value.isEmpty) return
 
-  const htmlContent = editor.value.getHTML()
   const textContent = editor.value.getText()
-
   if (!textContent.trim()) return
+
+  const htmlContent = editor.value.getHTML()
 
   const chatId = chatStore.getCurrentChatId()
 
@@ -140,6 +137,7 @@ const sendUserInput = () => {
   console.log(markdownContent)
 
   messageManager.sendUserInput(chatId, markdownContent)
+
   editor.value.commands.clearContent();
   editor.value.commands.focus();
 }
@@ -154,8 +152,11 @@ const editor = useEditor({
       suggestion: suggestionOptions,
     }),
   ],
-  editable: !computedDisabled.value,
+  editable: true,
   autofocus: true,
+  onCreate: ({ editor }) => {
+    editor.commands.focus()
+  },
 })
 
 // 监听禁用状态变化
@@ -183,9 +184,6 @@ onMounted(() => {
 // 组件卸载时清理
 onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeyDown)
-  if (editor.value) {
-    editor.value.destroy()
-  }
 })
 
 // 权限模式变更处理

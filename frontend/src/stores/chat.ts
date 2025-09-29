@@ -64,7 +64,7 @@ export interface ChatStore {
   setSystemInfo: (commands: SlashCommand[], models: ModelInfo[]) => void
 
   loadFromJson: (jsonString: string) => void
-  clearAll: () => void
+  reset: () => void
 }
 
 export const useChatStore = defineStore('chat', {
