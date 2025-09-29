@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { useChatStore } from '../stores/chat'
+import { useChatManager } from '../stores/chatManager'
 
 export const isDevelopment = import.meta.env.DEV
 
@@ -32,8 +32,7 @@ export async function loadMockFile(filename: string): Promise<void> {
   }
 
   try {
-    const chatStore = useChatStore()
-    chatStore.reset()
+    const chatManager = useChatManager()
 
     // 通过文件名查找对应的模块
     const found = Object.keys(mockFileModules).find(path => {
@@ -45,11 +44,19 @@ export async function loadMockFile(filename: string): Promise<void> {
       throw new Error(`Mock file not found for ${filename}. Available paths: ${Object.keys(mockFileModules).join(', ')}`)
     }
 
-    const mockData = await mockFileModules[found]()
-    chatStore.loadFromJson(JSON.stringify(mockData))
+    // 动态导入 JSON 文件
+    const mockModule = await mockFileModules[found]()
+    const mockData = (mockModule as { default?: unknown }).default || mockModule
 
+    const newChat = chatManager.newChat()
+
+    // 直接从 JSON 数据恢复所有属性
+    Object.assign(newChat, mockData)
+
+    // 设置选中的 mock 文件
     selectedMockFile.value = filename
-    console.log(`Mock file ${filename} loaded successfully from ${found}`)
+
+    console.log(`Mock file ${filename} loaded successfully`)
   } catch (error) {
     console.error(`Failed to load mock file ${filename}:`, error)
     throw error
@@ -62,8 +69,8 @@ export function clearMockData(): void {
     return
   }
 
-  const chatStore = useChatStore()
-  chatStore.reset()
+  const chatManager = useChatManager()
+  chatManager.chats = []
   selectedMockFile.value = null
   console.log('Mock data cleared, back to normal mode')
 }

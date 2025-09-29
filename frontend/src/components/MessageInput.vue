@@ -4,7 +4,7 @@
       <!-- Input Area -->
       <div class="mb-1">
         <div class="w-full resize-none border-0 bg-transparent min-h-20 px-2 focus:outline-2
-          text-zinc-800 dark:text-slate-200 custom-tiptap-editor" :title="disabledTooltip">
+          text-zinc-800 dark:text-slate-200 custom-tiptap-editor">
           <EditorContent :editor="editor" />
         </div>
       </div>
@@ -31,14 +31,14 @@
           <!-- Export Button -->
           <Button icon="pi pi-download" severity="secondary" variant="text" size="small"
             class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700"
-            @click="exportCurrentChat(toast)" :disabled="chatStore.messages.length === 0" title="导出对话" />
+            @click="exportCurrentChat()" :disabled="foregroundChat?.messages.length === 0" title="导出对话" />
         </div>
 
         <!-- Right Side Buttons -->
         <div class="flex items-center gap-2">
-          <Select v-model="chatStore.currentSession.permissionMode" :options="permissionModeOptions" optionLabel="label"
-            optionValue="value" @change="onPermissionModeChange" class="h-7 text-sm permission-select"
-            :label-class="'px-2 pt-1 pb-0.5'" variant="filled" size="small"
+          <Select :modelValue="foregroundChat?.session.permissionMode" @value-change="onPermissionModeUpdate"
+            :options="permissionModeOptions" optionLabel="label" optionValue="value" @change="onPermissionModeChange"
+            class="h-7 text-sm permission-select" :label-class="'px-2 pt-1 pb-0.5'" variant="filled" size="small"
             :pt="{ dropdownIcon: { class: ' bg-red' } }">
           </Select>
 
@@ -65,18 +65,15 @@
 import { watch, computed, inject, onMounted, onBeforeUnmount } from 'vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
-import { useChatStore } from '../stores/chat'
+import { useChatManager } from '../stores/chatManager'
 import type { MessageManager } from '../services/messageManager'
 import type { ClientMessage } from '../types/message'
 import { exportCurrentChat } from '../utils/chatExporter'
-import { useToast } from 'primevue'
 import { wsService } from '../services/websocket'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { htmlToMarkdown } from '../utils/contentConverter'
 import { SlashCommandsExtension, suggestionOptions } from './slash-commands'
-
-const toast = useToast()
 
 interface Props {
   disabled?: boolean
@@ -94,31 +91,18 @@ const permissionModeOptions = [
 
 // 注入 messageManager
 const messageManager = inject('messageManager') as MessageManager
-const chatStore = useChatStore()
+const chatManager = useChatManager()
 
-// 从 store 获取输入状态
-const storeDisabled = computed(() => chatStore.isInputDisabled)
-const storeError = computed(() => chatStore.inputState.error)
+const foregroundChat = computed(() => chatManager.foregroundChat)
 
 // 组合的禁用状态
-const computedDisabled = computed(() => props.disabled || storeDisabled.value)
+const computedDisabled = computed(() => props.disabled)
 
 // 禁用原因提示
 const disabledTooltip = computed(() => {
-  if (!storeDisabled.value) return ''
+  if (!foregroundChat.value?.pendingRequest) return ''
 
-  switch (chatStore.inputDisableReason) {
-    case 'tool_permission_pending':
-      return '等待工具权限确认...'
-    case 'processing':
-      return '正在处理中...'
-    case 'disconnected':
-      return '连接已断开'
-    case 'error':
-      return storeError.value || '发生错误'
-    default:
-      return '输入已禁用'
-  }
+  return '等待工具权限确认...'
 })
 
 const sendUserInput = () => {
@@ -129,7 +113,7 @@ const sendUserInput = () => {
 
   const htmlContent = editor.value.getHTML()
 
-  const chatId = chatStore.getCurrentChatId()
+  const chatId = foregroundChat.value?.chatId || ''
 
   // 将 HTML 转换为 Markdown
   const markdownContent = htmlToMarkdown(htmlContent)
@@ -141,7 +125,6 @@ const sendUserInput = () => {
   editor.value.commands.clearContent();
   editor.value.commands.focus();
 }
-
 
 // 初始化 TipTap 编辑器
 const editor = useEditor({
@@ -186,15 +169,22 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleKeyDown)
 })
 
+// 权限模式更新处理
+const onPermissionModeUpdate = (newValue: PermissionMode) => {
+  if (foregroundChat.value?.session) {
+    foregroundChat.value.session.permissionMode = newValue
+  }
+}
+
 // 权限模式变更处理
 const onPermissionModeChange = () => {
   // 发送模式更新消息到服务器
-  const chatId = chatStore.getCurrentChatId()
+  const chatId = foregroundChat.value?.chatId || ''
   const message: ClientMessage = {
     chat_id: chatId,
     data: {
       kind: 'set_mode',
-      mode: chatStore.currentSession.permissionMode
+      mode: foregroundChat.value?.session.permissionMode || 'default'
     }
   }
 
@@ -202,6 +192,7 @@ const onPermissionModeChange = () => {
 }
 
 import '../assets/tiptap.css'
+import type { PermissionMode } from '@anthropic-ai/claude-code'
 </script>
 
 <style scoped>

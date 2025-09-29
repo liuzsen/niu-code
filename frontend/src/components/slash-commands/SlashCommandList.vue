@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { useChatStore } from '../../stores/chat'
+import { useChatManager } from '../../stores/chatManager'
 import type { CommandItem } from './SlashCommandSuggestion';
 
 interface Props {
@@ -29,12 +29,12 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const chatStore = useChatStore()
+const chatManager = useChatManager()
 
 const selectedIndex = ref(0)
 
 const hasCommands = computed(() => {
-  return !!chatStore.systemInfo?.commands && chatStore.systemInfo.commands.length > 0
+  return !!chatManager.foregroundChat.session.systemInfo?.commands && chatManager.foregroundChat.session.systemInfo.commands.length > 0
 })
 
 watch(() => props.items, () => {

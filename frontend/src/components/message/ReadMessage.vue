@@ -94,7 +94,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useChatStore } from '../../stores/chat'
+import { useChatManager } from '../../stores/chatManager'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
@@ -107,12 +107,12 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const chatStore = useChatStore()
+const chatManager = useChatManager()
 const showFullContent = ref(false)
 
 // 获取工具结果
 const readResult = computed(() => {
-    return chatStore.getToolResult(props.id)
+    return chatManager.foregroundChat.toolResults.get(props.id)
 })
 
 type ReadState = "pending" | "error" | "ok"

@@ -1,15 +1,15 @@
 import { computed, ref, watch } from 'vue'
 import { cleanToolResult } from '../utils/messageExtractors'
-import { useChatStore } from '../stores/chat'
+import { useChatManager } from '../stores/chatManager'
 import type { ToolUseState } from '../types'
 
 export function useToolUseHandler(toolId: string) {
-  const chatStore = useChatStore()
+  const chatManager = useChatManager()
 
-  const pendingPermissionRequest = computed(() => chatStore.pendingPermissionRequest)
+  const pendingPermissionRequest = computed(() => chatManager.foregroundChat.pendingRequest)
 
   const toolResult = computed(() => {
-    return chatStore.getToolResult(toolId)
+    return chatManager.foregroundChat.toolResults.get(toolId)
   })
 
   const state = ref<ToolUseState>("running")

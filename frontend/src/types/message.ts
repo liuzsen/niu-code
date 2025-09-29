@@ -37,9 +37,18 @@ export interface ServerMessage {
 export type ServerMessageData =
     | { kind: 'claude' } & SDKMessage
     | { kind: 'server_error'; error: string }
-    | { kind: 'system_info'; commands: SlashCommand[]; models: ModelInfo[] }
-    | { kind: 'can_use_tool'; suggestions?: PermissionUpdate[]; tool_use: ToolInputSchemasWithName };
+    | { kind: 'system_info'; } & ClaudeSystemInfo
+    | { kind: 'can_use_tool'; } & ToolPermissionRequest;
 
+export interface ClaudeSystemInfo {
+    commands: SlashCommand[],
+    models: ModelInfo[]
+}
+
+export interface ToolPermissionRequest {
+    suggestions?: PermissionUpdate[],
+    tool_use: ToolInputSchemasWithName
+}
 
 export type ToolInputSchemasWithName = | {
     tool_name: "Bash"

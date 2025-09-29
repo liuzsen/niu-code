@@ -41,8 +41,9 @@ import { ref, computed, inject, onMounted, watch, nextTick, useTemplateRef } fro
 import type { PermissionUpdate } from '../types/message'
 import type { PermissionResult } from '@anthropic-ai/claude-code'
 import type { MessageManager } from '../services/messageManager'
-import type { ToolPermissionRequest } from '../stores/chat'
-import { useChatStore } from '../stores/chat'
+import type { ToolPermissionRequest } from '../types/message'
+import { useChatManager } from '../stores/chatManager'
+import { useWorkspace } from '../stores/workspace'
 import { useToast } from 'primevue'
 import type { ToolUseState } from '../types'
 
@@ -55,10 +56,11 @@ const emit = defineEmits<{
 
 const tool_use_state = defineModel<ToolUseState>({ required: true })
 
-const chatStore = useChatStore()
+const chatManager = useChatManager()
+const workspace = useWorkspace()
 const messageManager = inject('messageManager') as MessageManager
 const selectedIndex = ref(0) // 当前选中状态（键盘和鼠标悬停都修改这个）
-const chatId = chatStore.getCurrentChatId()
+const chatId = chatManager.foregroundChat.chatId
 const permissionContainer = useTemplateRef("permissionContainer")
 
 const suggestions = computed(() => props.request?.suggestions)
@@ -80,7 +82,7 @@ function suggestionText(suggestion: PermissionUpdate) {
         if (suggestion.destination == 'localSettings') {
           const cmd = rule.ruleContent?.replace(":*", "");
           const cmd_html = `<span class="text-orange-500 font-bold">${cmd}</span>`
-          return `Yes and don't ask again for commands ${cmd_html} in ${chatStore.cwd}`
+          return `Yes and don't ask again for commands ${cmd_html} in ${workspace.workingDirectory}`
         }
       }
       break
@@ -97,7 +99,8 @@ const toast = useToast()
 const sendPermissionResponse = (result: PermissionResult) => {
   try {
     messageManager.sendPermissionResponse(chatId, result)
-    chatStore.handlePermissionResult()
+    // 清除 pending request
+    chatManager.foregroundChat.pendingRequest = undefined
   } catch (error) {
     toast.add({
       severity: 'error',

@@ -5,7 +5,7 @@ import type { Range } from '@tiptap/core'
 
 import SlashCommandList from './SlashCommandList.vue'
 import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
-import { useChatStore } from '../../stores/chat'
+import { useChatManager } from '../../stores/chatManager'
 import type { SlashCommand } from '@anthropic-ai/claude-code'
 
 export const appCommands: SlashCommand[] = [
@@ -89,9 +89,10 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
     command: ({ editor, range }) => {
       if (sdkCommand.name == 'clear (reset, new)') {
         editor.chain().focus().clearContent(true).run()
-        const store = useChatStore()
-        wsService.sendMessage({ chat_id: store.getCurrentChatId(), data: { kind: 'stop' } })
-        store.reset()
+        const chatManager = useChatManager()
+        const chatId = chatManager.foregroundChat.chatId
+        wsService.sendMessage({ chat_id: chatId, data: { kind: 'stop' } })
+        chatManager.chats = []
       }
       else {
         editor.chain().focus().deleteRange(range).insertContent(`/${sdkCommand.name} `).run()
@@ -212,10 +213,10 @@ export const suggestionOptions: CommandSuggestionOptions = {
 
   items: ({ query }: { query: string }) => {
     try {
-      const chatStore = useChatStore()
+      const chatManager = useChatManager()
       let commands;
-      if (chatStore.systemInfo) {
-        commands = chatStore.systemInfo.commands
+      if (chatManager.foregroundChat.session.systemInfo) {
+        commands = chatManager.foregroundChat.session.systemInfo.commands.concat(appCommands)
       } else {
         commands = defaultCommands.concat(appCommands)
       }
