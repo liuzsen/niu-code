@@ -14,7 +14,7 @@ export interface ChatState {
 
   // 会话信息
   currentSession: {
-    id: string
+    chatId: string
     title: string
     createdAt: number
     systemInit?: SDKSystemMessage
@@ -70,7 +70,7 @@ export interface ChatStore {
 export const useChatStore = defineStore('chat', {
   state: (): ChatState => ({
     currentSession: {
-      id: uuidv4(),
+      chatId: uuidv4(),
       title: '新对话',
       createdAt: Date.now(),
       permissionMode: 'default'
@@ -151,7 +151,7 @@ export const useChatStore = defineStore('chat', {
 
     // 获取当前会话 ID
     getCurrentChatId(): string {
-      return this.currentSession.id
+      return this.currentSession.chatId
     },
 
     // 从 JSON 字符串加载状态
@@ -172,7 +172,7 @@ export const useChatStore = defineStore('chat', {
     // 清空所有数据
     reset(): void {
       this.currentSession = {
-        id: uuidv4(),
+        chatId: uuidv4(),
         title: '新对话',
         createdAt: Date.now(),
         permissionMode: "default"

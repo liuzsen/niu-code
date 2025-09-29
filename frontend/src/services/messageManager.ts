@@ -45,7 +45,14 @@ export class MessageManager {
     this.ws.sendMessage({
       chat_id: this.chatStore.getCurrentChatId(),
       data: {
-        kind: 'get_info'
+        kind: 'start_chat',
+        work_dir: "/data/home/sen/code/projects/ai/",
+      }
+    })
+    this.ws.sendMessage({
+      chat_id: this.chatStore.getCurrentChatId(),
+      data: {
+        kind: 'get_info',
       }
     })
   }

@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use cc_sdk::{
     cli::{ModelInfo, SlashCommand},
     types::{PermissionMode, PermissionResult, SDKMessage},
@@ -22,6 +24,14 @@ pub enum ClientMessageData {
     SetMode { mode: PermissionMode },
     GetInfo,
     Stop,
+    StartChat(StartChatOptions),
+}
+
+#[derive(Deserialize, Serialize)]
+pub struct StartChatOptions {
+    pub work_dir: PathBuf,
+    pub mode: Option<PermissionMode>,
+    pub resume: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]

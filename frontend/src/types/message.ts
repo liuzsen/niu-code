@@ -15,6 +15,14 @@ export type ClientMessageData =
     | { kind: 'set_mode', mode: PermissionMode }
     | { kind: 'get_info' }
     | { kind: 'stop' }
+    | { kind: 'start_chat' } & StartChatOptions
+
+
+export interface StartChatOptions {
+    work_dir: string,
+    mode?: PermissionMode,
+    resume?: string,
+}
 
 export interface UserInput {
     content: string,

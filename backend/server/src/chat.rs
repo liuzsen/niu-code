@@ -11,7 +11,7 @@ use tracing::{debug, info, warn};
 
 use crate::{
     claude::{CanUseTool, ClaudeCli, ClaudeCliMessage, PromptGen},
-    message::{ChatId, ClientMessage, ServerError, ServerMessage},
+    message::{ChatId, ClientMessage, ServerError, ServerMessage, StartChatOptions},
 };
 
 static MAILBOX_SENDER: OnceLock<UnboundedSender<ChatManagerMessage>> = OnceLock::new();
@@ -89,44 +89,55 @@ impl ChatManager {
         let chat_id = msg.chat_id;
         match msg.data {
             crate::message::ClientMessageData::UserInput(prompt) => {
-                if !self.claudes.contains_key(&chat_id) {
-                    self.build_claude_cli(conn_id, &chat_id, prompt.resume)
-                        .await;
-                }
-                self.forward_to_cli(&chat_id, ClaudeCliMessage::UserInput(prompt.content));
+                self.forward_to_cli(
+                    conn_id,
+                    &chat_id,
+                    ClaudeCliMessage::UserInput(prompt.content),
+                );
             }
             crate::message::ClientMessageData::PermissionResp(permission_result) => {
-                if !self.claudes.contains_key(&chat_id) {
-                    self.build_claude_cli(conn_id, &chat_id, None).await;
-                }
                 self.forward_to_cli(
+                    conn_id,
                     &chat_id,
                     ClaudeCliMessage::PermissionResp(permission_result),
                 );
             }
             crate::message::ClientMessageData::SetMode { mode } => {
-                if !self.claudes.contains_key(&chat_id) {
-                    self.build_claude_cli(conn_id, &chat_id, None).await;
-                }
-                self.forward_to_cli(&chat_id, ClaudeCliMessage::SetMode(mode));
+                self.forward_to_cli(conn_id, &chat_id, ClaudeCliMessage::SetMode(mode));
             }
             crate::message::ClientMessageData::GetInfo => {
-                if !self.claudes.contains_key(&chat_id) {
-                    self.build_claude_cli(conn_id, &chat_id, None).await;
-                }
-                self.forward_to_cli(&chat_id, ClaudeCliMessage::GetInfo);
+                self.forward_to_cli(conn_id, &chat_id, ClaudeCliMessage::GetInfo);
             }
             crate::message::ClientMessageData::Stop => {
                 if let Some(claude) = self.claudes.remove(&chat_id) {
                     log_err(claude.send(ClaudeCliMessage::Stop));
                 }
             }
+            crate::message::ClientMessageData::StartChat(start_chat) => {
+                self.start_chat(conn_id, &chat_id, start_chat).await;
+            }
         }
     }
 
-    fn forward_to_cli(&mut self, chat_id: &ChatId, msg: ClaudeCliMessage) {
+    async fn start_chat(&mut self, conn_id: u32, chat_id: &ChatId, options: StartChatOptions) {
+        debug!(conn_id, "start new chat");
+        self.build_claude_cli(conn_id, chat_id, options).await;
+    }
+
+    fn report_error(&self, conn_id: u32, chat_id: &ChatId, err: String) {
+        if let Some(conn) = self.connections.get(&conn_id) {
+            let res = conn.send_msg(ServerMessage {
+                chat_id: chat_id.clone(),
+                data: crate::message::ServerMessageData::ServerError(ServerError { error: err }),
+            });
+            log_err(res);
+        }
+    }
+
+    fn forward_to_cli(&mut self, conn_id: u32, chat_id: &ChatId, msg: ClaudeCliMessage) {
         let Some(claude) = self.claudes.get(chat_id) else {
             info!("Claude cli not found");
+            self.report_error(conn_id, chat_id, "Claude cli not found".to_string());
             return;
         };
 
@@ -136,8 +147,13 @@ impl ChatManager {
         }
     }
 
-    async fn build_claude_cli(&mut self, conn_id: u32, chat_id: &ChatId, resume: Option<String>) {
-        if let Err(err) = self.build_claude_cli_inner(conn_id, chat_id, resume).await {
+    async fn build_claude_cli(
+        &mut self,
+        conn_id: u32,
+        chat_id: &ChatId,
+        options: StartChatOptions,
+    ) {
+        if let Err(err) = self.build_claude_cli_inner(conn_id, chat_id, options).await {
             let ws_writer = self.connections.get(&conn_id).unwrap();
             let err = format!("Cannot spawn Claude cli: {err:?}");
 
@@ -153,7 +169,7 @@ impl ChatManager {
         &mut self,
         conn_id: u32,
         chat_id: &ChatId,
-        resume: Option<String>,
+        options: StartChatOptions,
     ) -> Result<()> {
         debug!("build claude cli");
         let (claude_tx, claude_rx) = unbounded_channel();
@@ -162,19 +178,24 @@ impl ChatManager {
             "ANTHROPIC_BASE_URL" => "http://127.0.0.1:3456",
             "ANTHROPIC_AUTH_TOKEN" => "your-secret-key",
         };
-        let cwd = std::env::current_dir()?;
-        let cwd = cwd.parent().unwrap();
 
-        let options = ClaudeCodeOptions {
+        let StartChatOptions {
+            work_dir,
+            mode,
+            resume,
+        } = options;
+
+        let cli_options = ClaudeCodeOptions {
             can_use_tool: Some(Box::new(can_use_tool)),
             resume,
             env: Some(env),
-            cwd: Some(cwd.to_owned()),
+            cwd: Some(work_dir),
+            permission_mode: mode,
             ..Default::default()
         };
         let (tx, rx) = unbounded_channel();
         let prompt_gen = PromptGen::new(rx);
-        let stream = cc_sdk::query(prompt_gen, options).await?;
+        let stream = cc_sdk::query(prompt_gen, cli_options).await?;
 
         let ws_writer = self
             .connections
