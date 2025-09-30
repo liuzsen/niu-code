@@ -26,4 +26,3 @@
 - Claude should **NEVER** test code functionality or start the development server.
 
 ## Notes
-

@@ -48,6 +48,10 @@ export class MessageManager {
       return
     }
 
+    if (!this.workspace.workingDirectory) {
+      return
+    }
+
     this.ws.sendMessage({
       chat_id: foregroundChat.chatId,
       data: {

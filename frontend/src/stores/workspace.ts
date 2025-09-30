@@ -1,18 +1,28 @@
 import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { recentProjectsStore } from '../services/recentProjects'
 
-export const useWorkspace = defineStore('workspace', {
-  state: () => ({
-    cwd: '/data/home/sen/code/projects/ai/zsen-cc-web'
-  }),
+export const useWorkspace = defineStore('workspace', () => {
+  const cwd = ref<string | null>(null)
 
-  getters: {
-    workingDirectory: (state) => state.cwd,
-    hasWorkingDirectory: (state) => !!state.cwd
-  },
+  const workingDirectory = computed(() => cwd.value)
+  const hasWorkingDirectory = computed(() => !!cwd.value)
 
-  actions: {
-    setCwd(path: string) {
-      this.cwd = path
-    }
+  const setCwd = (path: string) => {
+    cwd.value = path
+    // Add to recent projects
+    recentProjectsStore.add(path)
+  }
+
+  const clearCwd = () => {
+    cwd.value = null
+  }
+
+  return {
+    cwd,
+    workingDirectory,
+    hasWorkingDirectory,
+    setCwd,
+    clearCwd
   }
 })

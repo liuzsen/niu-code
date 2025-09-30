@@ -43,8 +43,7 @@
           </Select>
 
           <!-- Send Button -->
-          <Button @click="sendUserInput" :disabled="computedDisabled" icon="pi pi-arrow-up" severity="secondary"
-            size="small"
+          <Button @click="sendUserInput" :disabled="!editable" icon="pi pi-arrow-up" severity="secondary" size="small"
             class="rounded-full w-10 h-10 p-0 shrink-0 dark:bg-surface-950 dark:text-surface-300 bg-surface-300 text-surface-700"
             v-tooltip.top="{ value: 'shift + ctrl + enter', pt: { text: 'bg-surface-300 dark:bg-surface-950 text-xs' } }"
             :title="disabledTooltip" />
@@ -74,13 +73,13 @@ import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { htmlToMarkdown } from '../utils/contentConverter'
 import { SlashCommandsExtension, suggestionOptions } from './slash-commands'
+import { useWorkspace } from '../stores/workspace'
 
 interface Props {
-  disabled?: boolean
   error?: string
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const permissionModeOptions = [
   { label: 'default', value: 'default' },
@@ -94,9 +93,10 @@ const messageManager = inject('messageManager') as MessageManager
 const chatManager = useChatManager()
 
 const foregroundChat = computed(() => chatManager.foregroundChat)
+const workspace = useWorkspace()
 
 // 组合的禁用状态
-const computedDisabled = computed(() => props.disabled)
+const editable = computed(() => workspace.hasWorkingDirectory)
 
 // 禁用原因提示
 const disabledTooltip = computed(() => {
@@ -135,7 +135,7 @@ const editor = useEditor({
       suggestion: suggestionOptions,
     }),
   ],
-  editable: true,
+  editable: editable.value,
   autofocus: true,
   onCreate: ({ editor }) => {
     editor.commands.focus()
@@ -143,11 +143,12 @@ const editor = useEditor({
 })
 
 // 监听禁用状态变化
-watch(computedDisabled, (disabled) => {
+watch(editable, (editable) => {
   if (editor.value) {
-    editor.value.setEditable(!disabled)
+    editor.value.commands.focus()
+    editor.value.setEditable(editable)
   }
-})
+}, { immediate: true })
 
 // 键盘事件监听
 const handleKeyDown = (event: KeyboardEvent) => {

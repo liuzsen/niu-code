@@ -16,12 +16,14 @@ declare module 'vue' {
     ChatMessage: typeof import('./src/components/ChatMessage.vue')['default']
     ClaudeUserMessage: typeof import('./src/components/message/ClaudeUserMessage.vue')['default']
     Dialog: typeof import('primevue/dialog')['default']
+    DirectoryPicker: typeof import('./src/components/DirectoryPicker.vue')['default']
     EditMessage: typeof import('./src/components/message/EditMessage.vue')['default']
     ExitPlanModeMessage: typeof import('./src/components/message/ExitPlanModeMessage.vue')['default']
     ExitPlanModeOptions: typeof import('./src/components/ExitPlanModeOptions.vue')['default']
     FallbackMessage: typeof import('./src/components/message/FallbackMessage.vue')['default']
     FileEditTool: typeof import('./src/components/tool-use/FileEditTool.vue')['default']
     FileWriteTool: typeof import('./src/components/tool-use/FileWriteTool.vue')['default']
+    InputText: typeof import('primevue/inputtext')['default']
     MarkdownRenderer: typeof import('./src/components/message/MarkdownRenderer.vue')['default']
     MessageInput: typeof import('./src/components/MessageInput.vue')['default']
     MessageList: typeof import('./src/components/MessageList.vue')['default']
@@ -37,6 +39,7 @@ declare module 'vue' {
     TextMessage: typeof import('./src/components/message/TextMessage.vue')['default']
     TodoWriteMessage: typeof import('./src/components/message/TodoWriteMessage.vue')['default']
     UnknownToolUseMessage: typeof import('./src/components/message/UnknownToolUseMessage.vue')['default']
+    WelcomeScreen: typeof import('./src/components/WelcomeScreen.vue')['default']
     WriteMessage: typeof import('./src/components/message/WriteMessage.vue')['default']
   }
   export interface GlobalDirectives {
