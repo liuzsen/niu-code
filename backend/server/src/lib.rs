@@ -8,6 +8,7 @@ pub mod claude_log;
 pub mod message;
 pub mod resume;
 pub mod websocket;
+pub mod work_dir;
 
 pub async fn start_manager() {
     let (tx, rx) = unbounded_channel();

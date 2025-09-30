@@ -1,5 +1,5 @@
 <template>
-    <div class="bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-zinc-700 shadow-lg rounded-xl">
+    <div class="bg-surface-100 dark:bg-surface-800 border border-surface-300 dark:border-zinc-700 shadow-lg rounded-sm">
         <!-- Write Header -->
         <div class="p-4 border-b border-surface-300 dark:border-zinc-700">
             <div class="flex items-center justify-between">

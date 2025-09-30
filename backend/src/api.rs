@@ -1,7 +1,13 @@
-use actix_web::{Responder, ResponseError, mime, web::Json};
+use std::path::PathBuf;
+
+use actix_web::{
+    Responder, ResponseError, mime,
+    web::{Json, Query},
+};
 use derive_more::{Display, From};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use server::resume::{self, ClaudeSession, LoadSessionOptions};
+use server::work_dir::{self};
 
 #[derive(Serialize)]
 pub struct ApiOkResponse<T> {
@@ -58,8 +64,27 @@ where
 }
 
 pub async fn load_sessions(
-    options: Json<LoadSessionOptions>,
+    options: Query<LoadSessionOptions>,
 ) -> Result<ApiOkResponse<Vec<ClaudeSession>>, ApiError> {
     let sessions = resume::load_sessions(options.0).await?;
     Ok(ApiOkResponse::new(sessions))
+}
+
+pub async fn home() -> Result<ApiOkResponse<String>, ApiError> {
+    let home_path = work_dir::home().await?;
+    Ok(ApiOkResponse::new(home_path.to_string_lossy().to_string()))
+}
+
+#[derive(Deserialize)]
+pub struct LsParams {
+    dir: PathBuf,
+}
+
+#[derive(Serialize)]
+pub struct FileName(String);
+
+pub async fn ls(path: Query<LsParams>) -> Result<ApiOkResponse<Vec<FileName>>, ApiError> {
+    let entries = work_dir::ls(&path.dir).await?;
+    let file_names: Vec<FileName> = entries.into_iter().map(FileName).collect();
+    Ok(ApiOkResponse::new(file_names))
 }

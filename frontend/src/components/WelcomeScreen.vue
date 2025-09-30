@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-4xl mx-auto">
+  <div class="max-w-4xl mx-auto flex flex-col items-center p-4">
     <!-- Welcome Header -->
     <div class="text-center mb-8">
       <h1 class="text-3xl font-semibold text-surface-800 dark:text-surface-100 mb-2">
@@ -11,7 +11,8 @@
     </div>
 
     <!-- Search Projects -->
-    <div class="bg-surface-50 dark:bg-surface-800 rounded-lg p-6 border border-surface-200 dark:border-surface-700">
+    <div
+      class="bg-surface-50 dark:bg-surface-800 rounded-lg p-6 border border-surface-200 dark:border-surface-700 w-[90%]">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
           <i class="pi pi-search text-2xl text-primary-500"></i>
@@ -19,8 +20,8 @@
             Search Projects
           </h3>
         </div>
-        <Button label="Open Folder..." icon="pi pi-folder-open" @click="showDirectoryPicker = true" severity="primary"
-          size="small" />
+        <Button label="Open Folder" icon="pi pi-folder-open" @click="showDirectoryPicker = true" severity="primary"
+          class=" dark:bg-surface-400 bg-surface-300 outline-none border-none" size="small" />
       </div>
 
       <div class="relative">
@@ -37,21 +38,18 @@
 
       <div v-if="searchResults.length > 0" class="mt-4 space-y-2">
         <div v-for="project in searchResults" :key="project.path"
-          class="p-3 rounded bg-surface-100 dark:bg-surface-700 hover:bg-surface-200 dark:hover:bg-surface-600 transition-colors cursor-pointer"
+          class="p-3 rounded bg-surface-100 dark:bg-surface-950 hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors cursor-pointer"
           @click="openProject(project.path)">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <i class="pi pi-folder text-primary-500"></i>
               <span class="font-medium text-surface-800 dark:text-surface-100">
-                {{ project.name }}
+                {{ project.path }}
               </span>
             </div>
             <span class="text-xs text-surface-500 dark:text-surface-400">
               {{ formatDate(project.lastOpened) }}
             </span>
-          </div>
-          <div class="text-sm text-surface-600 dark:text-surface-400 mt-1">
-            {{ project.path }}
           </div>
         </div>
       </div>

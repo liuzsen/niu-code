@@ -22,8 +22,10 @@ async fn main() -> Result<()> {
         App::new()
             .service(
                 web::scope("/api")
+                    .route("/home_path", web::get().to(api::home))
+                    .route("/ls", web::get().to(api::ls))
                     .route("/connect", web::get().to(ws_handler))
-                    .route("/load_sessions", web::get().to(api::load_sessions)),
+                    .route("/load_sessions", web::get().to(api::load_sessions)), //
             )
             .route("/api/connect", web::get().to(ws_handler))
     })

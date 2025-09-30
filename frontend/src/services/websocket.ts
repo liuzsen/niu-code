@@ -169,4 +169,4 @@ export class WebSocketService {
 }
 
 // Global instance
-export const wsService = new WebSocketService('ws://localhost:33333/api/connect')
+export const wsService = new WebSocketService(`ws://${window.location.host}/api/connect`)

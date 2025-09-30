@@ -19,5 +19,14 @@ export default defineConfig({
     alias: {
       '@': '/src'
     }
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:33333',
+        changeOrigin: true,
+        ws: true
+      }
+    }
   }
 })

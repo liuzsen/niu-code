@@ -4,50 +4,47 @@
     <div class="flex flex-col gap-4">
       <!-- Path Input -->
       <div class="flex items-center gap-2">
-        <i class="pi pi-folder text-primary-500"></i>
-        <InputText ref="pathInput" v-model="currentPath" placeholder="Enter folder path or select from list below"
-          class="flex-1" @keyup.enter="handleEnterKey" />
+        <InputText v-model="currentPath" placeholder="Enter folder path" class="flex-1" @keydown="handleKeyDown" />
         <Button label="Open" :disabled="!currentPath.trim()" @click="handlePathSubmit" severity="primary" />
       </div>
 
       <!-- Directory List -->
-      <div class="bg-surface-50 dark:bg-surface-800 rounded-lg border border-surface-200 dark:border-surface-700">
+      <div
+        class="bg-surface-50 dark:bg-surface-800 rounded-lg border border-surface-200 dark:border-surface-700 h-120 overflow-auto">
         <div v-if="loading" class="flex items-center justify-center py-8">
           <ProgressSpinner style="width: 32px; height: 32px" />
-          <span class="ml-2 text-surface-600 dark:text-surface-400">Loading folders...</span>
+          <span class="ml-2 text-surface-600 dark:text-surface-400">
+            {{ isSearching ? 'Searching...' : 'Loading folders...' }}
+          </span>
         </div>
 
         <div v-else-if="filteredDirectoryItems.length === 0"
           class="flex flex-col items-center justify-center py-8 text-surface-500 dark:text-surface-400">
           <i class="pi pi-folder-open text-3xl mb-2"></i>
-          <span>No matching folders found</span>
+          <span>
+            {{ isSearching ? 'No results found' : 'No matching folders found' }}
+          </span>
         </div>
 
-        <div v-else class="max-h-64 overflow-y-auto custom-scrollbar">
-          <div v-for="item in filteredDirectoryItems" :key="item.path"
+        <div v-else class="">
+          <div v-for="(item, index) in filteredDirectoryItems" :key="item.path"
             class="flex items-center gap-3 px-4 py-2 hover:bg-surface-100 dark:hover:bg-surface-700 cursor-pointer transition-colors"
             :class="{
-              'bg-surface-100 dark:bg-surface-700': selectedItem?.path === item.path,
-              'bg-primary-50 dark:bg-primary-900/20 border-l-2 border-primary-500': selectedItem?.path === item.path
-            }" @click="handleItemClick(item)">
+              'bg-surface-100 dark:bg-surface-700': selectedIndex === index,
+              'bg-primary-50 dark:bg-primary-900/20 border-l-2 border-primary-500': selectedIndex === index
+            }" @click="handleItemClick(item, index)">
             <i class="pi pi-folder text-primary-500" />
             <span class="flex-1">{{ item.name }}</span>
           </div>
         </div>
       </div>
-
     </div>
   </Dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, computed, nextTick, inject } from 'vue'
-import Fuse from 'fuse.js'
-import { fileSystemService, type DirectoryItem } from '../services/fileSystemService'
-import { recentProjectsStore } from '../services/recentProjects'
-import { useWorkspace } from '../stores/workspace'
-import { useChatManager } from '../stores/chatManager'
-import type { MessageManager } from '../services/messageManager'
+import { ref, watch, computed, nextTick } from 'vue'
+import { apiService } from '../services/api'
 
 interface Props {
   visible: boolean
@@ -59,105 +56,188 @@ interface Emits {
   (e: 'select', path: string): void
 }
 
+interface DirectoryItem {
+  name: string
+  path: string
+}
+
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-// 注入服务
-const workspace = useWorkspace()
-const chatManager = useChatManager()
-const messageManager = inject('messageManager') as MessageManager
-
-const currentPath = ref(props.initialPath || '/')
+const currentPath = ref('')
 const directoryItems = ref<DirectoryItem[]>([])
-const selectedItem = ref<DirectoryItem | null>(null)
+const selectedIndex = ref(0)
 const loading = ref(false)
-const error = ref<string | null>(null)
 const pathInput = ref<{ $el: HTMLInputElement } | null>(null)
 
-// Fuse.js options for fuzzy matching
-const fuseOptions = {
-  keys: ['name', 'path'],
-  threshold: 0.3, // Lower threshold = more strict matching
-  includeScore: true,
-  minMatchCharLength: 1
-}
+// Cache for storing directory listings
+const directoryCache = ref<Map<string, string[]>>(new Map())
 
-// Computed property for filtered directory items
+// Enhanced loading states
+const isSearching = ref(false)
+
+// Debounced search filtering
+const searchDebounce = ref<number | null>(null)
+const searchQuery = ref('')
+
+// Filter directory items based on current path (excluding trailing slash)
 const filteredDirectoryItems = computed(() => {
-  if (!currentPath.value.trim() || directoryItems.value.length === 0) {
+  const path = currentPath.value.trim()
+  if (!path || path.endsWith('/')) {
     return directoryItems.value
   }
 
-  const fuse = new Fuse(directoryItems.value, fuseOptions)
-  const searchTerm = currentPath.value.split('/').pop() || currentPath.value
-
-  if (!searchTerm.trim()) {
+  const searchTerm = searchQuery.value
+  if (!searchTerm) {
     return directoryItems.value
   }
 
-  const results = fuse.search(searchTerm)
-  return results.map(result => result.item)
+  // Enhanced fuzzy matching with better scoring
+  const items = [...directoryItems.value]
+
+  return items
+    .map(item => {
+      const nameLower = item.name.toLowerCase()
+      const searchLower = searchTerm.toLowerCase()
+
+      let score = 0
+
+      // Exact match gets highest score
+      if (nameLower === searchLower) {
+        score = 1000
+      }
+      // Starts with gets high score
+      else if (nameLower.startsWith(searchLower)) {
+        score = 100
+      }
+      // Contains gets medium score
+      else if (nameLower.includes(searchLower)) {
+        score = 10
+      }
+      // Character-by-character match for fuzzy search
+      else {
+        let searchIndex = 0
+        for (let i = 0; i < nameLower.length && searchIndex < searchLower.length; i++) {
+          if (nameLower[i] === searchLower[searchIndex]) {
+            searchIndex++
+          }
+        }
+        if (searchIndex === searchLower.length) {
+          score = 5
+        }
+      }
+
+      return { item, score }
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .map(({ item }) => item)
 })
 
-// Auto-select first item when filtering
-watch(filteredDirectoryItems, (newItems) => {
-  if (newItems.length > 0 && !selectedItem.value) {
-    selectedItem.value = newItems[0]
-  } else if (newItems.length === 0) {
-    selectedItem.value = null
+// Watch current path for auto-navigation with debounced search
+watch(currentPath, async (newPath) => {
+  const path = newPath.trim()
+  if (!path) return
+
+  // Clear previous debounce
+  if (searchDebounce.value) {
+    clearTimeout(searchDebounce.value)
   }
+
+  if (path.endsWith('/')) {
+    // Path ends with '/', load this directory
+    await loadDirectory(path)
+    searchQuery.value = ''
+  } else {
+    // Extract search term for filtering
+    const searchTerm = path.split('/').pop() || path
+    searchQuery.value = searchTerm
+
+    // Load parent directory for filtering with debounce
+    const parentPath = path.substring(0, path.lastIndexOf('/')) || '/'
+    isSearching.value = true
+    await loadDirectory(parentPath)
+    isSearching.value = false
+    // searchDebounce.value = setTimeout(async () => {
+    // }, 1) // 300ms debounce
+  }
+})
+
+// Watch filtered items to reset selection
+watch(filteredDirectoryItems, (newItems) => {
+  selectedIndex.value = newItems.length > 0 ? 0 : -1
 }, { immediate: true })
 
 const loadDirectory = async (path: string) => {
   loading.value = true
-  error.value = null
+
+  // Check cache first
+  if (directoryCache.value.has(path)) {
+    const cachedEntries = directoryCache.value.get(path)!
+    directoryItems.value = cachedEntries
+      .filter(entry => entry !== '.' && entry !== '..')
+      .map(entry => ({
+        name: entry,
+        path: path + (path.endsWith('/') ? '' : '/') + entry
+      }))
+    selectedIndex.value = directoryItems.value.length > 0 ? 0 : -1
+    loading.value = false
+    return
+  }
 
   try {
-    const response = await fileSystemService.listDirectory(path)
-    directoryItems.value = response.items
-    currentPath.value = response.currentPath
-    selectedItem.value = null
+    const entries = await apiService.ls(path)
+
+    // Cache the results
+    directoryCache.value.set(path, entries)
+
+    directoryItems.value = entries
+      .filter(entry => entry !== '.' && entry !== '..')
+      .map(entry => ({
+        name: entry,
+        path: path + (path.endsWith('/') ? '' : '/') + entry
+      }))
+    selectedIndex.value = directoryItems.value.length > 0 ? 0 : -1
   } catch (err) {
-    error.value = 'Failed to load directory'
     console.error('Failed to load directory:', err)
+    directoryItems.value = []
+    selectedIndex.value = -1
   } finally {
     loading.value = false
   }
 }
 
-const handleItemClick = (item: DirectoryItem) => {
-  selectedItem.value = item
-  // Navigate to folder on single click
+const handleItemClick = (item: DirectoryItem, index: number) => {
+  selectedIndex.value = index
   navigateToFolder(item.path)
 }
 
-const navigateToFolder = async (path: string) => {
-  await loadDirectory(path)
-  // Add trailing slash to indicate it's a directory
-  if (!currentPath.value.endsWith('/')) {
-    currentPath.value = currentPath.value + '/'
-  }
-  // Focus back to input for continued typing
+const navigateToFolder = (path: string) => {
+  currentPath.value = path + '/'
   nextTick(() => {
     pathInput.value?.$el?.focus()
   })
 }
 
-const handleEnterKey = async () => {
-  const path = currentPath.value.trim()
-  if (!path) return
-
-  // If path ends with '/', treat as final confirmation (user just entered a folder)
-  if (path.endsWith('/')) {
-    await handlePathSubmit()
-  }
-  // If path doesn't end with '/' and we have a selected item, navigate into it
-  else if (selectedItem.value) {
-    await navigateToFolder(selectedItem.value.path)
-  }
-  // Otherwise, treat as final confirmation
-  else {
-    await handlePathSubmit()
+const handleKeyDown = (event: KeyboardEvent) => {
+  if (event.key === 'ArrowDown') {
+    event.preventDefault()
+    if (selectedIndex.value < filteredDirectoryItems.value.length - 1) {
+      selectedIndex.value++
+    }
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault()
+    if (selectedIndex.value > 0) {
+      selectedIndex.value--
+    }
+  } else if (event.key === 'Enter') {
+    event.preventDefault()
+    const selectedItem = filteredDirectoryItems.value[selectedIndex.value]
+    if (selectedItem) {
+      navigateToFolder(selectedItem.path)
+    } else if (currentPath.value.trim()) {
+      handlePathSubmit()
+    }
   }
 }
 
@@ -166,66 +246,29 @@ const handlePathSubmit = async () => {
   if (!path) return
 
   try {
-    // Validate path exists
-    const valid = await fileSystemService.validatePath(path)
-    if (valid) {
-      emit('select', path)
-      emit('update:visible', false)
-      // Add to recent projects
-      recentProjectsStore.add(path)
-
-      // 启动新对话
-      startNewChat(path)
-    } else {
-      error.value = 'Path does not exist'
-    }
+    emit('select', path)
+    emit('update:visible', false)
   } catch (err) {
-    error.value = 'Failed to validate path'
-    console.error('Failed to validate path:', err)
+    console.error('Failed to select path:', err)
   }
 }
 
-// 启动新对话
-const startNewChat = (path: string) => {
-  // 设置工作目录
-  workspace.setCwd(path)
-
-  // 创建新对话
-  const newChat = chatManager.newChat()
-
-  // 如果 WebSocket 已连接，立即发送初始化消息
-  // 如果未连接，handleWsConnected 会在连接后自动处理
-  setTimeout(() => {
-    if (messageManager && workspace.workingDirectory) {
-      // 发送开始对话消息
-      messageManager['ws'].sendMessage({
-        chat_id: newChat.chatId,
-        data: {
-          kind: 'start_chat',
-          work_dir: workspace.workingDirectory,
-        }
-      })
-
-      // 发送获取信息消息
-      messageManager['ws'].sendMessage({
-        chat_id: newChat.chatId,
-        data: {
-          kind: 'get_info',
-        }
-      })
-    }
-  }, 5) // 小延迟确保状态更新
+const onDialogShow = async () => {
+  try {
+    const homePath = await apiService.getHome()
+    currentPath.value = homePath + '/'
+  } catch (err) {
+    console.error('Failed to get home directory:', err)
+    currentPath.value = '/'
+  }
 }
 
-
-const onDialogShow = () => {
-  loadDirectory(currentPath.value)
-}
-
-// Watch for visibility changes to reload directory
+// Focus input when dialog opens
 watch(() => props.visible, (newValue) => {
   if (newValue) {
-    loadDirectory(currentPath.value)
+    nextTick(() => {
+      pathInput.value?.$el?.focus()
+    })
   }
 })
 </script>
