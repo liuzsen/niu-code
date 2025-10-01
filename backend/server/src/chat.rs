@@ -70,7 +70,7 @@ pub struct CliSession {
 }
 
 // HTTP response structures
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct SessionInfo {
     pub cli_id: CliId,
     pub work_dir: PathBuf,
@@ -480,6 +480,7 @@ impl ChatManager {
         work_dir: PathBuf,
         responder: oneshot::Sender<Vec<SessionInfo>>,
     ) {
+        debug!(?work_dir, "Get sessions by work dir");
         let sessions = self
             .cli_sessions
             .iter()
@@ -498,6 +499,7 @@ impl ChatManager {
                 }
             })
             .collect();
+        debug!(?sessions, "Get sessions by work dir");
 
         let _ = responder.send(sessions);
     }
@@ -508,6 +510,7 @@ impl ChatManager {
         chat_id: ChatId,
         responder: oneshot::Sender<Result<Vec<MessageRecord>, ReconnectSessionError>>,
     ) {
+        debug!(cli_id, chat_id, "Reconnect session");
         // Look up conn_id from chat_id
         let conn_id = match self.chat_to_conn.get(&chat_id) {
             Some(&conn_id) => conn_id,
@@ -529,6 +532,7 @@ impl ChatManager {
             }
             None => Err(ReconnectSessionError::SessionNotFound),
         };
+        debug!("Reconnected session");
 
         let _ = responder.send(result);
     }

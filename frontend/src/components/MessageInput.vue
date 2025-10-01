@@ -61,14 +61,12 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed, inject, onMounted, onBeforeUnmount } from 'vue'
+import { watch, computed, onMounted, onBeforeUnmount } from 'vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { useChatManager } from '../stores/chatManager'
-import type { MessageManager } from '../services/messageManager'
-import type { ClientMessage } from '../types/message'
+import { messageManager } from '../services/messageManager'
 import { exportCurrentChat } from '../utils/chatExporter'
-import { wsService } from '../services/websocket'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { htmlToMarkdown } from '../utils/contentConverter'
@@ -88,8 +86,7 @@ const permissionModeOptions = [
   { label: 'bypassPermissions', value: 'bypassPermissions' },
 ]
 
-// 注入 messageManager
-const messageManager = inject('messageManager') as MessageManager
+// 使用导入的 messageManager
 const chatManager = useChatManager()
 
 const foregroundChat = computed(() => chatManager.foregroundChat)
@@ -181,15 +178,9 @@ const onPermissionModeUpdate = (newValue: PermissionMode) => {
 const onPermissionModeChange = () => {
   // 发送模式更新消息到服务器
   const chatId = foregroundChat.value?.chatId || ''
-  const message: ClientMessage = {
-    chat_id: chatId,
-    data: {
-      kind: 'set_mode',
-      mode: foregroundChat.value?.session.permissionMode || 'default'
-    }
-  }
+  const mode = foregroundChat.value?.session.permissionMode || 'default'
 
-  wsService.sendMessage(message)
+  messageManager.sendSetMode(chatId, mode)
 }
 
 import '../assets/tiptap.css'

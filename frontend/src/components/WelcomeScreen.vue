@@ -67,17 +67,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, inject } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Fuse from 'fuse.js'
 import DirectoryPicker from './DirectoryPicker.vue'
 import { recentProjectsStore, type RecentProject } from '../services/recentProjects'
 import { useWorkspace } from '../stores/workspace'
-import { useChatManager } from '../stores/chatManager'
-import type { MessageManager } from '../services/messageManager'
 
 const workspace = useWorkspace()
-const chatManager = useChatManager()
-const messageManager = inject('messageManager') as MessageManager
 const showDirectoryPicker = ref(false)
 const searchQuery = ref('')
 const recentProjects = ref<RecentProject[]>([])
@@ -114,45 +110,11 @@ const openProject = (path: string) => {
   // Add to recent projects
   recentProjectsStore.add(path)
   loadRecentProjects()
-
-  // 启动新对话
-  startNewChat()
 }
 
 const handleDirectorySelect = (path: string) => {
   workspace.setCwd(path)
   loadRecentProjects()
-
-  // 启动新对话
-  startNewChat()
-}
-
-// 启动新对话
-const startNewChat = () => {
-  // 创建新对话
-  const newChat = chatManager.newChat()
-
-  // 如果 WebSocket 已连接，立即发送初始化消息
-  setTimeout(() => {
-    if (messageManager && workspace.workingDirectory) {
-      // 发送开始对话消息
-      messageManager['ws'].sendMessage({
-        chat_id: newChat.chatId,
-        data: {
-          kind: 'start_chat',
-          work_dir: workspace.workingDirectory,
-        }
-      })
-
-      // 发送获取信息消息
-      messageManager['ws'].sendMessage({
-        chat_id: newChat.chatId,
-        data: {
-          kind: 'get_info',
-        }
-      })
-    }
-  }, 100) // 小延迟确保状态更新
 }
 
 const formatDate = (timestamp: number): string => {

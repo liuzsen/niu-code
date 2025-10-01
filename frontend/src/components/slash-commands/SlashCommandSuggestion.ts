@@ -13,6 +13,11 @@ export const appCommands: SlashCommand[] = [
     'name': 'clear (reset, new)',
     'description': 'Clear conversation history and free up context',
     "argumentHint": ""
+  },
+  {
+    'name': 'switch',
+    'description': 'Switch to another conversation session',
+    "argumentHint": ""
   }
 ]
 
@@ -91,8 +96,19 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
         editor.chain().focus().clearContent(true).run()
         const chatManager = useChatManager()
         const chatId = chatManager.foregroundChat.chatId
-        wsService.sendMessage({ chat_id: chatId, data: { kind: 'stop' } })
+        messageManager.sendStop(chatId)
         chatManager.chats = []
+      }
+      else if (sdkCommand.name == 'switch') {
+        // 清空输入框
+        editor.chain().focus().deleteRange(range).run()
+
+        // 打开会话切换模态框
+        // 注意：这里我们使用动态导入来避免循环依赖
+        import('../../composables/useSessionSwitch.ts').then(module => {
+          const { showSessionList } = module.useSessionSwitch()
+          showSessionList(editor)
+        })
       }
       else {
         editor.chain().focus().deleteRange(range).insertContent(`/${sdkCommand.name} `).run()
@@ -196,7 +212,7 @@ const updatePosition = (editor: Editor, element: HTMLElement) => {
 
 import { exitSuggestion } from '@tiptap/suggestion'
 import { PluginKey } from '@tiptap/pm/state'
-import { wsService } from '../../services/websocket'
+import { messageManager } from '../../services/messageManager'
 
 export type CommandSuggestionProps = SuggestionProps<CommandItem, SelectedCommand>
 export type CommandSuggestionOptions = SuggestionOptions<CommandItem, SelectedCommand>

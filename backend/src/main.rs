@@ -25,7 +25,7 @@ async fn main() -> Result<()> {
                     .route("/home_path", web::get().to(api::home))
                     .route("/ls", web::get().to(api::ls))
                     .route("/connect", web::get().to(ws_handler))
-                    .route("/load_sessions", web::get().to(api::load_sessions))
+                    .route("/load_sessions", web::get().to(api::history_sessions))
                     .route("/active_sessions", web::get().to(api::load_active_sessions))
                     .route("/reconnect_session", web::get().to(api::reconnect_session)),
             )

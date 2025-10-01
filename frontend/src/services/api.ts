@@ -1,4 +1,5 @@
 import type { ClaudeSession, LoadSessionOptions } from '../types/claude_log'
+import type { SessionInfo, MessageRecord } from '../types/session'
 
 // 通用 API 响应类型
 export interface ApiOkResponse<T> {
@@ -88,6 +89,59 @@ export class ApiService {
       return result.data
     } catch (error) {
       console.error('Failed to list directory:', error)
+      throw error
+    }
+  }
+
+  async loadActiveSessions(workDir: string): Promise<SessionInfo[]> {
+    try {
+      const url = new URL('/api/active_sessions', window.location.origin)
+      url.searchParams.append('work_dir', workDir)
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result: ApiOkResponse<SessionInfo[]> = await response.json()
+
+      if (result.code !== 0) {
+        throw new Error(`API error! code: ${result.code}`)
+      }
+
+      return result.data
+    } catch (error) {
+      console.error('Failed to load active sessions:', error)
+      throw error
+    }
+  }
+
+  async reconnectSession(cliId: number, chatId: string): Promise<MessageRecord[]> {
+    try {
+      const url = new URL('/api/reconnect_session', window.location.origin)
+      url.searchParams.append('cli_id', cliId.toString())
+      url.searchParams.append('chat_id', chatId)
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result: ApiOkResponse<MessageRecord[]> = await response.json()
+
+      if (result.code !== 0) {
+        throw new Error(`API error! code: ${result.code}`)
+      }
+
+      return result.data
+    } catch (error) {
+      console.error('Failed to reconnect session:', error)
       throw error
     }
   }

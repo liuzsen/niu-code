@@ -34,6 +34,7 @@ declare module 'vue' {
     ReadMessage: typeof import('./src/components/message/ReadMessage.vue')['default']
     ResultMessage: typeof import('./src/components/message/ResultMessage.vue')['default']
     Select: typeof import('primevue/select')['default']
+    SessionListModal: typeof import('./src/components/SessionListModal.vue')['default']
     SlashCommandList: typeof import('./src/components/slash-commands/SlashCommandList.vue')['default']
     SystemMessage: typeof import('./src/components/message/SystemMessage.vue')['default']
     TextMessage: typeof import('./src/components/message/TextMessage.vue')['default']

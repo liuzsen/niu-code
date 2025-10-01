@@ -11,6 +11,7 @@ use server::chat::{ChatManagerMessage, ReconnectSessionError, SessionInfo, get_m
 use server::resume::{self, ClaudeSession, LoadSessionOptions};
 use server::work_dir::{self};
 use tokio::sync::oneshot;
+use tracing::debug;
 
 #[derive(Serialize)]
 pub struct ApiOkResponse<T> {
@@ -92,7 +93,7 @@ where
     }
 }
 
-pub async fn load_sessions(
+pub async fn history_sessions(
     options: Query<LoadSessionOptions>,
 ) -> Result<ApiOkResponse<Vec<ClaudeSession>>, ApiError> {
     let sessions = resume::load_sessions(options.0).await?;
@@ -160,6 +161,7 @@ impl From<ReconnectSessionError> for BizError {
 pub async fn reconnect_session(
     params: Query<ReconnectSessionParams>,
 ) -> Result<ApiOkResponse<Vec<server::chat::MessageRecord>>, ApiError> {
+    debug!("reconnect session");
     let (tx, rx) = oneshot::channel();
     let manager_tx = get_manager_mailbox();
 

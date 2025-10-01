@@ -10,6 +10,7 @@ import { defineStore } from 'pinia'
 
 export class ChatState {
   chatId: string = uuidv4()
+  cliId?: number // 后端 CLI 会话 ID，用于判断是否已连接
 
   // 会话信息
   session: {
@@ -118,6 +119,20 @@ export const useChatManager = defineStore("chat-manager", {
 
     getChat(chatId: string): ChatState | undefined {
       return this.chats.find((chat) => chat.chatId == chatId)
+    },
+
+    getChatByCliId(cliId: number): ChatState | undefined {
+      return this.chats.find((chat) => chat.cliId == cliId)
+    },
+
+    switchToChat(chatId: string) {
+      const chat = this.getChat(chatId)
+      if (!chat) return
+
+      // 将选中的会话移到数组开头（前台）
+      const index = this.chats.indexOf(chat)
+      this.chats.splice(index, 1)
+      this.chats.unshift(chat)
     }
   },
 
