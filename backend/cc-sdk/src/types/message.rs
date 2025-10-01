@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -57,7 +59,7 @@ pub struct APIUserMessage {
     /// TODO: support more content type
     ///
     /// content: string | Array<ContentBlockParam>;
-    pub content: String,
+    pub content: Arc<String>,
     pub role: APIUserMessageRole,
 }
 

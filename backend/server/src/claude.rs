@@ -1,4 +1,4 @@
-use std::task::ready;
+use std::{sync::Arc, task::ready};
 
 use anyhow::{Context, Result};
 use cc_sdk::{
@@ -19,18 +19,16 @@ use tokio::{
 use tracing::{debug, warn};
 
 use crate::{
-    chat::WsSender,
-    message::{
-        CanUseToolParams, ChatId, ClaudeSystemInfo, ServerError, ServerMessage, ServerMessageData,
-    },
+    chat::{ChatManagerMessage, CliId},
+    message::{CanUseToolParams, ClaudeSystemInfo, ServerError, ServerMessageData},
 };
 
 pub type Responder<T> = oneshot::Sender<T>;
-pub type CanUseToolReponder = Responder<PermissionResult>;
+pub type CanUseToolReponder = Responder<Arc<PermissionResult>>;
 
 pub enum ClaudeCliMessage {
-    UserInput(String),
-    PermissionResp(PermissionResult),
+    UserInput(Arc<String>),
+    PermissionResp(Arc<PermissionResult>),
     SetMode(PermissionMode),
     GetInfo,
     CanUseTool(CanUseToolParams, CanUseToolReponder),
@@ -40,25 +38,25 @@ pub enum ClaudeCliMessage {
 pub type ClaudeReceiver = UnboundedReceiver<ClaudeCliMessage>;
 
 pub struct ClaudeCli {
-    chat_id: ChatId,
+    cli_id: CliId,
     mailbox: ClaudeReceiver,
 
-    ws_writer: WsSender,
+    manager_mailbox: UnboundedSender<ChatManagerMessage>,
     prompt_box: UnboundedSender<SDKUserMessage>,
     can_use_tool_responder: Option<CanUseToolReponder>,
 }
 
 impl ClaudeCli {
     pub fn new(
-        chat_id: ChatId,
+        cli_id: CliId,
         mailbox: ClaudeReceiver,
-        ws_writer: WsSender,
+        manager_mailbox: UnboundedSender<ChatManagerMessage>,
         prompt_box: UnboundedSender<SDKUserMessage>,
     ) -> Self {
         Self {
-            chat_id,
+            cli_id,
             mailbox,
-            ws_writer,
+            manager_mailbox,
             prompt_box,
             can_use_tool_responder: None,
         }
@@ -77,7 +75,7 @@ impl ClaudeCli {
         loop {
             select! {
                 Some(msg) = stream.next() => {
-                    self.handle_claude_msg(msg)?;
+                    self.handle_claude_msg(msg);
                 }
                 Some(msg) = self.mailbox.recv() => {
                     if msg.is_stop() {
@@ -108,12 +106,12 @@ impl ClaudeCli {
             ClaudeCliMessage::GetInfo => {
                 let commands = stream.supported_commands()?;
                 let models = stream.supported_models()?;
-                let info = ClaudeSystemInfo { commands, models };
+                let info = Arc::new(ClaudeSystemInfo { commands, models });
 
-                self.forward_claude_msg(info)?;
+                self.forward_claude_msg(info);
             }
             ClaudeCliMessage::CanUseTool(parms, responder) => {
-                self.forward_claude_msg(parms)?;
+                self.forward_claude_msg(Arc::new(parms));
                 if self.can_use_tool_responder.is_some() {
                     warn!("There's already a can_use_tool_responder!");
                 }
@@ -127,7 +125,7 @@ impl ClaudeCli {
         Ok(())
     }
 
-    fn build_prompt(&self, prompt: String) -> SDKUserMessage {
+    fn build_prompt(&self, prompt: Arc<String>) -> SDKUserMessage {
         SDKUserMessage {
             uuid: None,
             session_id: "".to_owned(),
@@ -139,32 +137,26 @@ impl ClaudeCli {
         }
     }
 
-    fn forward_claude_msg<T>(&mut self, msg: T) -> Result<()>
+    fn forward_claude_msg<T>(&mut self, msg: T)
     where
         ServerMessageData: From<T>,
     {
-        debug!("send claude msg to websocket");
-        self.ws_writer
-            .send_msg(ServerMessage {
-                chat_id: self.chat_id.clone(),
-                data: crate::message::ServerMessageData::from(msg),
-            })
-            .with_context(|| format!("ws closed. chat_id = {}", self.chat_id))?;
-
-        Ok(())
+        debug!("send claude msg to manager");
+        let _ = self.manager_mailbox.send(ChatManagerMessage::CliMessage {
+            cli_id: self.cli_id,
+            data: ServerMessageData::from(msg),
+        });
     }
 
-    fn handle_claude_msg(&mut self, msg: Result<SDKMessage, ClaudeStreamError>) -> Result<()> {
-        self.forward_claude_msg(msg)?;
-
-        Ok(())
+    fn handle_claude_msg(&mut self, msg: Result<SDKMessage, ClaudeStreamError>) {
+        self.forward_claude_msg(msg);
     }
 }
 
 impl From<Result<SDKMessage, ClaudeStreamError>> for ServerMessageData {
     fn from(value: Result<SDKMessage, ClaudeStreamError>) -> Self {
         match value {
-            Ok(msg) => msg.into(),
+            Ok(msg) => ServerMessageData::Claude(Arc::new(msg)),
             Err(err) => ServerMessageData::ServerError(ServerError {
                 error: err.to_string(),
             }),
@@ -188,7 +180,7 @@ impl CanUseToolCallBack for CanUseTool {
         &mut self,
         tool_use: cc_sdk::types::ToolInputSchemasWithName,
         suggestions: Option<Vec<cc_sdk::types::PermissionUpdate>>,
-    ) -> anyhow::Result<PermissionResult> {
+    ) -> anyhow::Result<Arc<PermissionResult>> {
         let (tx, rx) = oneshot::channel();
         self.ask_box
             .send(ClaudeCliMessage::CanUseTool(

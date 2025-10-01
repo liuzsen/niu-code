@@ -1,6 +1,7 @@
 use std::{
     collections::HashMap,
     path::PathBuf,
+    sync::Arc,
     task::{Poll, ready},
 };
 
@@ -94,7 +95,7 @@ impl PromptGenerator for PromptGen {
             uuid: None,
             session_id: "".to_string(),
             message: APIUserMessage {
-                content: prompt,
+                content: Arc::new(prompt),
                 role: cc_sdk::types::APIUserMessageRole::User,
             },
             parent_tool_use_id: None,

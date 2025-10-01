@@ -88,6 +88,17 @@ impl WsEndpoint {
     }
 
     async fn run(mut self) -> Result<()> {
+        let result = self.run_inner().await;
+
+        // Notify manager that connection is closed
+        let _ = self.manager_mailbox.send(ChatManagerMessage::ConnectionClosed {
+            conn_id: self.conn_id,
+        });
+
+        result
+    }
+
+    async fn run_inner(&mut self) -> Result<()> {
         loop {
             select! {
                 Some(msg) = self.stream.next() => {

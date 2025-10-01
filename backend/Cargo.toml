@@ -10,7 +10,7 @@ members = ["cc-sdk", "server"]
 [workspace.dependencies]
 anyhow = "1.0.100"
 async-trait = "0.1.89"
-serde = { version = "1.0.225", features = ["derive"] }
+serde = { version = "1.0.225", features = ["derive", "rc"] }
 serde_json = "1.0.145"
 tokio = { version = "1.47.1", features = ["full"] }
 tokio-stream = "0.1.17"

@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
@@ -91,7 +91,7 @@ pub trait CanUseToolCallBack: Send + Sync + Debug + 'static + Sized {
         &mut self,
         tool_use: ToolInputSchemasWithName,
         suggestions: Option<Vec<PermissionUpdate>>,
-    ) -> impl Future<Output = anyhow::Result<PermissionResult>> + Send;
+    ) -> impl Future<Output = anyhow::Result<Arc<PermissionResult>>> + Send;
 
     fn boxed(self) -> BoxedCanUseTollCallback {
         Box::new(self)
@@ -104,7 +104,7 @@ pub trait CanUseToolCallBackDyn: Send + Sync + Debug + 'static {
         &mut self,
         tool_use: ToolInputSchemasWithName,
         suggestions: Option<Vec<PermissionUpdate>>,
-    ) -> anyhow::Result<PermissionResult>;
+    ) -> anyhow::Result<Arc<PermissionResult>>;
 }
 
 #[async_trait::async_trait]
@@ -116,7 +116,7 @@ where
         &mut self,
         tool_use: ToolInputSchemasWithName,
         suggestions: Option<Vec<PermissionUpdate>>,
-    ) -> anyhow::Result<PermissionResult> {
+    ) -> anyhow::Result<Arc<PermissionResult>> {
         CanUseToolCallBack::call(self, tool_use, suggestions).await
     }
 }
