@@ -14,7 +14,6 @@
     </template>
 
     <div class="text-gray-400 p-3 text-center text-sm" v-else-if="hasCommands">无匹配命令</div>
-    <div class="text-gray-400 p-3 text-center text-sm" v-else>加载命令中...</div>
   </div>
 </template>
 

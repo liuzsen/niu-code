@@ -1,6 +1,8 @@
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::{
+    ffi::OsStr,
     path::{Path, PathBuf},
     time::Duration,
 };
@@ -8,12 +10,110 @@ use tokio::{
     fs::{File, read_dir},
     io::{AsyncBufReadExt, BufReader},
 };
+use tracing::debug;
 
 use crate::claude_log::ClaudeLogTypes;
 
 #[derive(Serialize, Deserialize)]
 pub struct ClaudeSession {
     logs: Vec<ClaudeLogTypes>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ClaudeSessionInfo {
+    session_id: String,
+    last_user_input: String,
+    last_active: DateTime<Utc>,
+}
+
+pub async fn load_session_infos(work_dir: &Path) -> Result<Vec<ClaudeSessionInfo>> {
+    let logs_dir = dbg!(logs_dir(work_dir)?);
+    debug!("loading logs dir: {}", logs_dir.display());
+    let mut dir = read_dir(logs_dir).await?;
+
+    let mut sessions = vec![];
+    while let Some(entry) = dir.next_entry().await? {
+        if entry.path().extension() != Some(OsStr::new("jsonl")) {
+            continue;
+        }
+        println!("{}", entry.path().display());
+
+        let file = File::open(entry.path()).await?;
+        let reader = BufReader::new(file);
+
+        let session_id = entry
+            .path()
+            .file_stem()
+            .unwrap()
+            .to_string_lossy()
+            .to_string();
+        let mut lines = reader.lines();
+        let mut last_timestamp: Option<DateTime<Utc>> = None;
+        let mut last_user_input = String::new();
+
+        // Read all lines to find the last timestamp and user input
+        let mut all_lines = vec![];
+        while let Some(line) = lines.next_line().await? {
+            all_lines.push(line);
+        }
+
+        // Process lines in reverse order
+        for line in all_lines.iter().rev() {
+            let Ok(log_entry) = serde_json::from_str::<serde_json::Value>(line) else {
+                continue;
+            };
+
+            // Extract timestamp from the last line
+            if last_timestamp.is_none() {
+                if let Some(timestamp_str) = log_entry["timestamp"].as_str() {
+                    if let Ok(timestamp) = dbg!(DateTime::parse_from_rfc3339(timestamp_str)) {
+                        last_timestamp = Some(timestamp.with_timezone(&Utc));
+                    }
+                }
+            }
+
+            // Look for user input message
+            if last_user_input.is_empty() {
+                if let (Some("user"), Some(message)) = (
+                    log_entry.get("type").and_then(|t| t.as_str()),
+                    log_entry.get("message"),
+                ) {
+                    let content = &message["content"];
+                    if let Some(content) = content.as_str() {
+                        last_user_input = content.to_string();
+                        break;
+                    }
+                    if let Some(content) = content.as_array() {
+                        for content_item in content {
+                            if let (Some("text"), Some(text)) = (
+                                content_item.get("type").and_then(|t| t.as_str()),
+                                content_item.get("text").and_then(|t| t.as_str()),
+                            ) {
+                                last_user_input = text.to_string();
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // If we found both values, break
+            if last_timestamp.is_some() && !last_user_input.is_empty() {
+                break;
+            }
+        }
+
+        // If we found a timestamp, create a session info
+        if let Some(last_active) = last_timestamp {
+            sessions.push(ClaudeSessionInfo {
+                last_user_input,
+                last_active,
+                session_id,
+            });
+        }
+    }
+
+    Ok(sessions)
 }
 
 #[derive(Deserialize)]
@@ -33,6 +133,22 @@ impl<'de> Deserialize<'de> for DurationMilliSec {
         let milli_secs = u64::deserialize(deserializer)?;
         Ok(DurationMilliSec(Duration::from_millis(milli_secs)))
     }
+}
+
+pub async fn load_session(work_dir: &Path, session_id: &str) -> Result<ClaudeSession> {
+    let logs_dir = logs_dir(&work_dir)?;
+    let path = logs_dir.join(session_id).with_extension("jsonl");
+
+    let mut logs = vec![];
+    let file = File::open(path).await?;
+    let reader = BufReader::new(file);
+    let mut lines = reader.lines();
+    while let Some(line) = lines.next_line().await? {
+        let log: ClaudeLogTypes = serde_json::from_str(&line)?;
+        logs.push(log);
+    }
+
+    Ok(ClaudeSession { logs: logs })
 }
 
 pub async fn load_sessions(options: LoadSessionOptions) -> Result<Vec<ClaudeSession>> {
@@ -114,5 +230,12 @@ mod tests {
             test_home
         ));
         assert_eq!(result, expected_path);
+    }
+
+    #[tokio::test]
+    async fn test_load_session_infos() {
+        let input_path = Path::new("/data/home/sen/code/projects/ai/test-project");
+        let result = load_session_infos(input_path).await.unwrap();
+        dbg!(result);
     }
 }

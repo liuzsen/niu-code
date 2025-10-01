@@ -18,6 +18,11 @@ export const appCommands: SlashCommand[] = [
     'name': 'switch',
     'description': 'Switch to another conversation session',
     "argumentHint": ""
+  },
+  {
+    'name': 'resume',
+    'description': 'Resume a previous conversation from history',
+    "argumentHint": ""
   }
 ]
 
@@ -108,6 +113,17 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
         import('../../composables/useSessionSwitch.ts').then(module => {
           const { showSessionList } = module.useSessionSwitch()
           showSessionList(editor)
+        })
+      }
+      else if (sdkCommand.name == 'resume') {
+        // 清空输入框
+        editor.chain().focus().deleteRange(range).run()
+
+        // 打开历史会话选择模态框
+        // 注意：这里我们使用动态导入来避免循环依赖
+        import('../../composables/useHistoryResume.ts').then(module => {
+          const { showHistorySessionList } = module.useHistoryResume()
+          showHistorySessionList(editor)
         })
       }
       else {

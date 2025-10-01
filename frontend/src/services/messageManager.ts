@@ -12,7 +12,7 @@ import type { StartChatOptions } from '../types/message'
 import type { MessageRecord } from '../types/session'
 
 export class MessageManager {
-  private ws: WebSocketService
+  public ws: WebSocketService
   private chatManager = useChatManager()
   private workspace = useWorkspace()
 
@@ -42,7 +42,7 @@ export class MessageManager {
   }
 
   // 新增：实际处理消息的方法（重放和实时都使用）
-  private processMessage(message: ServerMessage) {
+  processMessage(message: ServerMessage) {
     switch (message.data.kind) {
       case 'claude':
         this.handleClaudeMessage(message)

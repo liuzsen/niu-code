@@ -7,9 +7,12 @@ use actix_web::{
 use anyhow::Context;
 use derive_more::{Display, From};
 use serde::{Deserialize, Serialize};
-use server::chat::{ChatManagerMessage, ReconnectSessionError, SessionInfo, get_manager_mailbox};
-use server::resume::{self, ClaudeSession, LoadSessionOptions};
+use server::resume::{self, ClaudeSession};
 use server::work_dir::{self};
+use server::{
+    chat::{ChatManagerMessage, ReconnectSessionError, SessionInfo, get_manager_mailbox},
+    resume::ClaudeSessionInfo,
+};
 use tokio::sync::oneshot;
 use tracing::debug;
 
@@ -93,11 +96,30 @@ where
     }
 }
 
-pub async fn history_sessions(
-    options: Query<LoadSessionOptions>,
-) -> Result<ApiOkResponse<Vec<ClaudeSession>>, ApiError> {
-    let sessions = resume::load_sessions(options.0).await?;
+#[derive(Deserialize)]
+pub struct LoadSessionInfoOptions {
+    work_dir: PathBuf,
+}
+
+pub async fn load_session_infos(
+    options: Query<LoadSessionInfoOptions>,
+) -> Result<ApiOkResponse<Vec<ClaudeSessionInfo>>, ApiError> {
+    let sessions = resume::load_session_infos(&options.work_dir).await?;
     Ok(ApiOkResponse::new(sessions))
+}
+
+#[derive(Deserialize)]
+pub struct LoadSessionOptions {
+    work_dir: PathBuf,
+    session_id: String,
+}
+
+pub async fn load_session_logs(
+    options: Query<LoadSessionOptions>,
+) -> Result<ApiOkResponse<ClaudeSession>, ApiError> {
+    let session = resume::load_session(&options.work_dir, &options.session_id).await?;
+
+    Ok(ApiOkResponse::new(session))
 }
 
 pub async fn home() -> Result<ApiOkResponse<String>, ApiError> {

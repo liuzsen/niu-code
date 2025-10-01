@@ -307,10 +307,7 @@ impl ChatManager {
 
     async fn start_chat(&mut self, conn_id: u32, chat_id: &ChatId, options: StartChatOptions) {
         debug!(conn_id, "start new chat");
-        let cli_id = generate_cli_id();
-        self.chat_to_cli.insert(chat_id.clone(), cli_id);
-        self.build_claude_cli(conn_id, cli_id, chat_id, options)
-            .await;
+        self.build_claude_cli(conn_id, chat_id, options).await;
     }
 
     fn report_error(&self, conn_id: u32, chat_id: &ChatId, err: String) {
@@ -344,14 +341,14 @@ impl ChatManager {
     async fn build_claude_cli(
         &mut self,
         conn_id: u32,
-        cli_id: CliId,
         chat_id: &ChatId,
         options: StartChatOptions,
     ) {
-        if let Err(err) = self
+        let cli_id = generate_cli_id();
+        let result = self
             .build_claude_cli_inner(conn_id, cli_id, chat_id, options)
-            .await
-        {
+            .await;
+        if let Err(err) = result {
             let ws_writer = self.connections.get(&conn_id).unwrap();
             let err = format!("Cannot spawn Claude cli: {err:?}");
 
@@ -361,6 +358,8 @@ impl ChatManager {
                 data: crate::message::ServerMessageData::ServerError(ServerError { error: err }),
             });
         }
+
+        self.chat_to_cli.insert(chat_id.clone(), cli_id);
     }
 
     async fn build_claude_cli_inner(

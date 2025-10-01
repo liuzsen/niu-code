@@ -8,6 +8,18 @@ pub enum ClaudeLogTypes {
     User(ClaudeLog),
     Assistant(ClaudeLog),
     Summary(ClaudeSummary),
+    #[serde(rename = "file-history-snapshot")]
+    FileHistorySnapshot(FileHistorySnapshot),
+    System(serde_json::Value),
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
+pub struct FileHistorySnapshot {
+    message_id: String,
+    snapshot: serde_json::Value,
+    is_snapshot_update: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -32,6 +44,33 @@ pub struct ClaudeLog {
     pub message: Value,
     pub is_meta: Option<bool>,
     pub uuid: String,
+    pub timestamp: String,
+    pub thinking_metadata: Option<Value>,
+    pub tool_use_result: Option<Value>,
+    pub is_visible_in_transcript_only: Option<bool>,
+    pub is_compact_summary: Option<bool>,
+    pub is_api_error_message: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
+pub struct ClaudeSystemLog {
+    pub parent_uuid: Option<String>,
+    pub logical_parent_uuid: Option<String>,
+    pub is_sidechain: bool,
+    pub user_type: String,
+    pub cwd: String,
+    pub session_id: String,
+    pub version: String,
+    pub git_branch: Option<String>,
+    // compact_boundary
+    pub subtype: Option<String>,
+    pub content: Option<String>,
+    pub message: Value,
+    pub is_meta: Option<bool>,
+    pub uuid: String,
+    pub level: Option<String>,
     pub timestamp: String,
     pub thinking_metadata: Option<Value>,
     pub tool_use_result: Option<Value>,
