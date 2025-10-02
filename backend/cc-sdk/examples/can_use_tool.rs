@@ -2,6 +2,7 @@ use std::{
     collections::HashMap,
     io::Write,
     path::PathBuf,
+    sync::Arc,
     task::{Poll, ready},
 };
 
@@ -10,7 +11,7 @@ use cc_sdk::{
     query,
     types::{
         APIUserMessage, CanUseToolCallBack, ClaudeCodeOptions, DebugCallBack, PermissionAllow,
-        PermissionDeny, PermissionResult, SDKMessage, SDKUserMessage,
+        PermissionDeny, PermissionResult, SDKMessageTyped, SDKUserMessage,
     },
 };
 use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
@@ -51,7 +52,7 @@ impl CanUseToolCallBack for CanUseTool {
         &mut self,
         input: cc_sdk::types::ToolInputSchemasWithName,
         suggestions: Option<Vec<cc_sdk::types::PermissionUpdate>>,
-    ) -> anyhow::Result<PermissionResult> {
+    ) -> anyhow::Result<Arc<PermissionResult>> {
         println!("Ask permission for tool: {}", input.tool_name());
 
         match input {
@@ -73,23 +74,23 @@ impl CanUseToolCallBack for CanUseTool {
                 std::io::stdin().read_line(&mut buffer)?;
                 match buffer.trim() {
                     "" | "Y" | "y" => {
-                        return Ok(PermissionResult::Allow(PermissionAllow {
+                        return Ok(Arc::new(PermissionResult::Allow(PermissionAllow {
                             updated_input: input.into(),
                             updated_permissions: None,
-                        }));
+                        })));
                     }
                     _ => {
-                        return Ok(PermissionResult::Deny(PermissionDeny {
+                        return Ok(Arc::new(PermissionResult::Deny(PermissionDeny {
                             message: "try other methods".to_string(),
                             interrupt: None,
-                        }));
+                        })));
                     }
                 }
             }
-            _ => Ok(PermissionResult::Allow(PermissionAllow {
+            _ => Ok(Arc::new(PermissionResult::Allow(PermissionAllow {
                 updated_input: input.into(),
                 updated_permissions: None,
-            })),
+            }))),
         }
     }
 }
@@ -158,13 +159,12 @@ impl PromptGenerator for PromptGen {
             None => return Poll::Ready(None),
         };
         let msg = SDKUserMessage {
-            uuid: None,
-            session_id: "".to_string(),
             message: APIUserMessage {
-                content: prompt,
+                content: Arc::new(prompt).into(),
                 role: cc_sdk::types::APIUserMessageRole::User,
             },
             parent_tool_use_id: None,
+            uuid: None,
         };
 
         Poll::Ready(Some(msg))
@@ -191,7 +191,7 @@ async fn main() -> anyhow::Result<()> {
             serde_json::to_string_pretty(&msg).unwrap()
         );
 
-        if matches!(msg, SDKMessage::Result(..)) {
+        if matches!(msg.typed, SDKMessageTyped::Result(..)) {
             break;
         }
     }

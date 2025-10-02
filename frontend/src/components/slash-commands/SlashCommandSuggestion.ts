@@ -5,13 +5,18 @@ import type { Range } from '@tiptap/core'
 
 import SlashCommandList from './SlashCommandList.vue'
 import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
-import { useChatStore } from '../../stores/chat'
+import { useChatManager } from '../../stores/chatManager'
 import type { SlashCommand } from '@anthropic-ai/claude-code'
 
 export const appCommands: SlashCommand[] = [
   {
     'name': 'clear (reset, new)',
     'description': 'Clear conversation history and free up context',
+    "argumentHint": ""
+  },
+  {
+    'name': 'resume',
+    'description': 'Resume or switch to any session (active or inactive)',
     "argumentHint": ""
   }
 ]
@@ -89,9 +94,21 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
     command: ({ editor, range }) => {
       if (sdkCommand.name == 'clear (reset, new)') {
         editor.chain().focus().clearContent(true).run()
-        const store = useChatStore()
-        wsService.sendMessage({ chat_id: store.getCurrentChatId(), data: { kind: 'stop' } })
-        store.reset()
+        const chatManager = useChatManager()
+        const chatId = chatManager.foregroundChat.chatId
+        messageManager.sendStop(chatId)
+        chatManager.chats = []
+      }
+      else if (sdkCommand.name == 'resume') {
+        // 清空输入框
+        editor.chain().focus().deleteRange(range).run()
+
+        // 打开统一的会话选择模态框（包含活跃和非活跃会话）
+        // 注意：这里我们使用动态导入来避免循环依赖
+        import('../../composables/useResume.ts').then(module => {
+          const { showSessionList } = module.useResume()
+          showSessionList(editor)
+        })
       }
       else {
         editor.chain().focus().deleteRange(range).insertContent(`/${sdkCommand.name} `).run()
@@ -195,7 +212,7 @@ const updatePosition = (editor: Editor, element: HTMLElement) => {
 
 import { exitSuggestion } from '@tiptap/suggestion'
 import { PluginKey } from '@tiptap/pm/state'
-import { wsService } from '../../services/websocket'
+import { messageManager } from '../../services/messageManager'
 
 export type CommandSuggestionProps = SuggestionProps<CommandItem, SelectedCommand>
 export type CommandSuggestionOptions = SuggestionOptions<CommandItem, SelectedCommand>
@@ -212,10 +229,10 @@ export const suggestionOptions: CommandSuggestionOptions = {
 
   items: ({ query }: { query: string }) => {
     try {
-      const chatStore = useChatStore()
+      const chatManager = useChatManager()
       let commands;
-      if (chatStore.systemInfo) {
-        commands = chatStore.systemInfo.commands
+      if (chatManager.foregroundChat.session.systemInfo) {
+        commands = chatManager.foregroundChat.session.systemInfo.commands.concat(appCommands)
       } else {
         commands = defaultCommands.concat(appCommands)
       }

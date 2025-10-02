@@ -36,7 +36,7 @@
 import type { ExitPlanModeInput } from '../../types/sdk-tools'
 import { ref } from 'vue'
 import MarkdownRenderer from './MarkdownRenderer.vue'
-import type { ToolPermissionRequest } from '../../stores/chat'
+import type { ToolPermissionRequest } from '../../types/message'
 import type { ToolUseState } from '../../types'
 import ExitPlanModeOptions from '../ExitPlanModeOptions.vue'
 
@@ -55,7 +55,6 @@ const request: ToolPermissionRequest = {
         input: props.input
     },
     suggestions: [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }],
-    chat_id: props.id
 }
 
 </script>

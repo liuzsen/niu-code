@@ -1,13 +1,14 @@
 use std::{
     collections::HashMap,
     path::PathBuf,
+    sync::Arc,
     task::{Poll, ready},
 };
 
 use cc_sdk::{
     cli::PromptGenerator,
     query,
-    types::{APIUserMessage, ClaudeCodeOptions, DebugCallBack, SDKMessage, SDKUserMessage},
+    types::{APIUserMessage, ClaudeCodeOptions, DebugCallBack, SDKMessageTyped, SDKUserMessage},
 };
 use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
 use tokio_stream::StreamExt;
@@ -92,9 +93,8 @@ impl PromptGenerator for PromptGen {
         };
         let msg = SDKUserMessage {
             uuid: None,
-            session_id: "".to_string(),
             message: APIUserMessage {
-                content: prompt,
+                content: Arc::new(prompt).into(),
                 role: cc_sdk::types::APIUserMessageRole::User,
             },
             parent_tool_use_id: None,
@@ -124,7 +124,7 @@ async fn main() -> anyhow::Result<()> {
         let msg = msg.unwrap();
         println!("{}", serde_json::to_string_pretty(&msg).unwrap());
 
-        if matches!(msg, SDKMessage::Result(..)) {
+        if matches!(msg.typed, SDKMessageTyped::Result(..)) {
             if !has_followed_up {
                 info!("send the second question");
                 let p = "What is the source of your answer?";

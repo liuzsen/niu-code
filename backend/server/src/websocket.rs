@@ -88,9 +88,22 @@ impl WsEndpoint {
     }
 
     async fn run(mut self) -> Result<()> {
+        let result = self.run_inner().await;
+
+        // Notify manager that connection is closed
+        let _ = self
+            .manager_mailbox
+            .send(ChatManagerMessage::ConnectionClosed {
+                conn_id: self.conn_id,
+            });
+
+        result
+    }
+
+    async fn run_inner(&mut self) -> Result<()> {
         loop {
             select! {
-                Some(msg) = self.stream.next() => {
+                msg = self.stream.next() => {
                     self.handle_client_msg(msg).await?;
                 }
                 Some(msg) = self.mailbox.recv() => {
@@ -109,8 +122,15 @@ impl WsEndpoint {
 
     async fn handle_client_msg(
         &mut self,
-        msg: Result<AggregatedMessage, ProtocolError>,
+        msg: Option<Result<AggregatedMessage, ProtocolError>>,
     ) -> anyhow::Result<()> {
+        let Some(msg) = msg else {
+            self.manager_mailbox
+                .send(ChatManagerMessage::ConnectionClosed {
+                    conn_id: self.conn_id,
+                })?;
+            return Ok(());
+        };
         let msg = msg.context("invalid client msg")?;
         match msg {
             AggregatedMessage::Text(byte_string) => {

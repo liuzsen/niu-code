@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use cc_sdk::{
     cli::{ModelInfo, SlashCommand},
     types::{PermissionMode, PermissionResult, SDKMessage},
@@ -17,16 +19,17 @@ pub struct ClientMessage {
 #[serde(tag = "kind")]
 #[serde(rename_all = "snake_case")]
 pub enum ClientMessageData {
+    RegisterChat,
     UserInput(UserInput),
-    PermissionResp(PermissionResult),
+    PermissionResp(Arc<PermissionResult>),
     SetMode { mode: PermissionMode },
     GetInfo,
-    Stop,
+    StopSession,
 }
 
 #[derive(Deserialize, Serialize)]
 pub struct UserInput {
-    pub content: String,
+    pub content: Arc<String>,
     pub resume: Option<String>,
 }
 
@@ -36,17 +39,17 @@ pub struct ServerMessage {
     pub data: ServerMessageData,
 }
 
-#[derive(From, Serialize)]
+#[derive(From, Serialize, Clone)]
 #[serde(tag = "kind")]
 #[serde(rename_all = "snake_case")]
 pub enum ServerMessageData {
-    Claude(SDKMessage),
+    Claude(Arc<SDKMessage>),
     ServerError(ServerError),
-    SystemInfo(ClaudeSystemInfo),
-    CanUseTool(CanUseToolParams),
+    SystemInfo(Arc<ClaudeSystemInfo>),
+    CanUseTool(Arc<CanUseToolParams>),
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct ServerError {
     pub error: String,
 }
@@ -57,7 +60,7 @@ pub struct CanUseToolParams {
     pub suggestions: Option<Vec<cc_sdk::types::PermissionUpdate>>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 pub struct ClaudeSystemInfo {
     pub commands: Vec<SlashCommand>,
     pub models: Vec<ModelInfo>,

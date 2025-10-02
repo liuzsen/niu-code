@@ -39,8 +39,8 @@
 import { ref, inject, onMounted, watch, nextTick, useTemplateRef } from 'vue'
 import type { PermissionResult } from '@anthropic-ai/claude-code'
 import type { MessageManager } from '../services/messageManager'
-import type { ToolPermissionRequest } from '../stores/chat'
-import { useChatStore } from '../stores/chat'
+import type { ToolPermissionRequest } from '../types/message'
+import { useChatManager } from '../stores/chatManager'
 import { useToast } from 'primevue'
 import type { ToolUseState } from '../types'
 
@@ -50,10 +50,10 @@ const props = defineProps<{
 
 const tool_use_state = defineModel<ToolUseState>({ required: true })
 
-const chatStore = useChatStore()
+const chatManager = useChatManager()
 const messageManager = inject('messageManager') as MessageManager
 const selectedIndex = ref(0) // 当前选中状态（键盘和鼠标悬停都修改这个）
-const chatId = chatStore.getCurrentChatId()
+const chatId = chatManager.foregroundChat!.chatId
 const permissionContainer = useTemplateRef("permissionContainer")
 
 const toast = useToast()
@@ -61,7 +61,8 @@ const toast = useToast()
 const sendPermissionResponse = (result: PermissionResult) => {
   try {
     messageManager.sendPermissionResponse(chatId, result)
-    chatStore.handlePermissionResult()
+    // 清除 pending request
+    chatManager.foregroundChat!.pendingRequest = undefined
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -106,7 +107,7 @@ const allowWithSuggestion = () => {
     updatedInput: props.request.tool_use.input as Record<string, unknown>,
     updatedPermissions: [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }],
   };
-  chatStore.currentSession.permissionMode = 'acceptEdits'
+  chatManager.foregroundChat!.session.permissionMode = 'acceptEdits'
   sendPermissionResponse(result)
 }
 

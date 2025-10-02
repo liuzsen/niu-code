@@ -1,7 +1,8 @@
-import { useChatStore } from "../stores/chat";
+import { useWorkspace } from "../stores/workspace";
 
 export function toRelativePath(path: string): string {
-    const cwd = useChatStore().cwd;
+    const workspace = useWorkspace();
+    const cwd = workspace.workingDirectory;
     if (!cwd) {
         return path;
     }

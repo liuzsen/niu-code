@@ -1,20 +1,23 @@
+use std::sync::Arc;
+
+use derive_more::From;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
-pub struct SDKMessageBase {
-    pub uuid: String,
+pub struct SDKMessage {
     pub session_id: String,
+    #[serde(flatten)]
+    pub typed: SDKMessageTyped,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type")]
 #[serde(rename_all = "snake_case")]
 #[serde(deny_unknown_fields)]
-pub enum SDKMessage {
+pub enum SDKMessageTyped {
     Assistant(SDKAssistantMessage),
-    User(SDKUserMessagePack),
+    User(SDKUserMessage),
     Result(SDKResultMessage),
     System(SDKSystemMessage),
     StreamEvent(SDKPartialAssistantMessage),
@@ -22,8 +25,7 @@ pub enum SDKMessage {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SDKAssistantMessage {
-    #[serde(flatten)]
-    pub base: SDKMessageBase,
+    pub uuid: String,
     pub message: Value,
     pub parent_tool_use_id: Option<String>,
 }
@@ -36,41 +38,27 @@ pub enum APIUserMessageRole {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(untagged)]
-pub enum SDKUserMessagePack {
-    Replay(SDKUserMessageReplay),
-    UserMessage(SDKUserMessage),
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct SDKUserMessage {
     pub uuid: Option<String>,
-    pub session_id: String,
     pub message: APIUserMessage,
     pub parent_tool_use_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct APIUserMessage {
-    /// TODO: support more content type
-    ///
-    /// content: string | Array<ContentBlockParam>;
-    pub content: String,
+    pub content: UserContent,
     pub role: APIUserMessageRole,
 }
 
-impl SDKUserMessage {
-    pub fn to_sdk_msg(self) -> SDKMessage {
-        SDKMessage::User(SDKUserMessagePack::UserMessage(self))
-    }
+#[derive(Serialize, Deserialize, Debug, From)]
+#[serde(untagged)]
+pub enum UserContent {
+    String(Arc<String>),
+    Vec(Vec<serde_json::Value>),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SDKUserMessageReplay {
-    #[serde(flatten)]
-    pub base: SDKMessageBase,
     pub message: Value,
     pub parent_tool_use_id: Option<String>,
 }
@@ -95,8 +83,7 @@ pub enum SDKResultMessage {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SDKResultSuccessMessage {
-    #[serde(flatten)]
-    pub base: SDKMessageBase,
+    pub uuid: String,
     pub duration_ms: u64,
     pub duration_api_ms: u64,
     pub is_error: bool,
@@ -111,8 +98,7 @@ pub struct SDKResultSuccessMessage {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SDKResultErrorMessage {
-    #[serde(flatten)]
-    pub base: SDKMessageBase,
+    pub uuid: String,
     pub duration_ms: u64,
     pub duration_api_ms: u64,
     pub is_error: bool,
@@ -147,8 +133,7 @@ pub enum SDKSystemMessage {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SDKSystemInitMessage {
-    #[serde(flatten)]
-    pub base: SDKMessageBase,
+    pub uuid: String,
     #[serde(rename = "apiKeySource")]
     pub api_key_source: Option<ApiKeySource>,
     pub cwd: String,
@@ -200,16 +185,14 @@ pub struct MCPServerStatus {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SDKPartialAssistantMessage {
-    #[serde(flatten)]
-    pub base: SDKMessageBase,
+    pub uuid: String,
     pub event: Value,
     pub parent_tool_use_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SDKCompactBoundaryMessage {
-    #[serde(flatten)]
-    pub base: SDKMessageBase,
+    pub uuid: String,
     pub compact_metadata: CompactMetadata,
 }
 
@@ -225,4 +208,27 @@ pub struct CompactMetadata {
 pub enum CompactMetadataTrigger {
     Manual,
     Auto,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs::read_dir;
+
+    use super::*;
+
+    #[test]
+    fn test_parse() -> anyhow::Result<()> {
+        let currnet_dir = std::env::current_dir().unwrap();
+        let test_collection_dir = currnet_dir.join(".local/messages");
+        println!("test_collection_dir: {}", test_collection_dir.display());
+
+        let dir = read_dir(test_collection_dir)?;
+        for entry in dir {
+            let entry = entry?;
+            let content = std::fs::read_to_string(entry.path())?;
+            let _: SDKMessage = serde_json::from_str(&content)?;
+        }
+
+        Ok(())
+    }
 }

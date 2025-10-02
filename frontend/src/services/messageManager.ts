@@ -5,16 +5,23 @@ import type {
 import { WebSocketService, type WebSocketError } from './websocket'
 import { wsService } from './websocket'
 import { extract_tool_result } from '../utils/messageExtractors'
-import type { ChatStore } from '../stores/chat'
-import type { PermissionResult } from '@anthropic-ai/claude-code'
+import { useChatManager } from '../stores/chatManager'
+import { useWorkspace } from '../stores/workspace'
+import type { PermissionResult, PermissionMode } from '@anthropic-ai/claude-code'
+import type { MessageRecord } from '../types/session'
+import { apiService } from './api'
 
 export class MessageManager {
-  private ws: WebSocketService
-  private chatStore: ChatStore
+  public ws: WebSocketService
+  private chatManager = useChatManager()
+  private workspace = useWorkspace()
 
-  constructor(ws: WebSocketService, chatStore: ChatStore) {
+  // 新增：重放状态
+  private isReplaying = false
+  private replayBuffer: ServerMessage[] = []
+
+  constructor(ws: WebSocketService) {
     this.ws = ws
-    this.chatStore = chatStore
     // 注册 WebSocket 消息处理器
     this.ws.onMessage(this.handleServerMessage.bind(this))
     this.ws.onError(this.handleServerError.bind(this))
@@ -25,6 +32,17 @@ export class MessageManager {
   private handleServerMessage(message: ServerMessage) {
     console.log('MessageManager received message:', message)
 
+    // 新增：重放期间缓存消息
+    if (this.isReplaying) {
+      this.replayBuffer.push(message)
+      return
+    }
+
+    this.processMessage(message)
+  }
+
+  // 新增：实际处理消息的方法（重放和实时都使用）
+  processMessage(message: ServerMessage) {
     switch (message.data.kind) {
       case 'claude':
         this.handleClaudeMessage(message)
@@ -42,12 +60,7 @@ export class MessageManager {
   }
 
   private handleWsConnected() {
-    this.ws.sendMessage({
-      chat_id: this.chatStore.getCurrentChatId(),
-      data: {
-        kind: 'get_info'
-      }
-    })
+    // WebSocket 连接建立后，无需进行任何操作
   }
 
   // 处理 WebSocket 错误
@@ -57,8 +70,63 @@ export class MessageManager {
   }
 
   // 发送用户输入
-  sendUserInput(chatId: string, content: string) {
+  async sendUserInput(chatId: string, content: string) {
     console.log('Sending user input:', content)
+
+    if (this.isReplaying) {
+      this.chatManager.addUserMessage(chatId, {
+        content
+      })
+      return
+    }
+
+    const chat = this.chatManager.getChat(chatId)
+    if (!chat) {
+      console.error('Chat not found:', chatId)
+      return
+    }
+
+    // 如果对话还没有开始，通过 HTTP API 启动会话
+    if (!chat.started() && this.workspace.workingDirectory) {
+      console.log("chat not started, calling HTTP API to start")
+
+      // 先注册对话（WebSocket）
+      this.sendRegisterChat(chatId)
+
+      // 通过 HTTP API 开始对话
+      try {
+        const records = await apiService.startChat({
+          chat_id: chatId,
+          work_dir: this.workspace.workingDirectory,
+          mode: chat.session.permissionMode
+        })
+
+        // 重放返回的消息记录（通常为空，除非是 resume）
+        if (records.length > 0) {
+          this.startReplay()
+          for (const record of records) {
+            this.replayMessageRecord(chatId, record)
+          }
+          this.endReplay()
+        }
+      } catch (error) {
+        console.error('Failed to start chat via HTTP:', error)
+        return
+      }
+
+      // 获取系统信息
+      this.ws.sendMessage({
+        chat_id: chatId,
+        data: {
+          kind: 'get_info'
+        }
+      })
+    }
+
+    this.chatManager.addUserMessage(chatId, {
+      content
+    })
+
     const message: ClientMessage = {
       chat_id: chatId,
       data: {
@@ -67,20 +135,17 @@ export class MessageManager {
       }
     }
 
-    // 乐观更新
-    this.chatStore.addUserMessage(chatId, {
-      content
-    })
-
-    // 设置处理状态
-    this.chatStore.setSessionInputState(true, 'processing')
-
     this.ws.sendMessage(message)
   }
 
   // 发送权限响应
   sendPermissionResponse(chatId: string, result: PermissionResult) {
     console.log('Sending permission response:', result)
+    this.chatManager.foregroundChat.pendingRequest = undefined
+    if (this.isReplaying) {
+      return
+    }
+
     const message: ClientMessage = {
       chat_id: chatId,
       data: {
@@ -92,39 +157,80 @@ export class MessageManager {
     this.ws.sendMessage(message)
   }
 
-  // 处理 Claude 消息
-  private handleClaudeMessage(message: ServerMessage) {
-    const { chat_id, data } = message
-
-    // Only process if it's actually a Claude message
-    if (data.kind === 'claude') {
-      // 检查是否包含工具结果
-      const toolResult = extract_tool_result(data)
-      if (toolResult) {
-        this.chatStore.setToolResult(toolResult.tool_use_id, toolResult)
-      } else {
-        // 添加到消息列表
-        this.chatStore.addClaudeMessage(chat_id, data)
+  // 发送权限模式设置
+  sendSetMode(chatId: string, mode: PermissionMode) {
+    console.log('Sending set mode:', mode)
+    const message: ClientMessage = {
+      chat_id: chatId,
+      data: {
+        kind: 'set_mode',
+        mode
       }
     }
 
-    // 恢复输入状态
-    this.chatStore.setSessionInputState(false, 'normal')
+    this.ws.sendMessage(message)
+  }
+
+  // 发送停止命令
+  sendStop(chatId: string) {
+    console.log('Sending stop command')
+    const message: ClientMessage = {
+      chat_id: chatId,
+      data: {
+        kind: 'stop'
+      }
+    }
+
+    this.ws.sendMessage(message)
+  }
+
+  // 发送注册对话命令
+  sendRegisterChat(chatId: string) {
+    console.log('Registering chat:', chatId)
+    const message: ClientMessage = {
+      chat_id: chatId,
+      data: {
+        kind: 'register_chat'
+      }
+    }
+
+    this.ws.sendMessage(message)
+  }
+
+  // 处理 Claude 消息
+  private handleClaudeMessage(message: ServerMessage) {
+    const { chat_id, data } = message
+    if (data.kind != 'claude') { return }
+
+    // 自动提取并设置 session_id（如果存在）
+    const chat = this.chatManager.getChat(chat_id)
+    if (chat && !chat.sessionId) {
+      console.log(`Auto-setting sessionId for chat ${chat_id}: ${data.session_id}`)
+      chat.sessionId = data.session_id
+    }
+
+    // 检查是否包含工具结果
+    const toolResult = extract_tool_result(data)
+    if (toolResult) {
+      this.chatManager.addToolResult(chat_id, toolResult)
+    } else {
+      if (data.type == 'user' && data.message.role == 'user') {
+        if (typeof data.message.content == 'string') {
+          this.chatManager.addUserMessage(chat_id, { content: data.message.content })
+        } else if (Array.isArray(data.message.content) && data.message.content[0].type == 'text') {
+          this.chatManager.addUserMessage(chat_id, { content: data.message.content[0].text })
+        }
+      } else {
+        this.chatManager.addClaudeMessage(chat_id, data)
+      }
+    }
   }
 
   // 处理工具权限请求
   private handleToolPermission(message: ServerMessage) {
     const { chat_id, data } = message
-
-    // Only process if it's actually a tool permission request
     if (data.kind === 'can_use_tool') {
-      console.log('Tool permission request received:', data)
-      // 设置权限请求状态
-      this.chatStore.setSessionInputState(true, 'tool_permission_pending', {
-        tool_use: data.tool_use,
-        suggestions: data.suggestions,
-        chat_id: chat_id
-      })
+      this.chatManager.setPendingToolUseRequest(chat_id, data)
     }
   }
 
@@ -132,12 +238,62 @@ export class MessageManager {
   private handleErrorMessage(message: ServerMessage) {
     // 简化错误处理，避免类型转换问题
     console.error('Server error:', message)
-    this.chatStore.setSessionInputState(false, 'error', '服务器错误')
+    // TODO: 错误状态处理需要重新设计
   }
 
   private handleSystemInfo(message: ServerMessage) {
     if (message.data.kind != 'system_info') { return }
-    this.chatStore.setSystemInfo(message.data.commands, message.data.models)
+    this.chatManager.setSystemInfo(message.chat_id, message.data)
+  }
+
+  // 新增方法：重放状态管理
+  startReplay() {
+    this.isReplaying = true
+    this.replayBuffer = []
+  }
+
+  endReplay() {
+    this.isReplaying = false
+    // 处理缓存的消息
+    for (const message of this.replayBuffer) {
+      this.processMessage(message)
+    }
+    this.replayBuffer = []
+  }
+
+  // 重放单条消息记录
+  replayMessageRecord(chatId: string, record: MessageRecord) {
+    const message = record.message
+
+    if ('UserInput' in message) {
+      this.sendUserInput(chatId, message.UserInput)
+    }
+    else if ('Claude' in message) {
+      // 伪装成 ServerMessage
+      const serverMessage: ServerMessage = {
+        chat_id: chatId,
+        data: { kind: 'claude', ...message.Claude }
+      }
+      this.processMessage(serverMessage)
+    }
+    else if ('SystemInfo' in message) {
+      // 伪装成 ServerMessage
+      const serverMessage: ServerMessage = {
+        chat_id: chatId,
+        data: { kind: 'system_info', ...message.SystemInfo }
+      }
+      this.processMessage(serverMessage)
+    }
+    else if ('CanUseTool' in message) {
+      // 伪装成 ServerMessage
+      const serverMessage: ServerMessage = {
+        chat_id: chatId,
+        data: { kind: 'can_use_tool', ...message.CanUseTool }
+      }
+      this.processMessage(serverMessage)
+    } else if ('PermissionResp' in message) {
+      this.sendPermissionResponse(chatId, message.PermissionResp)
+    }
   }
 }
 
@@ -145,6 +301,6 @@ export class MessageManager {
 export let messageManager: MessageManager
 
 // 初始化函数
-export function initMessageManager(chatStore: ChatStore) {
-  messageManager = new MessageManager(wsService, chatStore)
+export function initMessageManager() {
+  messageManager = new MessageManager(wsService)
 }

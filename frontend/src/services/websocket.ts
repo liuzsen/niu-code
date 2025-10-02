@@ -126,6 +126,7 @@ export class WebSocketService {
   }
 
   // 发送消息 - 纯网络通信，不处理业务逻辑
+  /** @internal - 仅供 MessageManager 使用，外部请使用 messageManager.sendXxx() 方法 */
   sendMessage(message: ClientMessage): void {
     console.log("send message:", message)
     if (!this.state.connected || !this.ws) {
@@ -169,4 +170,4 @@ export class WebSocketService {
 }
 
 // Global instance
-export const wsService = new WebSocketService('ws://localhost:33333/api/connect')
+export const wsService = new WebSocketService(`ws://${window.location.host}/api/connect`)
