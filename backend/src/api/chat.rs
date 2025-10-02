@@ -1,9 +1,10 @@
 use std::path::PathBuf;
 
-use actix_web::web::Query;
+use actix_web::web::{Json, Query};
 use serde::{Deserialize, Serialize};
 use server::chat::{ChatManagerHandle, MessageRecord, StartChatError, StartChatOptions};
 use server::resume::{self};
+use tracing::debug;
 
 use crate::api::{ApiError, ApiOkResponse, BizError};
 
@@ -28,7 +29,7 @@ pub async fn session_list(
 
     // 2. Load active sessions
     let handle = ChatManagerHandle::new();
-    let active_sessions = handle.session_list(options.work_dir.clone()).await;
+    let active_sessions = handle.active_session_list(options.work_dir.clone()).await;
 
     // 3. Merge lists
     let mut sessions = vec![];
@@ -49,11 +50,12 @@ pub async fn session_list(
 }
 
 pub async fn start_chat(
-    options: Query<StartChatOptions>,
+    options: Json<StartChatOptions>,
 ) -> Result<ApiOkResponse<Vec<MessageRecord>>, ApiError> {
     let handle = ChatManagerHandle::new();
     let messages = handle.start_chat(options.into_inner()).await?;
     let messages = messages.map_err(BizError::from)?;
+    debug!("chat started");
     Ok(ApiOkResponse::new(messages))
 }
 

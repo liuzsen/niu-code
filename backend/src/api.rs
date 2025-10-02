@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use actix_web::{
     Responder, ResponseError, mime,
-    web::{self, Json, get},
+    web::{self, Json, get, post},
 };
 use derive_more::{Display, From};
 use serde::Serialize;
@@ -14,7 +14,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.route("/api/fs/home", get().to(fs::home));
     cfg.route("/api/fs/ls", get().to(fs::ls));
     cfg.route("/api/connect", get().to(server::websocket::ws_handler));
-    cfg.route("/api/chat/start", get().to(chat::start_chat));
+    cfg.route("/api/chat/start", post().to(chat::start_chat));
     cfg.route("/api/session/list", get().to(chat::session_list));
 }
 

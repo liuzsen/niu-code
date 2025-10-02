@@ -23,7 +23,6 @@ declare module 'vue' {
     FallbackMessage: typeof import('./src/components/message/FallbackMessage.vue')['default']
     FileEditTool: typeof import('./src/components/tool-use/FileEditTool.vue')['default']
     FileWriteTool: typeof import('./src/components/tool-use/FileWriteTool.vue')['default']
-    HistorySessionModal: typeof import('./src/components/HistorySessionModal.vue')['default']
     InputText: typeof import('primevue/inputtext')['default']
     MarkdownRenderer: typeof import('./src/components/message/MarkdownRenderer.vue')['default']
     Message: typeof import('primevue/message')['default']

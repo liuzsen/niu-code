@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     ffi::OsStr,
-    ops::Not,
     path::{Path, PathBuf},
     sync::Arc,
     time::Duration,
@@ -16,7 +15,7 @@ use tokio::{
 use tracing::debug;
 
 use crate::{
-    chat::{CacheMessage, MessageRecord, get_manager_mailbox},
+    chat::{CacheMessage, MessageRecord},
     claude_log::{ClaudeLog, ClaudeLogTypes},
 };
 use cc_sdk::types::{SDKAssistantMessage, SDKMessage, SDKMessageTyped, SDKUserMessage};
@@ -119,21 +118,6 @@ pub async fn load_session_infos(work_dir: &Path) -> Result<Vec<ClaudeSessionInfo
             });
         }
     }
-
-    let (tx, rx) = tokio::sync::oneshot::channel();
-
-    get_manager_mailbox().send(crate::chat::ChatManagerMessage::GetSessionsByWorkDir {
-        work_dir: work_dir.to_path_buf(),
-        responder: tx,
-    })?;
-
-    let active_sessions = rx.await?;
-    sessions.retain(|session| {
-        active_sessions
-            .iter()
-            .any(|active_session| active_session.session_id == session.session_id)
-            .not()
-    });
 
     Ok(sessions)
 }

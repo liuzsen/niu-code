@@ -35,35 +35,34 @@
 
       <!-- 会话列表 -->
       <div v-else class="space-y-3">
-        <div v-for="(session, index) in sessions" :key="session.cli_id" ref="items" :class="[
+        <div v-for="(session, index) in sessions" :key="session.session_id" ref="items" :class="[
           'p-4 border rounded-lg cursor-pointer transition-all duration-200 outline-none',
           selectedIndex === index
             ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 dark:border-primary-400 shadow-sm'
             : 'border-surface-200 dark:border-surface-700 hover:border-primary-300 hover:bg-surface-50 dark:hover:bg-surface-800'
         ]" @click="selectSession(index)" @dblclick="confirmSelection" tabindex="0">
           <div class="flex justify-between items-center mb-2">
-            <span class="font-semibold text-surface-900 dark:text-surface-0">
-              会话 #{{ session.cli_id }}
-            </span>
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-surface-900 dark:text-surface-0">
+                {{ truncate(session.session_id, 20) }}
+              </span>
+              <span v-if="session.is_active"
+                class="text-xs px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium">
+                活跃
+              </span>
+              <span v-else
+                class="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400">
+                已关闭
+              </span>
+            </div>
             <span class="text-sm text-surface-500 dark:text-surface-400">
               {{ formatTime(session.last_activity) }}
             </span>
           </div>
 
-          <div class="flex gap-4 mb-2 text-sm text-surface-600 dark:text-surface-400">
-            <div class="flex items-center gap-1">
-              <i class="pi pi-folder text-xs"></i>
-              <span>{{ session.work_dir }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <i class="pi pi-comment text-xs"></i>
-              <span>{{ session.message_count }} 条消息</span>
-            </div>
-          </div>
-
-          <div v-if="session.last_uesr_input"
+          <div v-if="session.last_user_input"
             class="text-sm text-surface-500 dark:text-surface-400 italic bg-surface-100 dark:bg-surface-800 p-3 rounded-md border-l-2 border-surface-300 dark:border-surface-600">
-            {{ truncate(session.last_uesr_input, 80) }}
+            {{ truncate(session.last_user_input, 80) }}
           </div>
         </div>
       </div>
@@ -80,21 +79,22 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, useTemplateRef } from 'vue'
-import { useSessionSwitch } from '../composables/useSessionSwitch'
-import type { SessionInfo } from '../types/session'
+import { useResume } from '../composables/useResume'
+import type { UnifiedSessionInfo } from '../types/session'
 
 const {
   isSessionListVisible,
-  loadActiveSessions,
-  switchToSession
-} = useSessionSwitch()
+  loadSessionList,
+  resumeSession
+} = useResume()
 
 const visible = ref(false)
-const sessions = ref<SessionInfo[]>([])
+const sessions = ref<UnifiedSessionInfo[]>([])
 const selectedIndex = ref(-1)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const itemRefs = useTemplateRef<HTMLElement[]>('items')
+const showActiveOnly = ref(false)
 
 watch(isSessionListVisible, (newVal) => {
   visible.value = newVal
@@ -107,9 +107,15 @@ async function loadSessions() {
   loading.value = true
   error.value = null
   try {
-    sessions.value = await loadActiveSessions()
+    let allSessions = await loadSessionList()
+
+    // 可选：根据过滤条件筛选
+    if (showActiveOnly.value) {
+      allSessions = allSessions.filter(s => s.is_active)
+    }
+
     // 按最后活动时间倒序排列
-    sessions.value.sort((a, b) =>
+    sessions.value = allSessions.sort((a, b) =>
       new Date(b.last_activity).getTime() - new Date(a.last_activity).getTime()
     )
     selectedIndex.value = sessions.value.length > 0 ? 0 : -1
@@ -146,9 +152,9 @@ async function confirmSelection() {
 
   try {
     loading.value = true
-    await switchToSession(session.cli_id)
+    await resumeSession(session.session_id)
   } catch (e) {
-    error.value = e instanceof Error ? e.message : '切换会话失败'
+    error.value = e instanceof Error ? e.message : '恢复会话失败'
   } finally {
     loading.value = false
   }

@@ -10,7 +10,7 @@ import { defineStore } from 'pinia'
 
 export class ChatState {
   chatId: string = uuidv4()
-  cliId?: number // 后端 CLI 会话 ID，用于判断是否已连接
+  sessionId?: string // 后端 session_id（来自 Claude 原生的 session ID），用于判断是否已连接
 
   // 会话信息
   session: {
@@ -34,7 +34,7 @@ export class ChatState {
   }
 
   started(): boolean {
-    return this.session.systemInit != undefined || this.messages.length > 0
+    return this.sessionId !== undefined
   }
 
   addToolResult(result: ToolResultBlockParam) {
@@ -121,8 +121,8 @@ export const useChatManager = defineStore("chat-manager", {
       return this.chats.find((chat) => chat.chatId == chatId)
     },
 
-    getChatByCliId(cliId: number): ChatState | undefined {
-      return this.chats.find((chat) => chat.cliId == cliId)
+    getChatBySessionId(sessionId: string): ChatState | undefined {
+      return this.chats.find((chat) => chat.sessionId == sessionId)
     },
 
     switchToChat(chatId: string) {

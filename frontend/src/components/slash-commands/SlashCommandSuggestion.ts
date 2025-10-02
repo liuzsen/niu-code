@@ -15,13 +15,8 @@ export const appCommands: SlashCommand[] = [
     "argumentHint": ""
   },
   {
-    'name': 'switch',
-    'description': 'Switch to another conversation session',
-    "argumentHint": ""
-  },
-  {
     'name': 'resume',
-    'description': 'Resume a previous conversation from history',
+    'description': 'Resume or switch to any session (active or inactive)',
     "argumentHint": ""
   }
 ]
@@ -104,26 +99,15 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
         messageManager.sendStop(chatId)
         chatManager.chats = []
       }
-      else if (sdkCommand.name == 'switch') {
-        // 清空输入框
-        editor.chain().focus().deleteRange(range).run()
-
-        // 打开会话切换模态框
-        // 注意：这里我们使用动态导入来避免循环依赖
-        import('../../composables/useSessionSwitch.ts').then(module => {
-          const { showSessionList } = module.useSessionSwitch()
-          showSessionList(editor)
-        })
-      }
       else if (sdkCommand.name == 'resume') {
         // 清空输入框
         editor.chain().focus().deleteRange(range).run()
 
-        // 打开历史会话选择模态框
+        // 打开统一的会话选择模态框（包含活跃和非活跃会话）
         // 注意：这里我们使用动态导入来避免循环依赖
-        import('../../composables/useHistoryResume.ts').then(module => {
-          const { showHistorySessionList } = module.useHistoryResume()
-          showHistorySessionList(editor)
+        import('../../composables/useResume.ts').then(module => {
+          const { showSessionList } = module.useResume()
+          showSessionList(editor)
         })
       }
       else {

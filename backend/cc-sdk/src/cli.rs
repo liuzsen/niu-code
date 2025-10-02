@@ -133,16 +133,7 @@ impl Stream for QueryStream {
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
-        match self.receiver.poll_recv(cx) {
-            std::task::Poll::Ready(Some(Ok(msg))) => {
-                // Extract session_id from first message
-                if self.session_id.is_none() {
-                    self.session_id = Some(msg.session_id.clone());
-                }
-                std::task::Poll::Ready(Some(Ok(msg)))
-            }
-            other => other,
-        }
+        self.receiver.poll_recv(cx)
     }
 }
 

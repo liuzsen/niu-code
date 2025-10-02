@@ -8,8 +8,8 @@ import { extract_tool_result } from '../utils/messageExtractors'
 import { useChatManager } from '../stores/chatManager'
 import { useWorkspace } from '../stores/workspace'
 import type { PermissionResult, PermissionMode } from '@anthropic-ai/claude-code'
-import type { StartChatOptions } from '../types/message'
 import type { MessageRecord } from '../types/session'
+import { apiService } from './api'
 
 export class MessageManager {
   public ws: WebSocketService
@@ -70,7 +70,7 @@ export class MessageManager {
   }
 
   // 发送用户输入
-  sendUserInput(chatId: string, content: string) {
+  async sendUserInput(chatId: string, content: string) {
     console.log('Sending user input:', content)
 
     if (this.isReplaying) {
@@ -86,16 +86,33 @@ export class MessageManager {
       return
     }
 
-    // 如果对话还没有开始，先注册并开始对话
+    // 如果对话还没有开始，通过 HTTP API 启动会话
     if (!chat.started() && this.workspace.workingDirectory) {
-      console.log("chat not started")
-      // 先注册对话
+      console.log("chat not started, calling HTTP API to start")
+
+      // 先注册对话（WebSocket）
       this.sendRegisterChat(chatId)
 
-      // 然后开始对话
-      this.sendStartChat(chatId, {
-        work_dir: this.workspace.workingDirectory
-      })
+      // 通过 HTTP API 开始对话
+      try {
+        const records = await apiService.startChat({
+          chat_id: chatId,
+          work_dir: this.workspace.workingDirectory,
+          mode: chat.session.permissionMode
+        })
+
+        // 重放返回的消息记录（通常为空，除非是 resume）
+        if (records.length > 0) {
+          this.startReplay()
+          for (const record of records) {
+            this.replayMessageRecord(chatId, record)
+          }
+          this.endReplay()
+        }
+      } catch (error) {
+        console.error('Failed to start chat via HTTP:', error)
+        return
+      }
 
       // 获取系统信息
       this.ws.sendMessage({
@@ -167,20 +184,6 @@ export class MessageManager {
     this.ws.sendMessage(message)
   }
 
-  // 发送开始对话命令
-  sendStartChat(chatId: string, options: StartChatOptions) {
-    console.log('Sending start chat:', options)
-    const message: ClientMessage = {
-      chat_id: chatId,
-      data: {
-        kind: 'start_chat',
-        ...options
-      }
-    }
-
-    this.ws.sendMessage(message)
-  }
-
   // 发送注册对话命令
   sendRegisterChat(chatId: string) {
     console.log('Registering chat:', chatId)
@@ -197,14 +200,27 @@ export class MessageManager {
   // 处理 Claude 消息
   private handleClaudeMessage(message: ServerMessage) {
     const { chat_id, data } = message
+    if (data.kind != 'claude') { return }
 
-    if (data.kind === 'claude') {
-      // 检查是否包含工具结果
-      const toolResult = extract_tool_result(data)
-      if (toolResult) {
-        this.chatManager.addToolResult(chat_id, toolResult)
+    // 自动提取并设置 session_id（如果存在）
+    const chat = this.chatManager.getChat(chat_id)
+    if (chat && !chat.sessionId) {
+      console.log(`Auto-setting sessionId for chat ${chat_id}: ${data.session_id}`)
+      chat.sessionId = data.session_id
+    }
+
+    // 检查是否包含工具结果
+    const toolResult = extract_tool_result(data)
+    if (toolResult) {
+      this.chatManager.addToolResult(chat_id, toolResult)
+    } else {
+      if (data.type == 'user' && data.message.role == 'user') {
+        if (typeof data.message.content == 'string') {
+          this.chatManager.addUserMessage(chat_id, { content: data.message.content })
+        } else if (Array.isArray(data.message.content) && data.message.content[0].type == 'text') {
+          this.chatManager.addUserMessage(chat_id, { content: data.message.content[0].text })
+        }
       } else {
-        // 添加到消息列表
         this.chatManager.addClaudeMessage(chat_id, data)
       }
     }

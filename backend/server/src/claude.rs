@@ -19,7 +19,7 @@ use tokio::{
 use tracing::{debug, warn};
 
 use crate::{
-    chat::ChatManagerMessage,
+    chat::{ChatManagerMessage, CliId},
     message::{CanUseToolParams, ClaudeSystemInfo, ServerError, ServerMessageData},
 };
 
@@ -38,7 +38,7 @@ pub enum ClaudeCliMessage {
 pub type ClaudeReceiver = UnboundedReceiver<ClaudeCliMessage>;
 
 pub struct ClaudeCli {
-    session_id: String,
+    cli_id: CliId,
     mailbox: ClaudeReceiver,
 
     manager_mailbox: UnboundedSender<ChatManagerMessage>,
@@ -48,13 +48,13 @@ pub struct ClaudeCli {
 
 impl ClaudeCli {
     pub fn new(
-        session_id: String,
+        cli_id: CliId,
         mailbox: ClaudeReceiver,
         manager_mailbox: UnboundedSender<ChatManagerMessage>,
         prompt_box: UnboundedSender<SDKUserMessage>,
     ) -> Self {
         Self {
-            session_id,
+            cli_id,
             mailbox,
             manager_mailbox,
             prompt_box,
@@ -142,7 +142,7 @@ impl ClaudeCli {
     {
         debug!("send claude msg to manager");
         let _ = self.manager_mailbox.send(ChatManagerMessage::CliMessage {
-            session_id: self.session_id.clone(),
+            cli_id: self.cli_id.clone(),
             data: ServerMessageData::from(msg),
         });
     }

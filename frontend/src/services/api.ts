@@ -1,5 +1,6 @@
 import type { ClaudeSession, LoadSessionOptions } from '../types/claude_log'
-import type { SessionInfo, MessageRecord } from '../types/session'
+import type { SessionInfo, MessageRecord, UnifiedSessionInfo } from '../types/session'
+import type { PermissionMode } from '@anthropic-ai/claude-code'
 
 // 通用 API 响应类型
 export interface ApiOkResponse<T> {
@@ -92,6 +93,68 @@ export class ApiService {
       throw error
     }
   }
+
+  // 新的统一 API：加载会话列表
+  async loadSessionList(workDir: string): Promise<UnifiedSessionInfo[]> {
+    try {
+      const url = new URL('/api/session/list', window.location.origin)
+      url.searchParams.append('work_dir', workDir)
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result: ApiOkResponse<UnifiedSessionInfo[]> = await response.json()
+
+      if (result.code !== 0) {
+        throw new Error(`API error! code: ${result.code}`)
+      }
+
+      return result.data
+    } catch (error) {
+      console.error('Failed to load session list:', error)
+      throw error
+    }
+  }
+
+  // 新的统一 API：开始会话（支持 resume）
+  async startChat(options: {
+    chat_id: string
+    work_dir: string
+    mode?: PermissionMode
+    resume?: string
+  }): Promise<MessageRecord[]> {
+    try {
+      const response = await fetch('/api/chat/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(options)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result: ApiOkResponse<MessageRecord[]> = await response.json()
+
+      if (result.code !== 0) {
+        throw new Error(`API error! code: ${result.code}`)
+      }
+
+      return result.data
+    } catch (error) {
+      console.error('Failed to start chat:', error)
+      throw error
+    }
+  }
+
+  // === 下面是旧的废弃方法，将在后续清理 ===
 
   async loadActiveSessions(workDir: string): Promise<SessionInfo[]> {
     try {

@@ -9,6 +9,7 @@ use std::{
 use anyhow::Result;
 use cc_sdk::types::{ClaudeCodeOptions, PermissionMode, PermissionResult, SDKMessage};
 use chrono::{DateTime, Utc};
+use derive_more::Display;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{
     mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
@@ -55,12 +56,13 @@ pub struct MessageRecord {
 }
 
 pub struct CliSession {
-    pub session_id: String,
+    pub cli_id: CliId,
+    pub session_id: Option<String>,
     pub work_dir: PathBuf,
     pub created_at: DateTime<Utc>,
     pub last_activity: DateTime<Utc>,
     pub messages: Vec<MessageRecord>,
-    pub subscriber: Option<(ChatId, u32)>, // (chat_id, conn_id) pairs
+    pub subscriber: Option<ChatId>, // (chat_id, conn_id) pairs
     pub cli_mailbox: ClaudeCliMailbox,
 }
 
@@ -80,9 +82,9 @@ pub struct ChatManager {
     connections: HashMap<u32, WsSender>,
 
     // Session management
-    cli_sessions: HashMap<String, CliSession>, // session_id -> CliSession
-    chat_to_conn: HashMap<ChatId, u32>,        // chat_id -> conn_id
-    chat_to_cli: HashMap<ChatId, String>,      // chat_id -> session_id
+    cli_sessions: HashMap<CliId, CliSession>, // cli_id -> CliSession
+    chat_to_conn: HashMap<ChatId, u32>,       // chat_id -> conn_id
+    chat_to_cli: HashMap<ChatId, CliId>,      // chat_id -> cli_id
 }
 
 pub type WsSender = Arc<dyn WsWriter>;
@@ -99,14 +101,14 @@ pub enum ChatManagerMessage {
     },
     // Message from ClaudeCli
     CliMessage {
-        session_id: String,
+        cli_id: CliId,
         data: ServerMessageData,
     },
     // Connection closed
     ConnectionClosed {
         conn_id: u32,
     },
-    GetSessionsByWorkDir {
+    GetActiveSessions {
         work_dir: PathBuf,
         responder: oneshot::Sender<Vec<SessionInfo>>,
     },
@@ -115,6 +117,16 @@ pub enum ChatManagerMessage {
         responder: oneshot::Sender<BizResult<Vec<MessageRecord>, StartChatError>>,
     },
     CleanSessions,
+}
+
+#[derive(Hash, Eq, PartialEq, Clone, Copy, Debug, Display)]
+pub struct CliId(u32);
+
+impl CliId {
+    fn next() -> Self {
+        static COUNTER: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
+        CliId(COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst))
+    }
 }
 
 macro_rules! map {
@@ -163,17 +175,17 @@ impl ChatManager {
             ChatManagerMessage::ClientMessage { conn_id, msg } => {
                 self.handle_client_msg(conn_id, msg).await;
             }
-            ChatManagerMessage::CliMessage { session_id, data } => {
-                self.handle_cli_message(&session_id, data).await;
+            ChatManagerMessage::CliMessage { cli_id, data } => {
+                self.handle_cli_message(cli_id, data).await;
             }
             ChatManagerMessage::ConnectionClosed { conn_id } => {
                 self.handle_connection_closed(conn_id);
             }
-            ChatManagerMessage::GetSessionsByWorkDir {
+            ChatManagerMessage::GetActiveSessions {
                 work_dir,
                 responder,
             } => {
-                self.handle_get_sessions_by_work_dir(work_dir, responder);
+                self.handle_get_active_sessions(work_dir, responder);
             }
             ChatManagerMessage::StartChat { options, responder } => {
                 let result = self.handle_start_chat(options).await;
@@ -249,20 +261,19 @@ impl ChatManager {
         }
     }
 
-    fn stop_cli(&mut self, session_id: &str) {
-        if let Some(session) = self.cli_sessions.remove(session_id) {
+    fn stop_cli(&mut self, cli_id: CliId) {
+        if let Some(session) = self.cli_sessions.remove(&cli_id) {
             log_err(session.cli_mailbox.send(ClaudeCliMessage::Stop));
 
-            for (chat_id, _) in session.subscriber.iter() {
-                self.unregister_chat(chat_id);
+            for chat_id in session.subscriber.iter() {
+                self.remove_chat(chat_id);
             }
         }
     }
 
     fn stop_cli_by_chat(&mut self, chat_id: &String) {
-        if let Some(session_id) = self.chat_to_cli.get(chat_id) {
-            let session_id = session_id.clone();
-            self.stop_cli(&session_id);
+        if let Some(cli_id) = self.chat_to_cli.get(chat_id) {
+            self.stop_cli(*cli_id);
         }
     }
 
@@ -271,19 +282,17 @@ impl ChatManager {
         self.chat_to_conn.insert(chat_id.clone(), conn_id);
     }
 
-    fn unregister_chat(&mut self, chat_id: &ChatId) -> Option<String> {
+    fn remove_chat(&mut self, chat_id: &ChatId) -> Option<CliId> {
         self.chat_to_conn.remove(chat_id);
-        let session_id = self.chat_to_cli.remove(chat_id);
-        if let Some(ref session_id) = session_id {
-            self.unsubscribe(session_id);
+        let cli_id = self.chat_to_cli.remove(chat_id);
+        if let Some(cli_id) = cli_id {
+            if let Some(session) = self.cli_sessions.get_mut(&cli_id) {
+                if session.subscriber == Some(chat_id.clone()) {
+                    session.subscriber = None;
+                }
+            }
         }
-        session_id
-    }
-
-    fn unsubscribe(&mut self, session_id: &str) {
-        if let Some(session) = self.cli_sessions.get_mut(session_id) {
-            session.subscriber = None;
-        }
+        cli_id
     }
 
     fn report_error(&self, conn_id: u32, chat_id: &ChatId, err: String) {
@@ -320,7 +329,7 @@ impl ChatManager {
         chat_id: &ChatId,
         options: StartChatOptions,
     ) {
-        let result = self.build_claude_cli_inner(conn_id, chat_id, options).await;
+        let result = self.build_claude_cli_inner(chat_id, options).await;
         if let Err(err) = result {
             let ws_writer = self.connections.get(&conn_id).unwrap();
             let err = format!("Cannot spawn Claude cli: {err:?}");
@@ -335,13 +344,9 @@ impl ChatManager {
 
     async fn build_claude_cli_inner(
         &mut self,
-        conn_id: u32,
         chat_id: &ChatId,
         options: StartChatOptions,
     ) -> Result<()> {
-        use tokio_stream::StreamExt;
-
-        debug!("build claude cli");
         let (claude_tx, claude_rx) = unbounded_channel();
         let can_use_tool = CanUseTool::new(claude_tx.clone());
         let env = map! {
@@ -366,78 +371,75 @@ impl ChatManager {
         };
         let (tx, rx) = unbounded_channel();
         let prompt_gen = PromptGen::new(rx);
-        let mut stream = cc_sdk::query(prompt_gen, cli_options).await?;
+        let stream = cc_sdk::query(prompt_gen, cli_options).await?;
 
-        // Wait for first message to extract session_id
-        let first_msg = stream
-            .next()
-            .await
-            .ok_or_else(|| anyhow::anyhow!("No messages from Claude"))?
-            .map_err(|e| anyhow::anyhow!("Claude stream error: {}", e))?;
-
-        let session_id = stream
-            .session_id()
-            .ok_or_else(|| anyhow::anyhow!("No session_id from stream"))?
-            .to_string();
+        let cli_id = CliId::next();
 
         // Check if session already exists
-        if self.cli_sessions.contains_key(&session_id) {
-            anyhow::bail!("Session already exists: {}", session_id);
+        if self.cli_sessions.contains_key(&cli_id) {
+            anyhow::bail!("Session already exists: {}", cli_id);
         }
 
         let manager_mailbox = get_manager_mailbox();
-        let claude = ClaudeCli::new(session_id.clone(), claude_rx, manager_mailbox, tx);
+        let claude = ClaudeCli::new(cli_id.clone(), claude_rx, manager_mailbox, tx);
+        claude.spawn(stream);
 
         // Create session record
         let session = CliSession {
-            session_id: session_id.clone(),
+            cli_id,
+            session_id: resume,
             work_dir: work_dir.clone(),
             created_at: Utc::now(),
             last_activity: Utc::now(),
             messages: Vec::new(),
-            subscriber: Some((chat_id.clone(), conn_id)),
+            subscriber: Some(chat_id.clone()),
             cli_mailbox: claude_tx,
         };
 
         // Register session
-        self.cli_sessions.insert(session_id.clone(), session);
-        self.chat_to_cli.insert(chat_id.clone(), session_id.clone());
-
-        // Cache the first message
-        let data = crate::message::ServerMessageData::Claude(Arc::new(first_msg));
-        self.cache_message(&session_id, &data);
-
-        claude.spawn(stream);
+        self.cli_sessions.insert(cli_id.clone(), session);
+        self.chat_to_cli.insert(chat_id.clone(), cli_id.clone());
 
         Ok(())
     }
 
-    async fn handle_cli_message(&mut self, session_id: &str, data: ServerMessageData) {
-        self.cache_message(session_id, &data);
+    async fn handle_cli_message(&mut self, cli_id: CliId, data: ServerMessageData) {
+        debug!(%cli_id, "handle cli message");
+        self.cache_message(cli_id, &data);
 
-        if let Some(session) = self.cli_sessions.get(session_id) {
-            if let Some((chat_id, conn_id)) = session.subscriber.clone() {
+        if let Some(session) = self.cli_sessions.get(&cli_id) {
+            if let Some(chat_id) = &session.subscriber {
+                let conn_id = *self.chat_to_conn.get(chat_id).unwrap();
                 if let Some(ws_writer) = self.connections.get(&conn_id) {
                     let broadcast_msg = ServerMessage {
-                        chat_id: chat_id,
+                        chat_id: chat_id.clone(),
                         data: data,
                     };
                     if ws_writer.send_msg(broadcast_msg).is_err() {
                         self.handle_connection_closed(conn_id);
                     }
                 }
+            } else {
+                info!(%cli_id, "Session has no subscriber");
             }
+        } else {
+            warn!(%cli_id, "Session not found");
         }
     }
 
-    fn cache_message(&mut self, session_id: &str, data: &ServerMessageData) {
-        let Some(session) = self.cli_sessions.get_mut(session_id) else {
+    fn cache_message(&mut self, cli_id: CliId, data: &ServerMessageData) {
+        let Some(session) = self.cli_sessions.get_mut(&cli_id) else {
             return;
         };
 
         session.last_activity = Utc::now();
         let msg = match data {
-            ServerMessageData::Claude(msg) => CacheMessage::Claude(Arc::clone(msg)),
+            ServerMessageData::Claude(msg) => {
+                if session.session_id.is_none() {
+                    session.session_id = Some(msg.session_id.clone());
+                }
+                CacheMessage::Claude(Arc::clone(msg))
+            }
             ServerMessageData::SystemInfo(info) => CacheMessage::SystemInfo(Arc::clone(info)),
             ServerMessageData::CanUseTool(params) => CacheMessage::CanUseTool(Arc::clone(params)),
             ServerMessageData::ServerError(_) => return, // Don't cache errors
@@ -467,11 +469,11 @@ impl ChatManager {
 
         // Note: We don't remove CLI sessions, they continue running
         for chat_id in remove_chats {
-            self.unregister_chat(&chat_id);
+            self.remove_chat(&chat_id);
         }
     }
 
-    fn handle_get_sessions_by_work_dir(
+    fn handle_get_active_sessions(
         &self,
         work_dir: PathBuf,
         responder: oneshot::Sender<Vec<SessionInfo>>,
@@ -483,7 +485,7 @@ impl ChatManager {
             .filter_map(|(_, session)| {
                 if session.work_dir == work_dir {
                     Some(SessionInfo {
-                        session_id: session.session_id.clone(),
+                        session_id: session.session_id.clone()?,
                         work_dir: session.work_dir.clone(),
                         created_at: session.created_at,
                         last_activity: session.last_activity,
@@ -514,20 +516,35 @@ impl ChatManager {
 
         match &options.resume {
             None => {
+                debug!(chat_id, "New chat");
                 // Case 1: New session
                 self.build_claude_cli(conn_id, &chat_id, options).await;
                 Ok(Ok(vec![]))
             }
             Some(session_id) => {
                 let session_id = session_id.clone();
-                if let Some(session) = self.cli_sessions.get_mut(&session_id) {
-                    // Case 2: Resume active session
-                    // Replace subscriber
-                    session.subscriber = Some((chat_id.clone(), conn_id));
-                    self.chat_to_cli.insert(chat_id, session_id.clone());
+                let session = self
+                    .cli_sessions
+                    .values_mut()
+                    .find(|session| session.session_id.as_deref() == Some(&session_id));
+                if let Some(session) = session {
+                    debug!(chat_id, session_id, "Resume active session");
+                    let messages = session.messages.clone();
 
-                    Ok(Ok(session.messages.clone()))
+                    // Case 2: Resume active session
+                    let old_chat_id = session.subscriber.clone();
+
+                    session.subscriber = Some(chat_id.clone());
+                    let cli_id = session.cli_id;
+                    self.chat_to_cli.insert(chat_id, cli_id);
+
+                    if let Some(chat_id) = old_chat_id {
+                        self.remove_chat(&chat_id);
+                    }
+
+                    Ok(Ok(messages))
                 } else {
+                    debug!(chat_id, session_id, "Resume closed session");
                     // Case 3: Resume inactive session from file
                     let logs = resume::load_session(&options.work_dir, &session_id).await?;
                     let mut messages = vec![];
@@ -539,11 +556,11 @@ impl ChatManager {
 
                     // Start new Claude CLI with resume parameter
                     self.build_claude_cli(conn_id, &chat_id, options).await;
+                    debug!(chat_id, session_id, "Resumed closed session");
 
                     // Add loaded messages to session cache
-                    if let Some(session) = self.cli_sessions.get_mut(&session_id) {
-                        session.messages = messages.clone();
-                    }
+                    let session = self.get_session_mut(&session_id).unwrap();
+                    session.messages = messages.clone();
 
                     Ok(Ok(messages))
                 }
@@ -551,19 +568,25 @@ impl ChatManager {
         }
     }
 
+    fn get_session_mut(&mut self, session_id: &str) -> Option<&mut CliSession> {
+        self.cli_sessions
+            .values_mut()
+            .find(|session| session.session_id.as_deref() == Some(session_id))
+    }
+
     fn cleanup_inactive_sessions(&mut self) {
         let now = Utc::now();
         const TIMEOUT: Duration = Duration::from_secs(10 * 60); // 10 minutes
 
-        let expired: Vec<String> = self
+        let expired: Vec<CliId> = self
             .cli_sessions
             .iter()
             .filter(|(_, session)| (now - session.last_activity).to_std().unwrap() > TIMEOUT)
             .map(|(session_id, _)| session_id.clone())
             .collect();
 
-        for session_id in expired {
-            self.stop_cli(&session_id);
+        for cli_id in expired {
+            self.stop_cli(cli_id);
         }
     }
 }
@@ -601,10 +624,10 @@ impl ChatManagerHandle {
         }
     }
 
-    pub async fn session_list(&self, work_dir: PathBuf) -> Vec<SessionInfo> {
+    pub async fn active_session_list(&self, work_dir: PathBuf) -> Vec<SessionInfo> {
         let (responder, receiver) = oneshot::channel();
         self.mailbox
-            .send(ChatManagerMessage::GetSessionsByWorkDir {
+            .send(ChatManagerMessage::GetActiveSessions {
                 work_dir,
                 responder,
             })
@@ -620,6 +643,7 @@ impl ChatManagerHandle {
         self.mailbox
             .send(ChatManagerMessage::StartChat { options, responder })
             .unwrap();
+        debug!("wait for start chat");
         receiver.await.unwrap()
     }
 }
