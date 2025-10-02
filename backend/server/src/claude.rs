@@ -128,9 +128,8 @@ impl ClaudeCli {
     fn build_prompt(&self, prompt: Arc<String>) -> SDKUserMessage {
         SDKUserMessage {
             uuid: None,
-            session_id: "".to_owned(),
             message: APIUserMessage {
-                content: prompt,
+                content: cc_sdk::types::UserContent::String(prompt),
                 role: cc_sdk::types::APIUserMessageRole::User,
             },
             parent_tool_use_id: None,

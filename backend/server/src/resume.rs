@@ -2,9 +2,7 @@ use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::{
-    ffi::OsStr,
-    path::{Path, PathBuf},
-    time::Duration,
+    ffi::OsStr, ops::Not, path::{Path, PathBuf}, time::Duration
 };
 use tokio::{
     fs::{File, read_dir},
@@ -12,7 +10,7 @@ use tokio::{
 };
 use tracing::debug;
 
-use crate::claude_log::ClaudeLogTypes;
+use crate::{chat::get_manager_mailbox, claude_log::ClaudeLogTypes};
 
 #[derive(Serialize, Deserialize)]
 pub struct ClaudeSession {
@@ -66,7 +64,7 @@ pub async fn load_session_infos(work_dir: &Path) -> Result<Vec<ClaudeSessionInfo
             // Extract timestamp from the last line
             if last_timestamp.is_none() {
                 if let Some(timestamp_str) = log_entry["timestamp"].as_str() {
-                    if let Ok(timestamp) = dbg!(DateTime::parse_from_rfc3339(timestamp_str)) {
+                    if let Ok(timestamp) = DateTime::parse_from_rfc3339(timestamp_str) {
                         last_timestamp = Some(timestamp.with_timezone(&Utc));
                     }
                 }
@@ -112,6 +110,21 @@ pub async fn load_session_infos(work_dir: &Path) -> Result<Vec<ClaudeSessionInfo
             });
         }
     }
+
+    let (tx, rx) = tokio::sync::oneshot::channel();
+
+    get_manager_mailbox().send(crate::chat::ChatManagerMessage::GetSessionsByWorkDir {
+        work_dir: work_dir.to_path_buf(),
+        responder: tx,
+    })?;
+
+    let active_sessions = rx.await?;
+    sessions.retain(|session| {
+        active_sessions
+            .iter()
+            .any(|active_session| active_session.session_id.as_ref() == Some(&session.session_id))
+            .not()
+    });
 
     Ok(sessions)
 }

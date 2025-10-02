@@ -61,6 +61,7 @@ pub struct MessageRecord {
 
 pub struct CliSession {
     pub cli_id: CliId,
+    pub session_id: Option<String>,
     pub work_dir: PathBuf,
     pub created_at: DateTime<Utc>,
     pub last_activity: DateTime<Utc>,
@@ -78,6 +79,7 @@ pub struct SessionInfo {
     pub last_activity: DateTime<Utc>,
     pub message_count: usize,
     pub last_uesr_input: Option<Arc<String>>,
+    pub session_id: Option<String>,
 }
 
 pub struct ChatManager {
@@ -385,7 +387,7 @@ impl ChatManager {
 
         let cli_options = ClaudeCodeOptions {
             can_use_tool: Some(Box::new(can_use_tool)),
-            resume,
+            resume: resume.clone(),
             env: Some(env),
             cwd: Some(work_dir.clone()),
             permission_mode: mode,
@@ -407,6 +409,7 @@ impl ChatManager {
             messages: Vec::new(),
             subscribers: vec![(chat_id.clone(), conn_id)],
             cli_mailbox: claude_tx,
+            session_id: resume,
         };
 
         // Register session
@@ -436,20 +439,25 @@ impl ChatManager {
     }
 
     fn cache_message(&mut self, cli_id: CliId, data: &ServerMessageData) {
-        let msg = match data {
-            ServerMessageData::Claude(msg) => CacheMessage::Claude(Arc::clone(msg)),
-            ServerMessageData::SystemInfo(info) => CacheMessage::SystemInfo(Arc::clone(info)),
-            ServerMessageData::CanUseTool(params) => CacheMessage::CanUseTool(Arc::clone(params)),
-            ServerMessageData::ServerError(_) => return, // Don't persist errors
+        let Some(session) = self.cli_sessions.get_mut(&cli_id) else {
+            return;
         };
 
-        if let Some(session) = self.cli_sessions.get_mut(&cli_id) {
-            session.messages.push(MessageRecord {
-                timestamp: Utc::now(),
-                message: msg,
-            });
-            session.last_activity = Utc::now();
-        }
+        session.last_activity = Utc::now();
+        let msg = match data {
+            ServerMessageData::Claude(msg) => {
+                session.session_id = Some(msg.session_id.clone());
+                CacheMessage::Claude(Arc::clone(msg))
+            }
+            ServerMessageData::SystemInfo(info) => CacheMessage::SystemInfo(Arc::clone(info)),
+            ServerMessageData::CanUseTool(params) => CacheMessage::CanUseTool(Arc::clone(params)),
+            ServerMessageData::ServerError(_) => return, // Don't cache errors
+        };
+
+        session.messages.push(MessageRecord {
+            timestamp: Utc::now(),
+            message: msg,
+        });
     }
 
     fn handle_connection_closed(&mut self, conn_id: u32) {
@@ -492,6 +500,7 @@ impl ChatManager {
                         last_activity: session.last_activity,
                         message_count: session.messages.len(),
                         last_uesr_input: session.last_user_input(),
+                        session_id: session.session_id.clone(),
                     })
                 } else {
                     None

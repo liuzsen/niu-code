@@ -11,7 +11,7 @@ use cc_sdk::{
     query,
     types::{
         APIUserMessage, CanUseToolCallBack, ClaudeCodeOptions, DebugCallBack, PermissionAllow,
-        PermissionDeny, PermissionResult, SDKMessage, SDKUserMessage,
+        PermissionDeny, PermissionResult, SDKMessageTyped, SDKUserMessage,
     },
 };
 use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
@@ -159,13 +159,12 @@ impl PromptGenerator for PromptGen {
             None => return Poll::Ready(None),
         };
         let msg = SDKUserMessage {
-            uuid: None,
-            session_id: "".to_string(),
             message: APIUserMessage {
-                content: Arc::new(prompt),
+                content: Arc::new(prompt).into(),
                 role: cc_sdk::types::APIUserMessageRole::User,
             },
             parent_tool_use_id: None,
+            uuid: None,
         };
 
         Poll::Ready(Some(msg))
@@ -192,7 +191,7 @@ async fn main() -> anyhow::Result<()> {
             serde_json::to_string_pretty(&msg).unwrap()
         );
 
-        if matches!(msg, SDKMessage::Result(..)) {
+        if matches!(msg.typed, SDKMessageTyped::Result(..)) {
             break;
         }
     }

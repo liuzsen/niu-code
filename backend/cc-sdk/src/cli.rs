@@ -307,12 +307,9 @@ impl ClaudeWriter {
         loop {
             select! {
                 prompt = self.prompt.next() => {
-                    let Some(prompt) = prompt else {
-                        info!("no more prompt available");
-                        return Ok(());
-                    };
-                    debug!("send prompt msg to cli");
-                    self.write_msg(prompt.to_sdk_msg()).await?;
+                    if self.handle_prompt(prompt).await?.is_break() {
+                        break;
+                    }
                 }
                 Some(msg) = self.receiver.recv() => {
                     self.handle_msg(msg).await?;
@@ -324,6 +321,23 @@ impl ClaudeWriter {
                 }
             }
         }
+
+        Ok(())
+    }
+
+    async fn handle_prompt(&mut self, prompt: Option<SDKUserMessage>) -> Result<ControlFlow<()>> {
+        let Some(prompt) = prompt else {
+            info!("no more prompt available");
+            return Ok(ControlFlow::Break(()));
+        };
+        debug!("send prompt msg to cli");
+        self.write_msg(SDKMessage {
+            session_id: "".to_string(),
+            typed: crate::types::SDKMessageTyped::User(prompt),
+        })
+        .await?;
+
+        Ok(ControlFlow::Continue(()))
     }
 
     async fn handle_stop(&mut self, reason: StopReason) -> Result<()> {
