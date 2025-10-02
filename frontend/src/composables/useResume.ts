@@ -78,9 +78,6 @@ export function useResume() {
 
         // 统一通过 messageManager 处理重放消息
         messageManager.replayMessageRecord(newChat.chatId, record)
-
-        // 可选：流式效果延迟
-        // await new Promise(resolve => setTimeout(resolve, 10))
       }
 
       // 自动从消息中提取 sessionId（如果尚未设置）
