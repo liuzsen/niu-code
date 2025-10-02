@@ -1,8 +1,13 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::{
-    ffi::OsStr, ops::Not, path::{Path, PathBuf}, time::Duration
+    ffi::OsStr,
+    ops::Not,
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
 };
 use tokio::{
     fs::{File, read_dir},
@@ -10,18 +15,22 @@ use tokio::{
 };
 use tracing::debug;
 
-use crate::{chat::get_manager_mailbox, claude_log::ClaudeLogTypes};
+use crate::{
+    chat::{CacheMessage, MessageRecord, get_manager_mailbox},
+    claude_log::{ClaudeLog, ClaudeLogTypes},
+};
+use cc_sdk::types::{SDKAssistantMessage, SDKMessage, SDKMessageTyped, SDKUserMessage};
 
 #[derive(Serialize, Deserialize)]
 pub struct ClaudeSession {
-    logs: Vec<ClaudeLogTypes>,
+    pub logs: Vec<ClaudeLogTypes>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ClaudeSessionInfo {
-    session_id: String,
-    last_user_input: String,
-    last_active: DateTime<Utc>,
+    pub session_id: String,
+    pub last_user_input: String,
+    pub last_active: DateTime<Utc>,
 }
 
 pub async fn load_session_infos(work_dir: &Path) -> Result<Vec<ClaudeSessionInfo>> {
@@ -122,7 +131,7 @@ pub async fn load_session_infos(work_dir: &Path) -> Result<Vec<ClaudeSessionInfo
     sessions.retain(|session| {
         active_sessions
             .iter()
-            .any(|active_session| active_session.session_id.as_ref() == Some(&session.session_id))
+            .any(|active_session| active_session.session_id == session.session_id)
             .not()
     });
 
@@ -221,6 +230,56 @@ fn logs_dir(work_dir: &Path) -> Result<PathBuf> {
     path.push(&project_id);
 
     Ok(path)
+}
+
+pub fn log_to_message_record(log: ClaudeLogTypes) -> anyhow::Result<Option<MessageRecord>> {
+    match log {
+        ClaudeLogTypes::User(log) => {
+            let timestamp = parse_timestamp(&log.timestamp)?;
+            let record = extract_user_msg(&log).context("unexpected user log")?;
+            Ok(Some(MessageRecord {
+                timestamp,
+                message: record,
+            }))
+        }
+        ClaudeLogTypes::Assistant(log) => {
+            let timestamp = parse_timestamp(&log.timestamp)?;
+            let msg: Value = serde_json::from_value(log.message.clone())?;
+            Ok(Some(MessageRecord {
+                timestamp,
+                message: CacheMessage::Claude(Arc::new(SDKMessage {
+                    session_id: log.session_id.clone(),
+                    typed: SDKMessageTyped::Assistant(SDKAssistantMessage {
+                        uuid: log.uuid.clone(),
+                        message: msg,
+                        parent_tool_use_id: None,
+                    }),
+                })),
+            }))
+        }
+        // Skip these log types
+        ClaudeLogTypes::Summary(_) => Ok(None),
+        ClaudeLogTypes::FileHistorySnapshot(_) => Ok(None),
+        ClaudeLogTypes::System(_) => Ok(None),
+    }
+}
+
+fn parse_timestamp(timestamp_str: &str) -> Result<DateTime<Utc>> {
+    Ok(DateTime::parse_from_rfc3339(timestamp_str)?.to_utc())
+}
+
+fn extract_user_msg(log: &ClaudeLog) -> anyhow::Result<CacheMessage> {
+    let msg = serde_json::from_value(log.message.clone()).context("parse log message")?;
+    let msg = SDKMessage {
+        session_id: log.session_id.clone(),
+        typed: SDKMessageTyped::User(SDKUserMessage {
+            uuid: Some(log.uuid.clone()),
+            message: msg,
+            parent_tool_use_id: None,
+        }),
+    };
+
+    Ok(CacheMessage::Claude(Arc::new(msg)))
 }
 
 #[cfg(test)]

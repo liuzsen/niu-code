@@ -10,6 +10,8 @@ pub mod resume;
 pub mod websocket;
 pub mod work_dir;
 
+pub type BizResult<T, E> = Result<Result<T, E>, anyhow::Error>;
+
 pub async fn start_manager() {
     let (tx, rx) = unbounded_channel();
     set_manager_mailbox(tx);

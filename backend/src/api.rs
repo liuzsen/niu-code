@@ -1,20 +1,22 @@
-use std::{borrow::Cow, path::PathBuf};
+use std::borrow::Cow;
 
 use actix_web::{
     Responder, ResponseError, mime,
-    web::{Json, Query},
+    web::{self, Json, get},
 };
-use anyhow::Context;
 use derive_more::{Display, From};
-use serde::{Deserialize, Serialize};
-use server::resume::{self, ClaudeSession};
-use server::work_dir::{self};
-use server::{
-    chat::{ChatManagerMessage, ReconnectSessionError, SessionInfo, get_manager_mailbox},
-    resume::ClaudeSessionInfo,
-};
-use tokio::sync::oneshot;
-use tracing::debug;
+use serde::Serialize;
+
+pub mod chat;
+pub mod fs;
+
+pub fn config(cfg: &mut web::ServiceConfig) {
+    cfg.route("/api/fs/home", get().to(fs::home));
+    cfg.route("/api/fs/ls", get().to(fs::ls));
+    cfg.route("/api/connect", get().to(server::websocket::ws_handler));
+    cfg.route("/api/chat/start", get().to(chat::start_chat));
+    cfg.route("/api/session/list", get().to(chat::session_list));
+}
 
 #[derive(Serialize)]
 pub struct ApiOkResponse<T> {
@@ -48,13 +50,8 @@ pub struct BizError {
 }
 
 impl BizError {
-    const SESSION_NOT_FOUND: BizError = BizError {
-        code: "session-not-found",
-        tip: None,
-    };
-
-    const CHAT_NOT_FOUND: BizError = BizError {
-        code: "chat-not-found",
+    const CHAT_NOT_REGISTGERD: BizError = BizError {
+        code: "chat/not-registerd",
         tip: None,
     };
 }
@@ -94,111 +91,4 @@ where
     fn respond_to(self, req: &actix_web::HttpRequest) -> actix_web::HttpResponse<Self::Body> {
         Responder::respond_to(Json(self), req)
     }
-}
-
-#[derive(Deserialize)]
-pub struct LoadSessionInfoOptions {
-    work_dir: PathBuf,
-}
-
-pub async fn load_session_infos(
-    options: Query<LoadSessionInfoOptions>,
-) -> Result<ApiOkResponse<Vec<ClaudeSessionInfo>>, ApiError> {
-    let sessions = resume::load_session_infos(&options.work_dir).await?;
-    Ok(ApiOkResponse::new(sessions))
-}
-
-#[derive(Deserialize)]
-pub struct LoadSessionOptions {
-    work_dir: PathBuf,
-    session_id: String,
-}
-
-pub async fn load_session_logs(
-    options: Query<LoadSessionOptions>,
-) -> Result<ApiOkResponse<ClaudeSession>, ApiError> {
-    let session = resume::load_session(&options.work_dir, &options.session_id).await?;
-
-    Ok(ApiOkResponse::new(session))
-}
-
-pub async fn home() -> Result<ApiOkResponse<String>, ApiError> {
-    let home_path = work_dir::home().await?;
-    Ok(ApiOkResponse::new(home_path.to_string_lossy().to_string()))
-}
-
-#[derive(Deserialize)]
-pub struct LsParams {
-    dir: PathBuf,
-}
-
-#[derive(Serialize)]
-pub struct FileName(String);
-
-pub async fn ls(path: Query<LsParams>) -> Result<ApiOkResponse<Vec<FileName>>, ApiError> {
-    let entries = work_dir::ls(&path.dir).await?;
-    let file_names: Vec<FileName> = entries.into_iter().map(FileName).collect();
-    Ok(ApiOkResponse::new(file_names))
-}
-
-#[derive(Deserialize)]
-pub struct GetSessionsParams {
-    work_dir: PathBuf,
-}
-
-pub async fn load_active_sessions(
-    params: Query<GetSessionsParams>,
-) -> Result<ApiOkResponse<Vec<SessionInfo>>, ApiError> {
-    let (tx, rx) = oneshot::channel();
-    let manager_tx = get_manager_mailbox();
-
-    manager_tx
-        .send(ChatManagerMessage::GetSessionsByWorkDir {
-            work_dir: params.work_dir.clone(),
-            responder: tx,
-        })
-        .map_err(|e| anyhow::anyhow!("Failed to send message: {}", e))?;
-
-    let sessions = rx
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to receive response: {}", e))?;
-
-    Ok(ApiOkResponse::new(sessions))
-}
-
-#[derive(Deserialize)]
-pub struct ReconnectSessionParams {
-    cli_id: u32,
-    chat_id: String,
-}
-
-impl From<ReconnectSessionError> for BizError {
-    fn from(value: ReconnectSessionError) -> Self {
-        match value {
-            ReconnectSessionError::ChatNotFound => BizError::CHAT_NOT_FOUND,
-            ReconnectSessionError::SessionNotFound => BizError::SESSION_NOT_FOUND,
-        }
-    }
-}
-pub async fn reconnect_session(
-    params: Query<ReconnectSessionParams>,
-) -> Result<ApiOkResponse<Vec<server::chat::MessageRecord>>, ApiError> {
-    debug!("reconnect session");
-    let (tx, rx) = oneshot::channel();
-    let manager_tx = get_manager_mailbox();
-
-    manager_tx
-        .send(ChatManagerMessage::ReconnectSession {
-            cli_id: params.cli_id,
-            chat_id: params.chat_id.clone(),
-            responder: tx,
-        })
-        .map_err(|e| anyhow::anyhow!("Failed to send message: {}", e))?;
-
-    let messages = rx
-        .await
-        .context("no oneshot response")?
-        .map_err(BizError::from)?;
-
-    Ok(ApiOkResponse::new(messages))
 }

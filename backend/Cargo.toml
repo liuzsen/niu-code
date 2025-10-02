@@ -21,6 +21,7 @@ derive_more = { version = "2.0.1", features = ["from", "display"] }
 [dependencies]
 actix-web = "4.11.0"
 anyhow.workspace = true
+cc-sdk = { version = "0.1.0", path = "cc-sdk" }
 derive_more = "2.0.1"
 serde.workspace = true
 serde_json.workspace = true

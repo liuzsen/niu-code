@@ -38,7 +38,6 @@ pub enum APIUserMessageRole {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct SDKUserMessage {
     pub uuid: Option<String>,
     pub message: APIUserMessage,
@@ -46,7 +45,6 @@ pub struct SDKUserMessage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
 pub struct APIUserMessage {
     pub content: UserContent,
     pub role: APIUserMessageRole,

@@ -1,6 +1,5 @@
-use actix_web::{App, HttpServer, web};
+use actix_web::{App, HttpServer};
 use anyhow::Result;
-use server::websocket::ws_handler;
 use tokio::signal;
 use tracing::{Level, info};
 
@@ -18,25 +17,9 @@ async fn main() -> Result<()> {
         std::process::exit(0);
     });
 
-    let server = HttpServer::new(|| {
-        App::new()
-            .service(
-                web::scope("/api")
-                    .route("/home_path", web::get().to(api::home))
-                    .route("/ls", web::get().to(api::ls))
-                    .route("/connect", web::get().to(ws_handler))
-                    .route(
-                        "/load_history_session_infos",
-                        web::get().to(api::load_session_infos),
-                    )
-                    .route("/load_session_logs", web::get().to(api::load_session_logs))
-                    .route("/active_sessions", web::get().to(api::load_active_sessions))
-                    .route("/reconnect_session", web::get().to(api::reconnect_session)),
-            )
-            .route("/api/connect", web::get().to(ws_handler))
-    })
-    .bind(("127.0.0.1", 33333))?
-    .run();
+    let server = HttpServer::new(|| App::new().configure(api::config))
+        .bind(("127.0.0.1", 33333))?
+        .run();
     server.await?;
 
     Ok(())

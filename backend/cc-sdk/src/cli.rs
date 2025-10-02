@@ -116,6 +116,7 @@ pub struct QueryStream {
     receiver: UnboundedReceiver<QueryStreamItem>,
     writer_chan: Option<UnboundedSender<ClaudeWriterMessage>>,
     claude_sys_info: Option<ClaudeSysInfo>,
+    session_id: Option<String>,
     stop_notify: StopNotify,
 }
 
@@ -132,7 +133,16 @@ impl Stream for QueryStream {
         mut self: std::pin::Pin<&mut Self>,
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Option<Self::Item>> {
-        self.receiver.poll_recv(cx)
+        match self.receiver.poll_recv(cx) {
+            std::task::Poll::Ready(Some(Ok(msg))) => {
+                // Extract session_id from first message
+                if self.session_id.is_none() {
+                    self.session_id = Some(msg.session_id.clone());
+                }
+                std::task::Poll::Ready(Some(Ok(msg)))
+            }
+            other => other,
+        }
     }
 }
 
@@ -676,6 +686,7 @@ impl QueryStream {
             receiver: out_rx,
             writer_chan: writer_tx,
             claude_sys_info: sys_info,
+            session_id: None,
             stop_notify: notify.clone(),
         })
     }
@@ -709,6 +720,10 @@ impl QueryStream {
             supported_commands: commands,
             models,
         })
+    }
+
+    pub fn session_id(&self) -> Option<&str> {
+        self.session_id.as_deref()
     }
 
     pub fn stop(self) {

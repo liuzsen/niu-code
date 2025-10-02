@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use cc_sdk::{
     cli::{ModelInfo, SlashCommand},
@@ -24,15 +24,7 @@ pub enum ClientMessageData {
     PermissionResp(Arc<PermissionResult>),
     SetMode { mode: PermissionMode },
     GetInfo,
-    StopCliSession,
-    StartChat(StartChatOptions),
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct StartChatOptions {
-    pub work_dir: PathBuf,
-    pub mode: Option<PermissionMode>,
-    pub resume: Option<String>,
+    StopSession,
 }
 
 #[derive(Deserialize, Serialize)]

@@ -276,6 +276,7 @@ version = "0.1.0"
 dependencies = [
  "actix-web",
  "anyhow",
+ "cc-sdk",
  "derive_more",
  "serde",
  "serde_json",
