@@ -1,4 +1,7 @@
-use std::sync::{Arc, atomic::AtomicU32};
+use std::{
+    ops::ControlFlow,
+    sync::{Arc, atomic::AtomicU32},
+};
 
 use actix_web::{Error, HttpRequest, HttpResponse, rt, web};
 use actix_ws::{AggregatedMessage, AggregatedMessageStream, ProtocolError};
@@ -91,6 +94,10 @@ impl WsEndpoint {
         let result = self.run_inner().await;
 
         // Notify manager that connection is closed
+        debug!(
+            conn_id = %self.conn_id,
+            "connection closed, notify the manager"
+        );
         let _ = self
             .manager_mailbox
             .send(ChatManagerMessage::ConnectionClosed {
@@ -104,13 +111,17 @@ impl WsEndpoint {
         loop {
             select! {
                 msg = self.stream.next() => {
-                    self.handle_client_msg(msg).await?;
+                    if self.handle_client_msg(msg).await?.is_break() {
+                        break;
+                    }
                 }
                 Some(msg) = self.mailbox.recv() => {
                     self.handle_msg(msg).await?;
                 }
             }
         }
+
+        Ok(())
     }
 
     async fn handle_msg(&mut self, msg: ServerMessage) -> anyhow::Result<()> {
@@ -123,13 +134,13 @@ impl WsEndpoint {
     async fn handle_client_msg(
         &mut self,
         msg: Option<Result<AggregatedMessage, ProtocolError>>,
-    ) -> anyhow::Result<()> {
+    ) -> anyhow::Result<ControlFlow<()>> {
         let Some(msg) = msg else {
             self.manager_mailbox
                 .send(ChatManagerMessage::ConnectionClosed {
                     conn_id: self.conn_id,
                 })?;
-            return Ok(());
+            return Ok(ControlFlow::Break(()));
         };
         let msg = msg.context("invalid client msg")?;
         match msg {
@@ -148,6 +159,6 @@ impl WsEndpoint {
             _ => {}
         }
 
-        Ok(())
+        Ok(ControlFlow::Continue(()))
     }
 }
