@@ -217,10 +217,10 @@ import { messageManager } from '../../services/messageManager'
 export type CommandSuggestionProps = SuggestionProps<CommandItem, SelectedCommand>
 export type CommandSuggestionOptions = SuggestionOptions<CommandItem, SelectedCommand>
 
-const pluginKey = new PluginKey("slash-command-suggestion")
+export const slashCommandPluginKey = new PluginKey("slash-command-suggestion")
 
 export const suggestionOptions: CommandSuggestionOptions = {
-  pluginKey: pluginKey,
+  pluginKey: slashCommandPluginKey,
   char: '/',
   command: ({ editor, range, props }: { editor: Editor; range: Range; props: CommandItem }) => {
     props.command({ editor, range })
@@ -290,7 +290,7 @@ export const suggestionOptions: CommandSuggestionOptions = {
             }
             if (editor) {
               editor.commands.focus()
-              exitSuggestion(editor.view, pluginKey)
+              exitSuggestion(editor.view, slashCommandPluginKey)
             }
           }
           return true

@@ -1,2 +1,2 @@
 export { default as SlashCommandsExtension } from './SlashCommandsExtension'
-export { suggestionOptions } from './SlashCommandSuggestion'
+export { suggestionOptions, slashCommandPluginKey } from './SlashCommandSuggestion'

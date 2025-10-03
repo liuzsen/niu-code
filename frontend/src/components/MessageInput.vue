@@ -77,7 +77,7 @@ import { exportCurrentChat } from '../utils/chatExporter'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { htmlToMarkdown } from '../utils/contentConverter'
-import { SlashCommandsExtension, suggestionOptions } from './slash-commands'
+import { SlashCommandsExtension, suggestionOptions, slashCommandPluginKey } from './slash-commands'
 import { useWorkspace } from '../stores/workspace'
 import { apiService } from '../services/api'
 import '../assets/tiptap.css'
@@ -174,7 +174,7 @@ const editor = useEditor({
     editor.commands.focus()
   },
   editorProps: {
-    handleKeyDown: (_view, event) => {
+    handleKeyDown: (view, event) => {
       if (event.key === 'Enter' && event.shiftKey) {
         // 修改事件的 shiftKey 属性，让后续处理器认为这是普通 Enter
         Object.defineProperty(event, 'shiftKey', {
@@ -184,6 +184,14 @@ const editor = useEditor({
       }
 
       if (event.key === 'Enter') {
+        // 检查斜杠命令建议列表是否正在显示
+        const suggestionState = slashCommandPluginKey.getState(view.state)
+        if (suggestionState?.active) {
+          // 如果建议列表正在显示,返回 false 让建议插件处理 Enter 键
+          return false
+        }
+
+        // 建议列表未显示,发送消息
         sendUserInput()
         return true
       }
