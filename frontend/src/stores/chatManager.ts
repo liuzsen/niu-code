@@ -10,7 +10,7 @@ import { defineStore } from 'pinia'
 
 export class ChatState {
   chatId: string = uuidv4()
-  sessionId?: string // 后端 session_id（来自 Claude 原生的 session ID），用于判断是否已连接
+  sessionId?: string // 后端 session_id
 
   // 会话信息
   session: {

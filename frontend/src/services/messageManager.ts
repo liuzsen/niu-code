@@ -78,7 +78,6 @@ export class MessageManager {
       console.error('Chat not found:', chatId)
       return
     }
-    const started = chat.started()
 
     this.chatManager.addUserMessage(chatId, {
       content
@@ -88,7 +87,28 @@ export class MessageManager {
       return
     }
 
+    await this.ensureChatStarted(chatId)
+
+    const message = {
+      chat_id: chatId,
+      data: {
+        kind: 'user_input' as const,
+        content
+      }
+    }
+
+    this.ws.sendMessage(message)
+  }
+
+  async ensureChatStarted(chatId: string) {
     // 如果对话还没有开始，通过 HTTP API 启动会话
+    const chat = this.chatManager.getChat(chatId)
+    if (!chat) {
+      console.error('Chat not found:', chatId)
+      return
+    }
+
+    const started = chat.started()
     if (!started && this.workspace.workingDirectory) {
       console.log("chat not started, calling HTTP API to start")
 
@@ -97,21 +117,12 @@ export class MessageManager {
 
       // 通过 HTTP API 开始对话
       try {
-        const records = await apiService.startChat({
+        await apiService.startChat({
           chat_id: chatId,
           work_dir: this.workspace.workingDirectory,
           mode: chat.session.permissionMode,
           config_name: chat.session.configName
         })
-
-        // 重放返回的消息记录（通常为空，除非是 resume）
-        if (records.length > 0) {
-          this.startReplay()
-          for (const record of records) {
-            this.replayMessageRecord(chatId, record)
-          }
-          this.endReplay()
-        }
       } catch (error) {
         console.error('Failed to start chat via HTTP:', error)
         return
@@ -125,17 +136,6 @@ export class MessageManager {
         }
       })
     }
-
-
-    const message: ClientMessage = {
-      chat_id: chatId,
-      data: {
-        kind: 'user_input',
-        content
-      }
-    }
-
-    this.ws.sendMessage(message)
   }
 
   // 发送权限响应
@@ -160,6 +160,9 @@ export class MessageManager {
   // 发送权限模式设置
   sendSetMode(chatId: string, mode: PermissionMode) {
     console.log('Sending set mode:', mode)
+
+    this.ensureChatStarted(chatId)
+
     const message: ClientMessage = {
       chat_id: chatId,
       data: {

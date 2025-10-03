@@ -80,6 +80,7 @@ import { htmlToMarkdown } from '../utils/contentConverter'
 import { SlashCommandsExtension, suggestionOptions } from './slash-commands'
 import { useWorkspace } from '../stores/workspace'
 import { apiService } from '../services/api'
+import '../assets/tiptap.css'
 
 interface Props {
   error?: string
@@ -186,7 +187,10 @@ const editor = useEditor({
         sendUserInput()
         return true
       }
-    }
+    },
+    attributes: {
+      class: 'prose prose-sm focus:outline-none',
+    },
   }
 })
 
@@ -219,7 +223,6 @@ const onPermissionModeChange = () => {
   messageManager.sendSetMode(chatId, mode)
 }
 
-import '../assets/tiptap.css'
 import type { PermissionMode } from '@anthropic-ai/claude-code'
 </script>
 
