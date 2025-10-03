@@ -33,14 +33,6 @@
                 </div>
             </template>
         </MultiEditTool>
-        <PermissionOptions v-if="pendingPermissionRequest && state === 'running'" :request="pendingPermissionRequest!"
-            v-model="state">
-            <template #question>
-                <div class="font-semibold">
-                    {{ `Do you want to make this edit to ${extractFileName(input.file_path)}?` }}
-                </div>
-            </template>
-        </PermissionOptions>
 
     </div>
 </template>
@@ -50,8 +42,6 @@ import { useToolUseHandler } from '../../composables/useToolUseHandler'
 import ProgressSpinner from 'primevue/progressspinner'
 import type { FileMultiEditInput } from '../../types/sdk-tools'
 import MultiEditTool from '../tool-use/MultiEditTool.vue'
-import PermissionOptions from '../PermissionOptions.vue'
-import { extractFileName } from '../../utils/pathProcess'
 
 interface Props {
     id: string
@@ -60,5 +50,5 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const { pendingPermissionRequest, state, resultText } = useToolUseHandler(props.id)
+const { state, resultText } = useToolUseHandler(props.id)
 </script>

@@ -75,14 +75,6 @@
                 </Dialog>
             </template>
         </BashTool>
-        <PermissionOptions v-if="pendingPermissionRequest && state === 'running'" :request="pendingPermissionRequest!"
-            v-model="state">
-            <template #question>
-                <div class="font-semibold">
-                    {{ "Do you want to proceed?" }}
-                </div>
-            </template>
-        </PermissionOptions>
 
     </div>
 </template>
@@ -91,7 +83,6 @@
 import { ref } from 'vue'
 import BashTool from '../tool-use/BashTool.vue'
 import type { BashInput } from '../../types/sdk-tools'
-import PermissionOptions from '../PermissionOptions.vue'
 import { useToolUseHandler } from '../../composables/useToolUseHandler'
 
 interface Props {
@@ -100,7 +91,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
-const { pendingPermissionRequest, state, resultText } = useToolUseHandler(props.id)
+const { state, resultText } = useToolUseHandler(props.id)
 
 // Reactive state for modal and clipboard functionality
 const showFullContent = ref(false)

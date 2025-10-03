@@ -23,14 +23,6 @@
             </template>
         </FileEditTool>
 
-        <PermissionOptions v-if="pendingPermissionRequest && state === 'running'" :request="pendingPermissionRequest!"
-            v-model="state">
-            <template #question>
-                <div class="font-semibold">
-                    {{ `Do you want to make this edit to ${extractFileName(input.file_path)}?` }}
-                </div>
-            </template>
-        </PermissionOptions>
     </div>
 </template>
 
@@ -39,8 +31,6 @@ import { useToolUseHandler } from '../../composables/useToolUseHandler'
 import FileEditTool from '../tool-use/FileEditTool.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import type { FileEditInput } from '../../types/sdk-tools'
-import PermissionOptions from '../PermissionOptions.vue'
-import { extractFileName } from '../../utils/pathProcess'
 
 interface Props {
     id: string
@@ -49,5 +39,5 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const { pendingPermissionRequest, state } = useToolUseHandler(props.id)
+const { state } = useToolUseHandler(props.id)
 </script>

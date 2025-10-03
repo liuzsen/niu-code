@@ -27,34 +27,31 @@
 
         <MarkdownRenderer :content="input.plan" class="p-4"></MarkdownRenderer>
 
-        <ExitPlanModeOptions v-if="state == 'running'" :request="request" v-model="state"></ExitPlanModeOptions>
-
     </div>
 </template>
 
 <script setup lang="ts">
 import type { ExitPlanModeInput } from '../../types/sdk-tools'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import MarkdownRenderer from './MarkdownRenderer.vue'
-import type { ToolPermissionRequest } from '../../types/message'
 import type { ToolUseState } from '../../types'
-import ExitPlanModeOptions from '../ExitPlanModeOptions.vue'
+import ProgressSpinner from 'primevue/progressspinner'
 
 interface Props {
     id: string
     input: ExitPlanModeInput
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const state = ref<ToolUseState>('running')
 
-const request: ToolPermissionRequest = {
-    tool_use: {
-        tool_name: 'ExitPlanMode',
-        input: props.input
-    },
-    suggestions: [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }],
-}
+// Monitor pending request to update state
+onMounted(() => {
+    const checkState = () => {
+        // TODO: CHECK STATE
+    }
+    checkState()
+})
 
 </script>
