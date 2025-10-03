@@ -23,6 +23,11 @@
 
       <button type="button"
         class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-200 dark:hover:bg-surface-800 transition-all text-surface-900 dark:text-surface-0 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 dark:focus-visible:ring-offset-surface-950"
+        @click="navigateToSettings">
+        <i class="pi pi-cog text-base" />
+      </button>
+      <button type="button"
+        class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-200 dark:hover:bg-surface-800 transition-all text-surface-900 dark:text-surface-0 focus-visible:outline-hidden focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-surface-0 dark:focus-visible:ring-offset-surface-950"
         @click="toggleDarkMode">
         <i :class="['pi text-base', { 'pi-moon': isDarkMode, 'pi-sun': !isDarkMode }]" />
       </button>
@@ -33,14 +38,21 @@
 <script setup lang="ts">
 import Button from 'primevue/button'
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useConnection } from '../composables/useConnection'
 import { useLayout } from '../composables/useLayout'
 import { mockFiles, currentMockFile, setSelectedMockFile, isDevelopment } from '../utils/mockLoader'
 import { useToast } from 'primevue/usetoast'
 
+const router = useRouter()
 const { connectionStatus, isConnecting, isConnected, connect } = useConnection()
 const { isDarkMode, toggleDarkMode } = useLayout()
 const toast = useToast()
+
+// Navigate to settings page
+const navigateToSettings = () => {
+  router.push('/settings')
+}
 
 // Mock file selector options
 const mockOptions = computed(() => [

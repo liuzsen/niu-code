@@ -134,16 +134,6 @@ impl CliId {
     }
 }
 
-macro_rules! map {
-    ($($key:expr => $value:expr),* $(,)?) => {
-        std::collections::HashMap::from(
-            [
-                $(($key.to_string(), $value.to_string())),*
-            ]
-        )
-    };
-}
-
 impl ChatManager {
     pub fn new(mailbox: UnboundedReceiver<ChatManagerMessage>) -> Self {
         Self {
@@ -335,10 +325,6 @@ impl ChatManager {
     ) -> BizResult<(), StartChatError> {
         let (claude_tx, claude_rx) = unbounded_channel();
         let can_use_tool = CanUseTool::new(claude_tx.clone());
-        let env = map! {
-            "ANTHROPIC_BASE_URL" => "http://127.0.0.1:3456",
-            "ANTHROPIC_AUTH_TOKEN" => "your-secret-key",
-        };
 
         let StartChatOptions {
             work_dir,
@@ -351,7 +337,6 @@ impl ChatManager {
         let cli_options = ClaudeCodeOptions {
             can_use_tool: Some(Box::new(can_use_tool)),
             resume: resume.clone(),
-            env: Some(env),
             cwd: Some(work_dir.clone()),
             permission_mode: mode,
             ..Default::default()
@@ -587,19 +572,21 @@ async fn replace_claude_config<F: Future>(
 ) -> BizResult<F::Output, StartChatError> {
     let setting = get_current_setting();
 
+    debug!(name, "Using custom claude config");
     let config = setting
         .get_claude_setting(name)
         .ok_or_else(|| StartChatError::ConfigNotFound(name.to_string()));
     let config = ensure_biz!(config);
 
     let home_dir = dirs::home_dir().context("Failed to get home directory")?;
-    let claude_config_path = home_dir.join(".claude").join("setting.json");
-    let backup_path = home_dir.join(".claude").join("setting.json.niu-code.bak");
+    let claude_config_path = home_dir.join(".claude").join("settings.json");
+    let backup_path = home_dir.join(".claude").join("settings.json.niu-code.bak");
+    debug!(?claude_config_path, ?backup_path, "backup claude config");
 
     tokio::fs::rename(&claude_config_path, &backup_path).await?;
 
+    let json = serde_json::to_string_pretty(&config.setting).unwrap();
     let mut file = tokio::fs::File::create(&claude_config_path).await?;
-    let json = serde_json::to_string_pretty(&config).unwrap();
     file.write_all(json.as_bytes()).await?;
 
     let result = cli_cmd.await;

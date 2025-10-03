@@ -73,21 +73,23 @@ export class MessageManager {
   async sendUserInput(chatId: string, content: string) {
     console.log('Sending user input:', content)
 
-    if (this.isReplaying) {
-      this.chatManager.addUserMessage(chatId, {
-        content
-      })
-      return
-    }
-
     const chat = this.chatManager.getChat(chatId)
     if (!chat) {
       console.error('Chat not found:', chatId)
       return
     }
+    const started = chat.started()
+
+    this.chatManager.addUserMessage(chatId, {
+      content
+    })
+
+    if (this.isReplaying) {
+      return
+    }
 
     // 如果对话还没有开始，通过 HTTP API 启动会话
-    if (!chat.started() && this.workspace.workingDirectory) {
+    if (!started && this.workspace.workingDirectory) {
       console.log("chat not started, calling HTTP API to start")
 
       // 先注册对话（WebSocket）
@@ -98,7 +100,8 @@ export class MessageManager {
         const records = await apiService.startChat({
           chat_id: chatId,
           work_dir: this.workspace.workingDirectory,
-          mode: chat.session.permissionMode
+          mode: chat.session.permissionMode,
+          config_name: chat.session.configName
         })
 
         // 重放返回的消息记录（通常为空，除非是 resume）
@@ -123,9 +126,6 @@ export class MessageManager {
       })
     }
 
-    this.chatManager.addUserMessage(chatId, {
-      content
-    })
 
     const message: ClientMessage = {
       chat_id: chatId,

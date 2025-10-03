@@ -4,12 +4,14 @@ import App from './App.vue'
 import { createPinia } from 'pinia'
 import { usePrimeVue } from './usePrimeVue'
 import { initMessageManager } from './services/messageManager'
+import router from './router'
 
 const app = createApp(App)
 
 usePrimeVue(app);
 const pinia = createPinia()
 app.use(pinia)
+app.use(router)
 
 // 初始化消息管理器
 initMessageManager()

@@ -1,12 +1,11 @@
 <template>
   <Toast />
-  <MainPage></MainPage>
+  <router-view />
   <SessionListModal />
 </template>
 
 <script setup lang="ts">
 import { useGlobalToast } from './stores/toast';
-import MainPage from './view/MainPage.vue'
 import SessionListModal from './components/SessionListModal.vue'
 import { Toast, useToast } from 'primevue';
 

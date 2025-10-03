@@ -2,6 +2,16 @@ import type { ClaudeSession, LoadSessionOptions } from '../types/claude_log'
 import type { SessionInfo, MessageRecord, UnifiedSessionInfo } from '../types/session'
 import type { PermissionMode } from '@anthropic-ai/claude-code'
 
+// Setting types
+export interface ClaudeSetting {
+  name: string
+  setting: Record<string, unknown> // JSON Value
+}
+
+export interface Setting {
+  claude_settings: ClaudeSetting[]
+}
+
 // 通用 API 响应类型
 export interface ApiOkResponse<T> {
   code: number
@@ -126,6 +136,7 @@ export class ApiService {
     chat_id: string
     work_dir: string
     mode?: PermissionMode
+    config_name?: string
     resume?: string
   }): Promise<MessageRecord[]> {
     try {
@@ -150,6 +161,65 @@ export class ApiService {
       return result.data
     } catch (error) {
       console.error('Failed to start chat:', error)
+      throw error
+    }
+  }
+
+  // Setting API
+  async getSetting(): Promise<Setting> {
+    try {
+      const response = await fetch('/api/setting', {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result: ApiOkResponse<Setting> = await response.json()
+
+      if (result.code !== 0) {
+        throw new Error(`API error! code: ${result.code}`)
+      }
+
+      return result.data
+    } catch (error) {
+      console.error('Failed to get setting:', error)
+      throw error
+    }
+  }
+
+  async getConfigNames(): Promise<string[]> {
+    try {
+      const setting = await this.getSetting()
+      return setting.claude_settings.map(cs => cs.name)
+    } catch (error) {
+      console.error('Failed to get config names:', error)
+      throw error
+    }
+  }
+
+  async updateSetting(setting: Setting): Promise<void> {
+    try {
+      const response = await fetch('/api/setting', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(setting)
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result: ApiOkResponse<void> = await response.json()
+
+      if (result.code !== 0) {
+        throw new Error(`API error! code: ${result.code}`)
+      }
+    } catch (error) {
+      console.error('Failed to update setting:', error)
       throw error
     }
   }

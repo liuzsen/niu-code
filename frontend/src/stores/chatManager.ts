@@ -15,6 +15,7 @@ export class ChatState {
   // 会话信息
   session: {
     permissionMode: PermissionMode
+    configName?: string
     systemInit?: SDKSystemMessage
     systemInfo?: ClaudeSystemInfo
   }
@@ -27,9 +28,10 @@ export class ChatState {
 
   pendingRequest?: ToolPermissionRequest
 
-  constructor(mode: PermissionMode) {
+  constructor(mode: PermissionMode, configName?: string) {
     this.session = {
-      permissionMode: mode
+      permissionMode: mode,
+      configName
     }
   }
 

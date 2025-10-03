@@ -36,9 +36,16 @@
 
         <!-- Right Side Buttons -->
         <div class="flex items-center gap-2">
+          <!-- Config Name Selector -->
+          <Select v-model="selectedConfigName" :options="configOptions" optionLabel="label" optionValue="value"
+            placeholder="选择配置" :disabled="foregroundChat?.started()" @change="onConfigChange"
+            class="h-7 text-sm no-dropdown" :label-class="'px-2 pt-1 pb-0.5'" size="small">
+          </Select>
+
+          <!-- Permission Mode Selector -->
           <Select :modelValue="foregroundChat?.session.permissionMode" @value-change="onPermissionModeUpdate"
             :options="permissionModeOptions" optionLabel="label" optionValue="value" @change="onPermissionModeChange"
-            class="h-7 text-sm permission-select" :label-class="'px-2 pt-1 pb-0.5'" variant="filled" size="small"
+            class="h-7 text-sm no-dropdown" :label-class="'px-2 pt-1 pb-0.5'" variant="filled" size="small"
             :pt="{ dropdownIcon: { class: ' bg-red' } }">
           </Select>
 
@@ -61,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed, onMounted, onBeforeUnmount } from 'vue'
+import { watch, computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { useChatManager } from '../stores/chatManager'
@@ -72,6 +79,7 @@ import StarterKit from '@tiptap/starter-kit'
 import { htmlToMarkdown } from '../utils/contentConverter'
 import { SlashCommandsExtension, suggestionOptions } from './slash-commands'
 import { useWorkspace } from '../stores/workspace'
+import { apiService } from '../services/api'
 
 interface Props {
   error?: string
@@ -91,6 +99,33 @@ const chatManager = useChatManager()
 
 const foregroundChat = computed(() => chatManager.foregroundChat)
 const workspace = useWorkspace()
+
+// 配置选择相关
+const configOptions = ref<{ label: string; value: string }[]>([])
+const selectedConfigName = computed({
+  get: () => foregroundChat.value?.session.configName || '',
+  set: (value: string) => {
+    if (foregroundChat.value?.session) {
+      foregroundChat.value.session.configName = value
+    }
+  }
+})
+
+// 加载配置列表
+const loadConfigNames = async () => {
+  try {
+    const names = await apiService.getConfigNames()
+    configOptions.value = names.map(name => ({ label: name, value: name }))
+  } catch (error) {
+    console.error('Failed to load config names:', error)
+  }
+}
+
+// 配置变更处理
+const onConfigChange = () => {
+  // 配置名称已通过 v-model 更新到 foregroundChat.session.configName
+  // 无需额外处理
+}
 
 // 组合的禁用状态
 const editable = computed(() => workspace.hasWorkingDirectory)
@@ -157,9 +192,10 @@ const handleKeyDown = (event: KeyboardEvent) => {
   }
 }
 
-// 在组件挂载时添加键盘事件监听
+// 在组件挂载时添加键盘事件监听和加载配置列表
 onMounted(() => {
   document.addEventListener('keydown', handleKeyDown)
+  loadConfigNames()
 })
 
 // 组件卸载时清理
@@ -188,7 +224,7 @@ import type { PermissionMode } from '@anthropic-ai/claude-code'
 </script>
 
 <style scoped>
-.permission-select :deep(.p-select-dropdown) {
+.no-dropdown :deep(.p-select-dropdown) {
   display: none;
 }
 </style>

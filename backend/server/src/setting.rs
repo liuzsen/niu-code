@@ -16,8 +16,18 @@ pub struct Setting {
 
 #[derive(Deserialize, Serialize, Clone, PartialEq)]
 pub struct ClaudeSetting {
-    name: String,
-    setting: Value,
+    pub name: String,
+    pub setting: Value,
+}
+
+impl ClaudeSetting {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn setting(&self) -> &Value {
+        &self.setting
+    }
 }
 
 impl Setting {
@@ -55,11 +65,11 @@ pub fn get_global_setting() -> &'static ArcSwap<Setting> {
     GLOBAL_SETTING.get_or_init(|| ArcSwap::new(Arc::new(Setting::default())))
 }
 
-fn get_config_path() -> PathBuf {
+pub fn get_config_path() -> PathBuf {
     dirs::home_dir()
         .unwrap_or_default()
         .join(".niu-code")
-        .join("setting.json")
+        .join("settings.json")
 }
 
 async fn load_from_file_or_default() -> Setting {
