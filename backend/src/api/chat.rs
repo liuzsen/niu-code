@@ -63,6 +63,7 @@ impl From<StartChatError> for BizError {
     fn from(value: StartChatError) -> Self {
         match value {
             StartChatError::ChatNotRegistered => BizError::CHAT_NOT_REGISTGERD,
+            StartChatError::ConfigNotFound(v) => BizError::CONFIG_NOT_FOUND.with_context(v),
         }
     }
 }

@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt::Display};
 
 use actix_web::{
     Responder, ResponseError, mime,
@@ -54,6 +54,26 @@ impl BizError {
         code: "chat/not-registerd",
         tip: None,
     };
+
+    const CONFIG_NOT_FOUND: BizError = BizError {
+        code: "chat/config-not-found",
+        tip: None,
+    };
+
+    fn with_context<T: Display>(mut self, context: T) -> BizError {
+        self.tip = match self.tip {
+            Some(tip) => {
+                let tip = format!("{}: {}", tip, context);
+                Some(Cow::Owned(tip))
+            }
+            None => {
+                let tip = format!("{}", context);
+                Some(Cow::Owned(tip))
+            }
+        };
+
+        self
+    }
 }
 
 impl ResponseError for ApiError {

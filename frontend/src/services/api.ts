@@ -45,7 +45,7 @@ export class ApiService {
 
   async getHome(): Promise<string> {
     try {
-      const response = await fetch('/api/home_path', {
+      const response = await fetch('/api/fs/home', {
         method: 'GET',
       })
 
@@ -68,7 +68,7 @@ export class ApiService {
 
   async ls(dir: string): Promise<string[]> {
     try {
-      const url = new URL('/api/ls', window.location.origin)
+      const url = new URL('/api/fs/ls', window.location.origin)
       url.searchParams.append('dir', dir)
 
       const response = await fetch(url.toString(), {

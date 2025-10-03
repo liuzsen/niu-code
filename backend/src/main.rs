@@ -9,7 +9,7 @@ mod api;
 async fn main() -> Result<()> {
     init()?;
 
-    tokio::spawn(server::start_manager());
+    tokio::spawn(server::init());
 
     tokio::spawn(async {
         signal::ctrl_c().await.expect("failed to listen for event");

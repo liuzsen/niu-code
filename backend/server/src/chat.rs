@@ -6,24 +6,29 @@ use std::{
     time::Duration,
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use cc_sdk::types::{ClaudeCodeOptions, PermissionMode, PermissionResult, SDKMessage};
 use chrono::{DateTime, Utc};
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
-use tokio::sync::{
-    mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
-    oneshot,
+use tokio::{
+    io::AsyncWriteExt,
+    sync::{
+        mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
+        oneshot,
+    },
 };
 use tracing::{debug, info, warn};
 
 use crate::{
-    BizResult,
+    BizResult, biz_ok,
     claude::{CanUseTool, ClaudeCli, ClaudeCliMessage, PromptGen},
+    ensure_biz,
     message::{
         CanUseToolParams, ChatId, ClaudeSystemInfo, ClientMessage, ServerError, ServerMessage,
         ServerMessageData,
     },
+    setting::get_current_setting,
 };
 
 static MAILBOX_SENDER: OnceLock<UnboundedSender<ChatManagerMessage>> = OnceLock::new();
@@ -325,28 +330,9 @@ impl ChatManager {
 
     async fn build_claude_cli(
         &mut self,
-        conn_id: u32,
         chat_id: &ChatId,
         options: StartChatOptions,
-    ) {
-        let result = self.build_claude_cli_inner(chat_id, options).await;
-        if let Err(err) = result {
-            let ws_writer = self.connections.get(&conn_id).unwrap();
-            let err = format!("Cannot spawn Claude cli: {err:?}");
-
-            // no need to handle error if ws is closed
-            let _ = ws_writer.send_msg(ServerMessage {
-                chat_id: chat_id.clone(),
-                data: crate::message::ServerMessageData::ServerError(ServerError { error: err }),
-            });
-        }
-    }
-
-    async fn build_claude_cli_inner(
-        &mut self,
-        chat_id: &ChatId,
-        options: StartChatOptions,
-    ) -> Result<()> {
+    ) -> BizResult<(), StartChatError> {
         let (claude_tx, claude_rx) = unbounded_channel();
         let can_use_tool = CanUseTool::new(claude_tx.clone());
         let env = map! {
@@ -359,6 +345,7 @@ impl ChatManager {
             mode,
             resume,
             chat_id: _,
+            config_name,
         } = options;
 
         let cli_options = ClaudeCodeOptions {
@@ -371,7 +358,14 @@ impl ChatManager {
         };
         let (tx, rx) = unbounded_channel();
         let prompt_gen = PromptGen::new(rx);
-        let stream = cc_sdk::query(prompt_gen, cli_options).await?;
+
+        let stream = if let Some(name) = config_name {
+            let cli_cmd = cc_sdk::query(prompt_gen, cli_options);
+            let result = replace_claude_config(&name, cli_cmd).await?;
+            ensure_biz!(result)?
+        } else {
+            cc_sdk::query(prompt_gen, cli_options).await?
+        };
 
         let cli_id = CliId::next();
 
@@ -400,7 +394,7 @@ impl ChatManager {
         self.cli_sessions.insert(cli_id.clone(), session);
         self.chat_to_cli.insert(chat_id.clone(), cli_id.clone());
 
-        Ok(())
+        biz_ok!(())
     }
 
     async fn handle_cli_message(&mut self, cli_id: CliId, data: ServerMessageData) {
@@ -509,16 +503,12 @@ impl ChatManager {
         use crate::resume;
 
         let chat_id = options.chat_id.clone();
-        let conn_id = *self
-            .chat_to_conn
-            .get(&chat_id)
-            .ok_or_else(|| anyhow::anyhow!("Chat not registered"))?;
 
         match &options.resume {
             None => {
                 debug!(chat_id, "New chat");
                 // Case 1: New session
-                self.build_claude_cli(conn_id, &chat_id, options).await;
+                ensure_biz!(self.build_claude_cli(&chat_id, options).await?);
                 Ok(Ok(vec![]))
             }
             Some(session_id) => {
@@ -555,7 +545,7 @@ impl ChatManager {
                     }
 
                     // Start new Claude CLI with resume parameter
-                    self.build_claude_cli(conn_id, &chat_id, options).await;
+                    ensure_biz!(self.build_claude_cli(&chat_id, options).await?);
                     debug!(chat_id, session_id, "Resumed closed session");
 
                     // Add loaded messages to session cache
@@ -589,6 +579,34 @@ impl ChatManager {
             self.stop_cli(cli_id);
         }
     }
+}
+
+async fn replace_claude_config<F: Future>(
+    name: &str,
+    cli_cmd: F,
+) -> BizResult<F::Output, StartChatError> {
+    let setting = get_current_setting();
+
+    let config = setting
+        .get_claude_setting(name)
+        .ok_or_else(|| StartChatError::ConfigNotFound(name.to_string()));
+    let config = ensure_biz!(config);
+
+    let home_dir = dirs::home_dir().context("Failed to get home directory")?;
+    let claude_config_path = home_dir.join(".claude").join("setting.json");
+    let backup_path = home_dir.join(".claude").join("setting.json.niu-code.bak");
+
+    tokio::fs::rename(&claude_config_path, &backup_path).await?;
+
+    let mut file = tokio::fs::File::create(&claude_config_path).await?;
+    let json = serde_json::to_string_pretty(&config).unwrap();
+    file.write_all(json.as_bytes()).await?;
+
+    let result = cli_cmd.await;
+
+    tokio::fs::rename(&backup_path, &claude_config_path).await?;
+
+    Ok(Ok(result))
 }
 
 pub trait WsWriter: Send + 'static + Sync {
@@ -653,6 +671,7 @@ pub struct StartChatOptions {
     pub chat_id: String,
     pub work_dir: PathBuf,
     pub mode: Option<PermissionMode>,
+    pub config_name: Option<String>,
 
     // session-id
     pub resume: Option<String>,
@@ -660,4 +679,5 @@ pub struct StartChatOptions {
 
 pub enum StartChatError {
     ChatNotRegistered,
+    ConfigNotFound(String),
 }
