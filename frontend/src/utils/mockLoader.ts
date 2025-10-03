@@ -50,8 +50,13 @@ export async function loadMockFile(filename: string): Promise<void> {
 
     const newChat = chatManager.newChat()
 
-    // 直接从 JSON 数据恢复所有属性
-    Object.assign(newChat, mockData)
+    // 从 JSON 数据恢复属性，需要特殊处理 toolResults（Map 类型）
+    const data = mockData as Record<string, unknown>
+    const toolResultsData = (data.toolResults || {}) as Record<string, unknown>
+    Object.assign(newChat, {
+      ...data,
+      toolResults: new Map(Object.entries(toolResultsData))
+    })
 
     // 设置选中的 mock 文件
     selectedMockFile.value = filename
@@ -70,7 +75,8 @@ export function clearMockData(): void {
   }
 
   const chatManager = useChatManager()
-  chatManager.chats = []
+  chatManager.clearChats()
+
   selectedMockFile.value = null
   console.log('Mock data cleared, back to normal mode')
 }

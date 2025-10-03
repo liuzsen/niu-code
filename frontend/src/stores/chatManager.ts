@@ -92,6 +92,10 @@ export const useChatManager = defineStore("chat-manager", {
       return chat
     },
 
+    clearChats() {
+      this.chats = [new ChatState('default')]
+    },
+
     addToolResult(chatId: string, result: ToolResultBlockParam) {
       const chat = this.getChat(chatId)
       chat?.addToolResult(result)

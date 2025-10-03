@@ -18,7 +18,12 @@ export function exportCurrentChat() {
   }
 
   try {
-    const jsonData = JSON.stringify(foregroundChat, null, 2)
+    // 将 Map 转换为普通对象以便序列化
+    const exportData = {
+      ...foregroundChat,
+      toolResults: Object.fromEntries(foregroundChat.toolResults)
+    }
+    const jsonData = JSON.stringify(exportData, null, 2)
     const blob = new Blob([jsonData], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
 

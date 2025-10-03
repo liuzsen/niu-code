@@ -141,7 +141,7 @@ export function extract_tool_use(sdkMessage: SDKMessage): ToolUseBlock | null {
   // 定义所有有效的工具名称
   const validToolNames = [
     'Bash', 'Edit', 'Glob', 'Grep', 'MultiEdit', 'NotebookEdit',
-    'Read', 'TodoWrite', 'WebFetch', 'WebSearch', 'Write',
+    'Read', 'TodoWrite', 'WebSearch', 'Write',
     'Agent', 'BashOutput', 'ExitPlanMode', 'KillShell',
     'ListMcpResources', 'Mcp', 'ReadMcpResource'
   ]
