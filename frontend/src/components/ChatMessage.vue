@@ -50,6 +50,9 @@
                 :input="tool_use.tool_use.input"></TodoWriteRenderer>
               <ExitPlanModeMessage v-else-if="tool_use.tool_use.tool_name == 'ExitPlanMode'" :id="tool_use.id"
                 :input="tool_use.tool_use.input"></ExitPlanModeMessage>
+              <div v-else>
+                <FallbackRenderer :data="message"></FallbackRenderer>
+              </div>
             </div>
             <div v-else-if="unknown_tool_use" :key="unknown_tool_use.id">
               <UnknownToolUseMessage :id="unknown_tool_use.id" :name="unknown_tool_use.tool_use.tool_name"

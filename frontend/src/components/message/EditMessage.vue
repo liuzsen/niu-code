@@ -21,16 +21,6 @@
                     </div>
                 </div>
             </template>
-
-            <template #result v-if="resultText">
-                <div class="border-t border-surface-100 dark:border-surface-700 pt-3">
-                    <div class="text-xs mb-2">Result:</div>
-                    <div class="bg-surface-50 dark:bg-surface-950 rounded-lg p-3">
-                        <pre
-                            class="font-mono text-sm leading-relaxed break-all whitespace-pre-wrap">{{ resultText }}</pre>
-                    </div>
-                </div>
-            </template>
         </FileEditTool>
 
         <PermissionOptions v-if="pendingPermissionRequest && state === 'running'" :request="pendingPermissionRequest!"
@@ -59,5 +49,5 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const { pendingPermissionRequest, state, resultText } = useToolUseHandler(props.id)
+const { pendingPermissionRequest, state } = useToolUseHandler(props.id)
 </script>

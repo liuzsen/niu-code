@@ -52,7 +52,7 @@
           <!-- Send Button -->
           <Button @click="sendUserInput" :disabled="!editable" icon="pi pi-arrow-up" severity="secondary" size="small"
             class="rounded-full w-10 h-10 p-0 shrink-0 dark:bg-surface-950 dark:text-surface-300 bg-surface-300 text-surface-700"
-            v-tooltip.top="{ value: 'shift + ctrl + enter', pt: { text: 'bg-surface-300 dark:bg-surface-950 text-xs' } }"
+            v-tooltip.top="{ value: 'enter', pt: { text: 'bg-surface-300 dark:bg-surface-950 text-xs' } }"
             :title="disabledTooltip" />
         </div>
       </div>
@@ -68,7 +68,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { watch, computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { useChatManager } from '../stores/chatManager'
@@ -154,8 +154,8 @@ const sendUserInput = () => {
 
   messageManager.sendUserInput(chatId, markdownContent)
 
-  editor.value.commands.clearContent();
   editor.value.commands.focus();
+  editor.value.commands.clearContent();
 }
 
 // 初始化 TipTap 编辑器
@@ -172,6 +172,22 @@ const editor = useEditor({
   onCreate: ({ editor }) => {
     editor.commands.focus()
   },
+  editorProps: {
+    handleKeyDown: (_view, event) => {
+      if (event.key === 'Enter' && event.shiftKey) {
+        // 修改事件的 shiftKey 属性，让后续处理器认为这是普通 Enter
+        Object.defineProperty(event, 'shiftKey', {
+          get: () => false
+        })
+        return false
+      }
+
+      if (event.key === 'Enter') {
+        sendUserInput()
+        return true
+      }
+    }
+  }
 })
 
 // 监听禁用状态变化
@@ -182,25 +198,9 @@ watch(editable, (editable) => {
   }
 }, { immediate: true })
 
-// 键盘事件监听
-const handleKeyDown = (event: KeyboardEvent) => {
-  // 检测 Ctrl+Shift+Enter
-  if (event.ctrlKey && event.shiftKey && event.key === 'Enter') {
-    console.log("send msg")
-    event.preventDefault()
-    sendUserInput()
-  }
-}
-
-// 在组件挂载时添加键盘事件监听和加载配置列表
+// 在组件挂载时加载配置列表
 onMounted(() => {
-  document.addEventListener('keydown', handleKeyDown)
   loadConfigNames()
-})
-
-// 组件卸载时清理
-onBeforeUnmount(() => {
-  document.removeEventListener('keydown', handleKeyDown)
 })
 
 // 权限模式更新处理
