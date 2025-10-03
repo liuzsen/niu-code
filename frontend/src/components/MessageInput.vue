@@ -163,7 +163,9 @@ const sendUserInput = () => {
 const editor = useEditor({
   content: '',
   extensions: [
-    StarterKit,
+    StarterKit.configure({
+      link: false,  // 禁用链接自动识别
+    }),
     SlashCommandsExtension.configure({
       suggestion: suggestionOptions,
     }),
