@@ -6,6 +6,7 @@ import type { Range } from '@tiptap/core'
 import SlashCommandList from './SlashCommandList.vue'
 import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
 import { useChatManager } from '../../stores/chatManager'
+import { useClaudeInfo } from '../../stores/claudeInfo'
 import type { SlashCommand } from '@anthropic-ai/claude-code'
 
 export const appCommands: SlashCommand[] = [
@@ -230,12 +231,25 @@ export const suggestionOptions: CommandSuggestionOptions = {
   items: ({ query }: { query: string }) => {
     try {
       const chatManager = useChatManager()
-      let commands;
+      const claudeInfo = useClaudeInfo()
+
+      let commands: SlashCommand[];
+
+      // Priority 1: ChatState systemInfo (highest)
       if (chatManager.foregroundChat.session.systemInfo) {
-        commands = chatManager.foregroundChat.session.systemInfo.commands.concat(appCommands)
-      } else {
-        commands = defaultCommands.concat(appCommands)
+        commands = chatManager.foregroundChat.session.systemInfo.commands
       }
+      // Priority 2: Global store from HTTP API (medium)
+      else if (claudeInfo.systemInfo) {
+        commands = claudeInfo.systemInfo.commands
+      }
+      // Priority 3: Hardcoded defaults (lowest)
+      else {
+        commands = defaultCommands
+      }
+
+      // Always append appCommands
+      commands = commands.concat(appCommands)
 
       const dynamicCommands = commands.map(convertSDKSlashCommandToCommandItem)
 

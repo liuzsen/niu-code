@@ -16,6 +16,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.route("/api/fs/ls", get().to(fs::ls));
     cfg.route("/api/connect", get().to(server::websocket::ws_handler));
     cfg.route("/api/chat/start", post().to(chat::start_chat));
+    cfg.route("/api/claude/info", get().to(chat::get_claude_info));
     cfg.route("/api/session/list", get().to(chat::session_list));
     cfg.route("/api/setting", get().to(setting::get_setting));
     cfg.route("/api/setting", post().to(setting::update_setting));

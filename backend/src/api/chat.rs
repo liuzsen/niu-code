@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use actix_web::web::{Json, Query};
 use serde::{Deserialize, Serialize};
 use server::chat::{ChatManagerHandle, MessageRecord, StartChatError, StartChatOptions};
+use server::message::ClaudeSystemInfo;
 use server::resume::{self};
 use tracing::debug;
 
@@ -66,4 +67,12 @@ impl From<StartChatError> for BizError {
             StartChatError::ConfigNotFound(v) => BizError::CONFIG_NOT_FOUND.with_context(v),
         }
     }
+}
+
+pub async fn get_claude_info(
+    options: Query<LoadSessionInfoOptions>,
+) -> Result<ApiOkResponse<ClaudeSystemInfo>, ApiError> {
+    let handle = ChatManagerHandle::new();
+    let info = handle.get_claude_info(options.work_dir.clone()).await?;
+    Ok(ApiOkResponse::new(info))
 }

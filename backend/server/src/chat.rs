@@ -84,6 +84,7 @@ pub struct SessionInfo {
 
 pub struct ChatManager {
     mailbox: UnboundedReceiver<ChatManagerMessage>,
+
     connections: HashMap<u32, WsSender>,
 
     // Session management
@@ -116,6 +117,10 @@ pub enum ChatManagerMessage {
     GetActiveSessions {
         work_dir: PathBuf,
         responder: oneshot::Sender<Vec<SessionInfo>>,
+    },
+    GetClaudeInfo {
+        work_dir: PathBuf,
+        responder: oneshot::Sender<Result<ClaudeSystemInfo>>,
     },
     StartChat {
         options: StartChatOptions,
@@ -189,6 +194,13 @@ impl ChatManager {
             ChatManagerMessage::CleanSessions => {
                 self.cleanup_inactive_sessions();
             }
+            ChatManagerMessage::GetClaudeInfo {
+                work_dir,
+                responder,
+            } => {
+                let result = self.handle_get_claude_info(work_dir).await;
+                let _ = responder.send(result);
+            }
         }
     }
 
@@ -226,6 +238,18 @@ impl ChatManager {
                 self.stop_cli_by_chat(&chat_id);
             }
         }
+    }
+
+    async fn handle_get_claude_info(&mut self, work_dir: PathBuf) -> Result<ClaudeSystemInfo> {
+        let options = ClaudeCodeOptions {
+            cwd: Some(work_dir.clone()),
+            ..Default::default()
+        };
+        let (_prompt, stream) = build_stream(None, options).await?.unwrap();
+        let commands = stream.supported_commands()?;
+        let models = stream.supported_models()?;
+
+        Ok(ClaudeSystemInfo { commands, models })
     }
 
     fn record_user_permission_resp(
@@ -278,11 +302,13 @@ impl ChatManager {
     }
 
     fn remove_chat(&mut self, chat_id: &ChatId) -> Option<CliId> {
+        debug!("Remove chat: {}", chat_id);
         self.chat_to_conn.remove(chat_id);
         let cli_id = self.chat_to_cli.remove(chat_id);
         if let Some(cli_id) = cli_id {
             if let Some(session) = self.cli_sessions.get_mut(&cli_id) {
                 if session.subscriber == Some(chat_id.clone()) {
+                    debug!(%chat_id, %cli_id, "unsubscribe chat");
                     session.subscriber = None;
                 }
             }
@@ -341,16 +367,7 @@ impl ChatManager {
             permission_mode: mode,
             ..Default::default()
         };
-        let (tx, rx) = unbounded_channel();
-        let prompt_gen = PromptGen::new(rx);
-
-        let stream = if let Some(name) = config_name {
-            let cli_cmd = cc_sdk::query(prompt_gen, cli_options);
-            let result = replace_claude_config(&name, cli_cmd).await?;
-            ensure_biz!(result)?
-        } else {
-            cc_sdk::query(prompt_gen, cli_options).await?
-        };
+        let (tx, stream) = ensure_biz!(build_stream(config_name, cli_options).await?);
 
         let cli_id = CliId::next();
 
@@ -397,6 +414,9 @@ impl ChatManager {
                     if ws_writer.send_msg(broadcast_msg).is_err() {
                         self.handle_connection_closed(conn_id);
                     }
+                } else {
+                    info!(%cli_id, %conn_id, "connection not found");
+                    self.handle_connection_closed(conn_id);
                 }
             } else {
                 info!(%cli_id, "Session has no subscriber");
@@ -431,7 +451,7 @@ impl ChatManager {
     }
 
     fn handle_connection_closed(&mut self, conn_id: u32) {
-        debug!("Connection closed: {}", conn_id);
+        debug!("Connection closed: {}. Clean up", conn_id);
         self.connections.remove(&conn_id);
 
         let remove_chats = self
@@ -566,6 +586,29 @@ impl ChatManager {
     }
 }
 
+async fn build_stream(
+    config_name: Option<String>,
+    cli_options: ClaudeCodeOptions,
+) -> BizResult<
+    (
+        UnboundedSender<cc_sdk::types::SDKUserMessage>,
+        cc_sdk::cli::QueryStream,
+    ),
+    StartChatError,
+> {
+    let (tx, rx) = unbounded_channel();
+    let prompt_gen = PromptGen::new(rx);
+    let stream = if let Some(name) = config_name {
+        let cli_cmd = cc_sdk::query(prompt_gen, cli_options);
+        let result = replace_claude_config(&name, cli_cmd).await?;
+        ensure_biz!(result)?
+    } else {
+        cc_sdk::query(prompt_gen, cli_options).await?
+    };
+
+    Ok(Ok((tx, stream)))
+}
+
 async fn replace_claude_config<F: Future>(
     name: &str,
     cli_cmd: F,
@@ -651,6 +694,15 @@ impl ChatManagerHandle {
         debug!("wait for start chat");
         receiver.await.unwrap()
     }
+
+    pub async fn get_claude_info(&self, work_dir: PathBuf) -> Result<ClaudeSystemInfo> {
+        let (responder, receiver) = oneshot::channel();
+        self.mailbox.send(ChatManagerMessage::GetClaudeInfo {
+            work_dir,
+            responder,
+        })?;
+        receiver.await.unwrap()
+    }
 }
 
 #[derive(Deserialize)]
@@ -664,6 +716,7 @@ pub struct StartChatOptions {
     pub resume: Option<String>,
 }
 
+#[derive(Debug)]
 pub enum StartChatError {
     ChatNotRegistered,
     ConfigNotFound(String),

@@ -599,6 +599,7 @@ impl Drop for QueryStream {
         if self.stop_notify.rx.has_changed().unwrap() {
             return;
         }
+        debug!("drop query stream");
         self.stop_notify.notify(StopReason::OutStreamDropped);
     }
 }

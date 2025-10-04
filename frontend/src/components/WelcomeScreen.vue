@@ -72,8 +72,10 @@ import Fuse from 'fuse.js'
 import DirectoryPicker from './DirectoryPicker.vue'
 import { recentProjectsStore, type RecentProject } from '../services/recentProjects'
 import { useWorkspace } from '../stores/workspace'
+import { useClaudeInfo } from '../stores/claudeInfo'
 
 const workspace = useWorkspace()
+const claudeInfo = useClaudeInfo()
 const showDirectoryPicker = ref(false)
 const searchQuery = ref('')
 const recentProjects = ref<RecentProject[]>([])
@@ -105,16 +107,30 @@ const loadRecentProjects = () => {
   recentProjects.value = recentProjectsStore.get()
 }
 
-const openProject = (path: string) => {
+const openProject = async (path: string) => {
   workspace.setCwd(path)
   // Add to recent projects
   recentProjectsStore.add(path)
   loadRecentProjects()
+
+  // Load Claude system info
+  try {
+    await claudeInfo.loadClaudeInfo(path)
+  } catch (error) {
+    console.error('Failed to load Claude info when opening project:', error)
+  }
 }
 
-const handleDirectorySelect = (path: string) => {
+const handleDirectorySelect = async (path: string) => {
   workspace.setCwd(path)
   loadRecentProjects()
+
+  // Load Claude system info
+  try {
+    await claudeInfo.loadClaudeInfo(path)
+  } catch (error) {
+    console.error('Failed to load Claude info when selecting directory:', error)
+  }
 }
 
 const formatDate = (timestamp: number): string => {

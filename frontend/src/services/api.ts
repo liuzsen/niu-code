@@ -1,6 +1,7 @@
 import type { ClaudeSession, LoadSessionOptions } from '../types/claude_log'
 import type { SessionInfo, MessageRecord, UnifiedSessionInfo } from '../types/session'
 import type { PermissionMode } from '@anthropic-ai/claude-code'
+import type { ClaudeSystemInfo } from '../types/message'
 
 // Setting types
 export interface ClaudeSetting {
@@ -220,6 +221,32 @@ export class ApiService {
       }
     } catch (error) {
       console.error('Failed to update setting:', error)
+      throw error
+    }
+  }
+
+  async getClaudeInfo(workDir: string): Promise<ClaudeSystemInfo> {
+    try {
+      const url = new URL('/api/claude/info', window.location.origin)
+      url.searchParams.append('work_dir', workDir)
+
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result: ApiOkResponse<ClaudeSystemInfo> = await response.json()
+
+      if (result.code !== 0) {
+        throw new Error(`API error! code: ${result.code}`)
+      }
+
+      return result.data
+    } catch (error) {
+      console.error('Failed to get Claude info:', error)
       throw error
     }
   }
