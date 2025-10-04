@@ -245,8 +245,12 @@ export class MessageManager {
       if (data.type == 'user' && data.message.role == 'user') {
         if (typeof data.message.content == 'string') {
           this.chatManager.addUserMessage(chat_id, { content: data.message.content })
-        } else if (Array.isArray(data.message.content) && data.message.content[0].type == 'text') {
-          this.chatManager.addUserMessage(chat_id, { content: data.message.content[0].text })
+        } else if (Array.isArray(data.message.content)) {
+          for (const content of data.message.content) {
+            if (content.type == 'text') {
+              this.chatManager.addUserMessage(chat_id, { content: content.text })
+            }
+          }
         }
       } else {
         this.chatManager.addClaudeMessage(chat_id, data)

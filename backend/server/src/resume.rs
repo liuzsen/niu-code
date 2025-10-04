@@ -1,12 +1,12 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{
     ffi::OsStr,
     path::{Path, PathBuf},
-    sync::Arc,
-    time::Duration,
+    sync::{Arc, LazyLock},
 };
 use tokio::{
     fs::{File, read_dir},
@@ -89,12 +89,18 @@ pub async fn load_session_infos(work_dir: &Path) -> Result<Vec<ClaudeSessionInfo
                         last_user_input = content.to_string();
                         break;
                     }
+                    static FILTER_REGEX: LazyLock<Regex> =
+                        LazyLock::new(|| Regex::new(r"(?s)<\w+>.*?</\w+>").unwrap());
+
                     if let Some(content) = content.as_array() {
                         for content_item in content {
                             if let (Some("text"), Some(text)) = (
                                 content_item.get("type").and_then(|t| t.as_str()),
                                 content_item.get("text").and_then(|t| t.as_str()),
                             ) {
+                                if FILTER_REGEX.is_match(text) {
+                                    continue;
+                                }
                                 last_user_input = text.to_string();
                                 break;
                             }
@@ -122,23 +128,11 @@ pub async fn load_session_infos(work_dir: &Path) -> Result<Vec<ClaudeSessionInfo
     Ok(sessions)
 }
 
-#[derive(Deserialize)]
-pub struct LoadSessionOptions {
-    work_dir: PathBuf,
-    limit: usize,
-    max_age: DurationMilliSec,
-}
-
-pub struct DurationMilliSec(Duration);
-
-impl<'de> Deserialize<'de> for DurationMilliSec {
-    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let milli_secs = u64::deserialize(deserializer)?;
-        Ok(DurationMilliSec(Duration::from_millis(milli_secs)))
-    }
+#[test]
+fn feature() {
+    let s = "<ide_selection>The user selected the lines 30 to 30 from /data/home/sen/code/projects/ai/zsen-cc-web/frontend/src/services/websocket.ts:\nreconnectTimer\n\nThis may or may not be related to the current task.</ide_selection>";
+    let r = Regex::new(r"(?s)<\w+>.*?</\w+>").unwrap();
+    println!("{}", r.is_match(s));
 }
 
 pub async fn load_session(work_dir: &Path, session_id: &str) -> Result<ClaudeSession> {
@@ -155,37 +149,6 @@ pub async fn load_session(work_dir: &Path, session_id: &str) -> Result<ClaudeSes
     }
 
     Ok(ClaudeSession { logs: logs })
-}
-
-pub async fn load_sessions(options: LoadSessionOptions) -> Result<Vec<ClaudeSession>> {
-    let logs_dir = logs_dir(&options.work_dir)?;
-    let mut dir = read_dir(logs_dir).await?;
-
-    let mut sessions = vec![];
-    while let Some(entry) = dir.next_entry().await? {
-        if !entry.path().ends_with("jsonl") {
-            continue;
-        }
-        if sessions.len() >= options.limit {
-            break;
-        }
-        let metadata = entry.metadata().await?;
-        if metadata.modified()?.elapsed()? > options.max_age.0 {
-            continue;
-        }
-
-        let mut logs = vec![];
-        let file = File::open(entry.path()).await?;
-        let reader = BufReader::new(file);
-        let mut lines = reader.lines();
-        while let Some(line) = lines.next_line().await? {
-            let log: ClaudeLogTypes = serde_json::from_str(&line)?;
-            logs.push(log);
-        }
-        sessions.push(ClaudeSession { logs });
-    }
-
-    Ok(sessions)
 }
 
 fn logs_dir(work_dir: &Path) -> Result<PathBuf> {
