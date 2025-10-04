@@ -59,7 +59,7 @@ export function useResume() {
     messageManager.sendRegisterChat(newChat.chatId)
 
     // 开始恢复
-    messageManager.startReplay()
+    messageManager.startReplay(newChat.chatId)
     isRestoring.value = true
 
     try {

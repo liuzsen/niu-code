@@ -9,7 +9,7 @@ interface WebSocketState {
 
 // 扩展的类型定义
 export interface WebSocketError {
-  type: 'parse_error' | 'connection_error' | 'network_error'
+  type: 'parse_error' | 'connection_error'
   error: Error
   rawMessage?: string
 }
@@ -22,6 +22,13 @@ export class WebSocketService {
   private messageHandlers: Set<(message: ServerMessage) => void> = new Set()
   private errorHandlers: Set<(error: WebSocketError) => void> = new Set()
   private ConnectedHandlers: Set<() => void> = new Set()
+  private reconnectionFailedHandlers: Set<() => void> = new Set()
+
+  // 重连相关状态
+  private reconnectAttempts = 0
+  private readonly maxReconnectAttempts = 3
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private readonly reconnectDelay = 2000 // 2秒
 
   public state = reactive<WebSocketState>({
     connected: false,
@@ -35,6 +42,10 @@ export class WebSocketService {
 
   onConnected(handler: () => void) {
     this.ConnectedHandlers.add(handler)
+  }
+
+  onReconnectionFailed(handler: () => void) {
+    this.reconnectionFailedHandlers.add(handler)
   }
 
   // 注册消息处理器
@@ -66,6 +77,14 @@ export class WebSocketService {
           console.log('WebSocket connected')
           this.state.connected = true
           this.state.connecting = false
+          this.reconnectAttempts = 0
+
+          // 清除重连定时器
+          if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer)
+            this.reconnectTimer = null
+          }
+
           this.ConnectedHandlers.forEach(handler => {
             handler()
           })
@@ -81,7 +100,9 @@ export class WebSocketService {
           this.state.connected = false
           this.state.connecting = false
           this.ws = null
-          // this.attemptReconnect()
+
+          // 尝试重连
+          this.attemptReconnect()
         }
 
         this.ws.onerror = (error) => {
@@ -116,13 +137,37 @@ export class WebSocketService {
     })
   }
 
-  disconnect(): void {
-    if (this.ws) {
-      this.ws.close()
-      this.ws = null
+  private attemptReconnect(): void {
+    // 检查是否超过最大重连次数
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      console.log('Max reconnection attempts reached, triggering reconnection failed')
+      this.handleReconnectionFailed()
+      return
     }
-    this.state.connected = false
-    this.state.connecting = false
+
+    this.reconnectAttempts++
+    console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
+
+    this.reconnectTimer = setTimeout(() => {
+      this.connect().catch(error => {
+        console.error('Reconnection failed:', error)
+        // attemptReconnect 会在 onclose 中再次被调用
+      })
+    }, this.reconnectDelay)
+  }
+
+  private handleReconnectionFailed(): void {
+    console.log('Reconnection failed after max attempts')
+    this.reconnectAttempts = 0
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer)
+      this.reconnectTimer = null
+    }
+
+    this.reconnectionFailedHandlers.forEach(handler => {
+      handler()
+    })
   }
 
   // 发送消息 - 纯网络通信，不处理业务逻辑

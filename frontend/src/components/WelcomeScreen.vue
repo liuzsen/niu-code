@@ -111,7 +111,6 @@ const openProject = async (path: string) => {
   workspace.setCwd(path)
   // Add to recent projects
   recentProjectsStore.add(path)
-  loadRecentProjects()
 
   // Load Claude system info
   try {
@@ -123,7 +122,6 @@ const openProject = async (path: string) => {
 
 const handleDirectorySelect = async (path: string) => {
   workspace.setCwd(path)
-  loadRecentProjects()
 
   // Load Claude system info
   try {

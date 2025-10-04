@@ -37,15 +37,29 @@
 
 <script setup lang="ts">
 import Button from 'primevue/button'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, } from 'vue'
 import { useRouter } from 'vue-router'
-import { useConnection } from '../composables/useConnection'
 import { useLayout } from '../composables/useLayout'
 import { mockFiles, currentMockFile, setSelectedMockFile, isDevelopment } from '../utils/mockLoader'
 import { useToast } from 'primevue/usetoast'
+import { wsService } from '../services'
 
 const router = useRouter()
-const { connectionStatus, isConnecting, isConnected, connect } = useConnection()
+const wsState = wsService.state;
+const isConnected = computed(() => wsState.connected);
+const isConnecting = computed(() => wsState.connecting);
+
+const connectionStatus = computed(() => {
+  if (wsService.state.connected) return 'Connected'
+  if (wsService.state.connecting) return 'Connecting...'
+  return 'Disconnected'
+})
+
+const connect = () => {
+  wsService.connect()
+}
+
+// const { connectionStatus, isConnecting, isConnected, connect } = useConnection()
 const { isDarkMode, toggleDarkMode } = useLayout()
 const toast = useToast()
 
@@ -77,12 +91,5 @@ const handleMockFileChange = () => {
     selectedMockOption.value = null
   }
 }
-
-// Auto-connect on component mount
-onMounted(() => {
-  if (!isConnected.value) {
-    connect()
-  }
-})
 
 </script>

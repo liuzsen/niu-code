@@ -7,6 +7,7 @@ import { wsService } from './websocket'
 import { extract_tool_result } from '../utils/messageExtractors'
 import { useChatManager } from '../stores/chatManager'
 import { useWorkspace } from '../stores/workspace'
+import { useGlobalToast } from '../stores/toast'
 import type { PermissionResult, PermissionMode } from '@anthropic-ai/claude-code'
 import type { MessageRecord } from '../types/session'
 import { apiService } from './api'
@@ -15,9 +16,10 @@ export class MessageManager {
   public ws: WebSocketService
   private chatManager = useChatManager()
   private workspace = useWorkspace()
+  private toast = useGlobalToast()
 
   // 新增：重放状态
-  private isReplaying = false
+  private replayingChat?: string
   private replayBuffer: ServerMessage[] = []
 
   constructor(ws: WebSocketService) {
@@ -26,6 +28,7 @@ export class MessageManager {
     this.ws.onMessage(this.handleServerMessage.bind(this))
     this.ws.onError(this.handleServerError.bind(this))
     this.ws.onConnected(this.handleWsConnected.bind(this))
+    this.ws.onReconnectionFailed(this.handleReconnectionFailed.bind(this))
   }
 
   // 处理服务端消息
@@ -33,7 +36,7 @@ export class MessageManager {
     console.log('MessageManager received message:', message)
 
     // 新增：重放期间缓存消息
-    if (this.isReplaying) {
+    if (this.replayingChat == message.chat_id) {
       this.replayBuffer.push(message)
       return
     }
@@ -60,7 +63,23 @@ export class MessageManager {
   }
 
   private handleWsConnected() {
-    // WebSocket 连接建立后，无需进行任何操作
+    this.registerAllChats()
+  }
+
+  // 处理重连失败（1分钟超时后）
+  private handleReconnectionFailed() {
+    console.log('Handling reconnection failure - clearing chats')
+
+    // 清空所有对话
+    this.chatManager.clearChats()
+
+    // 显示 toast 提示
+    this.toast.add({
+      severity: 'error',
+      summary: '连接中断',
+      detail: '连接中断，请检查网络连接，重新连接后使用 /resume 命令恢复对话',
+      life: 10000 // 显示10秒
+    })
   }
 
   // 处理 WebSocket 错误
@@ -83,7 +102,7 @@ export class MessageManager {
       content
     })
 
-    if (this.isReplaying) {
+    if (this.replayingChat == chatId) {
       return
     }
 
@@ -142,7 +161,7 @@ export class MessageManager {
   sendPermissionResponse(chatId: string, result: PermissionResult) {
     console.log('Sending permission response:', result)
     this.chatManager.foregroundChat.pendingRequest = undefined
-    if (this.isReplaying) {
+    if (this.replayingChat == chatId) {
       return
     }
 
@@ -185,6 +204,12 @@ export class MessageManager {
     }
 
     this.ws.sendMessage(message)
+  }
+
+  registerAllChats() {
+    for (const chat of this.chatManager.chats) {
+      this.sendRegisterChat(chat.chatId)
+    }
   }
 
   // 发送注册对话命令
@@ -250,13 +275,13 @@ export class MessageManager {
   }
 
   // 新增方法：重放状态管理
-  startReplay() {
-    this.isReplaying = true
+  startReplay(chatId: string) {
+    this.replayingChat = chatId
     this.replayBuffer = []
   }
 
   endReplay() {
-    this.isReplaying = false
+    this.replayingChat = undefined
     // 处理缓存的消息
     for (const message of this.replayBuffer) {
       this.processMessage(message)
