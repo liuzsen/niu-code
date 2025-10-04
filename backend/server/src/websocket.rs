@@ -1,7 +1,4 @@
-use std::{
-    ops::ControlFlow,
-    sync::{Arc, atomic::AtomicU32},
-};
+use std::{ops::ControlFlow, sync::Arc};
 
 use actix_web::{Error, HttpRequest, HttpResponse, rt, web};
 use actix_ws::{AggregatedMessage, AggregatedMessageStream, ProtocolError};
@@ -14,7 +11,7 @@ use tokio_stream::StreamExt;
 use tracing::{debug, warn};
 
 use crate::{
-    chat::{ChatManagerMessage, WsWriter, get_manager_mailbox},
+    chat::{ChatManagerMessage, ConnId, WsWriter, get_manager_mailbox},
     message::{ClientMessage, ServerMessage},
 };
 
@@ -25,7 +22,6 @@ pub async fn ws_handler(req: HttpRequest, stream: web::Payload) -> Result<HttpRe
 
     let stream = stream
         .aggregate_continuations()
-        // aggregate continuation frames up to 1MiB
         .max_continuation_size(2_usize.pow(20));
 
     // start task but don't wait for it
@@ -47,7 +43,7 @@ pub async fn ws_handler(req: HttpRequest, stream: web::Payload) -> Result<HttpRe
 }
 
 struct WsEndpoint {
-    conn_id: u32,
+    conn_id: ConnId,
     mailbox: UnboundedReceiver<ServerMessage>,
     manager_mailbox: UnboundedSender<ChatManagerMessage>,
     stream: AggregatedMessageStream,
@@ -66,11 +62,9 @@ impl WsWriter for WsMessageAdapter {
 }
 
 impl WsEndpoint {
-    const CONN_ID: AtomicU32 = AtomicU32::new(0);
-
     fn new(stream: AggregatedMessageStream, session: actix_ws::Session) -> anyhow::Result<Self> {
         debug!("build endpoint");
-        let conn_id = Self::CONN_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let conn_id = ConnId::generate();
         let manager_mailbox = get_manager_mailbox();
         let (tx, rx) = unbounded_channel();
 

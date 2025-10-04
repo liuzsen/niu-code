@@ -16,3 +16,20 @@ macro_rules! biz_ok {
         Ok(Ok($result))
     };
 }
+
+#[macro_export]
+macro_rules! biz_err {
+    ($result:expr) => {
+        Ok(Err($result))
+    };
+}
+
+#[macro_export]
+macro_rules! ensure_exists {
+    ($expr:expr, $err:expr) => {
+        match $expr {
+            Some(v) => v,
+            None => return Ok(Err(From::from($err))),
+        }
+    };
+}
