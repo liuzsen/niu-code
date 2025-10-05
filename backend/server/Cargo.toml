@@ -13,6 +13,7 @@ cc-sdk = { version = "0.1.0", path = "../cc-sdk" }
 chrono = { version = "0.4", features = ["serde"] }
 derive_more.workspace = true
 dirs = "6.0.0"
+ignore = "0.4"
 notify = "8.2.0"
 regex = "1.11.3"
 serde.workspace = true

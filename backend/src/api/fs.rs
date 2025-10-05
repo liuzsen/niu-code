@@ -92,7 +92,6 @@ impl FileChangeNotifier for SSENotifier {
             },
         };
 
-        debug!("Sending file change event for work_dir: {:?}", work_dir);
         self.sender.send(event).map_err(|_| ())
     }
 

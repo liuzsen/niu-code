@@ -1,4 +1,5 @@
 use anyhow::Result;
+use ignore::{Walk, WalkBuilder};
 use notify::{Event, RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Serialize;
 use std::collections::HashMap;
@@ -7,7 +8,6 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 use std::sync::RwLock;
 use tracing::{debug, info, warn};
-use walkdir::{DirEntry, WalkDir};
 
 pub async fn ls(dir: &Path) -> Result<Vec<String>> {
     let mut entries = Vec::new();
@@ -45,33 +45,6 @@ pub async fn home() -> Result<PathBuf> {
     }
 }
 
-// 要忽略的名称（适用于文件和文件夹）
-const IGNORED_NAMES: &[&str] = &[
-    ".git",
-    "node_modules",
-    "target",
-    ".idea",
-    ".vscode",
-    "dist",
-    "build",
-    ".next",
-    ".nuxt",
-    ".cache",
-    ".pytest_cache",
-    "coverage",
-    ".venv",
-    "venv",
-    "env",
-    "__pycache__",
-    ".DS_Store",
-    "Thumbs.db",
-    ".env.local",
-    ".env.development",
-];
-
-// 要忽略的扩展名模式
-const IGNORED_EXTENSIONS: &[&str] = &["log", "tmp", "swp", "bak", "cache"];
-
 // 文件变动事件类型
 #[derive(Debug, Clone, Serialize)]
 pub enum FileChange {
@@ -93,19 +66,52 @@ pub struct FileWatcher {
     work_dir: PathBuf,
     notifiers: Vec<DynFileChangeNotifier>,
     watcher: Option<RecommendedWatcher>,
+    ignore_matcher: ignore::gitignore::Gitignore,
+}
+
+fn build_gitignore(work_dir: &Path) -> Result<ignore::gitignore::Gitignore> {
+    let walk = WalkBuilder::new(work_dir)
+        .max_depth(Some(5))
+        .hidden(false)
+        .build();
+    let mut ignore = ignore::gitignore::GitignoreBuilder::new(work_dir);
+    ignore.add_line(None, ".gitignore").unwrap();
+    ignore.add_line(None, ".git").unwrap();
+    for entry in walk {
+        let entry = entry?;
+        let path = entry.path();
+        let Some(filename) = path.file_name() else {
+            continue;
+        };
+        if path.is_file() && filename == ".gitignore" {
+            debug!("Found .gitignore file: {}", path.display());
+            ignore.add(path);
+        }
+    }
+
+    Ok(ignore.build()?)
 }
 
 impl FileWatcher {
-    fn new(work_dir: PathBuf) -> Self {
-        Self {
+    fn new(work_dir: PathBuf) -> Result<Self> {
+        let ignore_matcher = build_gitignore(&work_dir)?;
+
+        Ok(Self {
             work_dir,
             notifiers: Vec::new(),
             watcher: None,
-        }
+            ignore_matcher,
+        })
     }
 
     fn add_notifier(&mut self, notifier: DynFileChangeNotifier) {
         self.notifiers.push(notifier);
+    }
+
+    fn should_ignore_path(&self, path: &Path) -> bool {
+        self.ignore_matcher
+            .matched_path_or_any_parents(path, path.is_dir())
+            .is_ignore()
     }
 
     fn notify_change(&mut self, change: FileChange) -> bool {
@@ -176,7 +182,7 @@ impl FileWatcherRegistry {
         } else {
             // 创建新的监听器管理器
             info!("Creating new file watcher for work_dir: {:?}", work_dir);
-            let mut manager = FileWatcher::new(work_dir.clone());
+            let mut manager = FileWatcher::new(work_dir.clone())?;
             manager.add_notifier(notifier);
             manager.start_watching()?;
 
@@ -191,6 +197,24 @@ impl FileWatcherRegistry {
 
         if let Some(watcher_arc) = watchers.get(work_dir) {
             let mut watcher = watcher_arc.write().unwrap();
+
+            // 检查是否应该忽略这个文件变更
+            let path = match &change {
+                FileChange::Created(p) | FileChange::Removed(p) => p,
+            };
+
+            if watcher.should_ignore_path(path) {
+                debug!(
+                    "Skipping change for ignored path: {:?} in work_dir: {:?}",
+                    path, work_dir
+                );
+                return; // 忽略这个变更
+            }
+
+            debug!(
+                "File change detected: {:?} in work_dir: {:?}",
+                change, work_dir
+            );
 
             // 通知变更，检查是否需要清理
             let has_remaining_notifiers = watcher.notify_change(change);
@@ -233,7 +257,7 @@ impl FileWatcherRegistry {
     }
 }
 
-// 使用 walkdir 的独立文件扫描函数
+// 使用 ignore crate 的独立文件扫描函数
 fn scan_workspace_files(work_dir: &Path) -> Result<Vec<PathBuf>> {
     debug!("Scanning workspace files for: {:?}", work_dir);
 
@@ -244,11 +268,9 @@ fn scan_workspace_files(work_dir: &Path) -> Result<Vec<PathBuf>> {
         ));
     }
 
-    let files: Vec<PathBuf> = WalkDir::new(work_dir)
-        .into_iter()
-        .filter_entry(|e| !should_ignore(e))
+    let files: Vec<PathBuf> = Walk::new(work_dir)
         .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
+        .filter(|e| e.file_type().map(|ft| ft.is_file()).unwrap_or(false))
         .filter_map(|e| e.path().strip_prefix(work_dir).ok().map(ToOwned::to_owned))
         .collect();
 
@@ -256,40 +278,9 @@ fn scan_workspace_files(work_dir: &Path) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
-// 检查是否应该忽略该条目
-fn should_ignore(entry: &DirEntry) -> bool {
-    let file_name = entry.file_name().to_string_lossy();
-
-    // 检查名称是否在忽略列表中
-    if IGNORED_NAMES.iter().any(|&ignored| file_name == ignored) {
-        return true;
-    }
-
-    // 如果是文件，检查扩展名是否在忽略列表中
-    if entry.file_type().is_file() {
-        if let Some(extension) = entry.path().extension() {
-            let extension = extension.to_string_lossy();
-            if IGNORED_EXTENSIONS
-                .iter()
-                .any(|&ignored| extension == ignored)
-            {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
 fn handle_fs_event(work_dir: PathBuf, event: Event) {
     // 处理具体的文件变动事件
     for change in extract_file_changes(&work_dir, &event) {
-        // 检查是否应该忽略这个文件
-        if should_ignore_change(&work_dir, &change) {
-            continue;
-        }
-
-        debug!("Notifying file change: {:?}", change);
         FILE_WATCHER_REGISTRY.notify_change(&work_dir, change);
     }
 }
@@ -355,44 +346,6 @@ fn extract_file_changes(work_dir: &Path, event: &Event) -> Vec<FileChange> {
         }
         _ => Vec::new(),
     }
-}
-
-// 检查是否应该忽略文件变动
-fn should_ignore_change(work_dir: &Path, change: &FileChange) -> bool {
-    let path = match change {
-        FileChange::Created(p) | FileChange::Removed(p) => p,
-    };
-
-    should_ignore_path(work_dir, path)
-}
-
-// 检查单个路径是否应该被忽略
-fn should_ignore_path(work_dir: &Path, path: &Path) -> bool {
-    let full_path = work_dir.join(path);
-    let file_name = match path.file_name() {
-        Some(name) => name.to_string_lossy(),
-        None => return false,
-    };
-
-    // 检查名称是否在忽略列表中
-    if IGNORED_NAMES.iter().any(|&ignored| file_name == ignored) {
-        return true;
-    }
-
-    // 如果是文件，检查扩展名是否在忽略列表中
-    if full_path.is_file() {
-        if let Some(extension) = path.extension() {
-            let extension = extension.to_string_lossy();
-            if IGNORED_EXTENSIONS
-                .iter()
-                .any(|&ignored| extension == ignored)
-            {
-                return true;
-            }
-        }
-    }
-
-    false
 }
 
 // 全局文件监听器注册表实例

@@ -71,6 +71,7 @@ pub struct CliSession {
     mail_addr: ClaudeCliMailbox,
 }
 
+#[derive(Debug)]
 struct SessionChat {
     id: ChatId,
     lag_count: u32,
@@ -316,6 +317,7 @@ impl ChatManager {
 
     fn stop_cli(&mut self, cli_id: CliId) {
         if let Some(session) = self.cli_sessions.remove(&cli_id) {
+            info!(session_id = ?session.session_id, %cli_id, chat = ?session.chat, "Stop cli session");
             let _ = session.mail_addr.send(ClaudeCliMessage::Stop);
             if let Some(chat) = session.chat {
                 self.remove_chat(&chat.id);
@@ -638,6 +640,7 @@ impl ChatManager {
             .collect();
 
         for cli_id in expired {
+            info!("Session {} expired", cli_id);
             self.stop_cli(cli_id);
         }
     }
