@@ -1,5 +1,5 @@
 import type { ClaudeSession, LoadSessionOptions } from '../types/claude_log'
-import type { SessionInfo, MessageRecord, UnifiedSessionInfo } from '../types/session'
+import type { MessageRecord, UnifiedSessionInfo } from '../types/session'
 import type { PermissionMode } from '@anthropic-ai/claude-code'
 import type { ClaudeSystemInfo } from '../types/message'
 
@@ -251,44 +251,12 @@ export class ApiService {
     }
   }
 
-  async getWorkspaceFiles(): Promise<string[]> {
-    // Mock data - 模拟工作目录下的文件列表
-    return [
-      'frontend/src/App.vue',
-      'frontend/src/main.ts',
-      'frontend/src/style.css',
-      'frontend/src/components/ChatPanel.vue',
-      'frontend/src/components/InputEditor.vue',
-      'frontend/src/components/slash-commands/SlashCommandsExtension.ts',
-      'frontend/src/components/slash-commands/SlashCommandSuggestion.ts',
-      'frontend/src/components/slash-commands/SlashCommandList.vue',
-      'frontend/src/services/api.ts',
-      'frontend/src/services/websocket.ts',
-      'frontend/src/services/messageManager.ts',
-      'frontend/src/stores/chatManager.ts',
-      'frontend/src/types/message.ts',
-      'frontend/src/types/session.ts',
-      'frontend/package.json',
-      'frontend/vite.config.ts',
-      'frontend/tsconfig.json',
-      'backend/src/main.rs',
-      'backend/src/api.rs',
-      'backend/src/api/chat.rs',
-      'backend/src/api/fs.rs',
-      'backend/src/api/setting.rs',
-      'backend/Cargo.toml',
-      'README.md',
-      'CLAUDE.md',
-      'architecture.md',
-    ]
-  }
-
-  // === 下面是旧的废弃方法，将在后续清理 ===
-
-  async loadActiveSessions(workDir: string): Promise<SessionInfo[]> {
+  async getWorkspaceFiles(workDir?: string): Promise<string[]> {
     try {
-      const url = new URL('/api/active_sessions', window.location.origin)
-      url.searchParams.append('work_dir', workDir)
+      const url = new URL('/api/fs/files', window.location.origin)
+      if (workDir) {
+        url.searchParams.append('work_dir', workDir)
+      }
 
       const response = await fetch(url.toString(), {
         method: 'GET',
@@ -298,42 +266,16 @@ export class ApiService {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const result: ApiOkResponse<SessionInfo[]> = await response.json()
+      const result: ApiOkResponse<string[]> = await response.json()
 
       if (result.code !== 0) {
         throw new Error(`API error! code: ${result.code}`)
       }
 
+      // Extract the string from the tuple structure
       return result.data
     } catch (error) {
-      console.error('Failed to load active sessions:', error)
-      throw error
-    }
-  }
-
-  async reconnectSession(cliId: number, chatId: string): Promise<MessageRecord[]> {
-    try {
-      const url = new URL('/api/reconnect_session', window.location.origin)
-      url.searchParams.append('cli_id', cliId.toString())
-      url.searchParams.append('chat_id', chatId)
-
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const result: ApiOkResponse<MessageRecord[]> = await response.json()
-
-      if (result.code !== 0) {
-        throw new Error(`API error! code: ${result.code}`)
-      }
-
-      return result.data
-    } catch (error) {
-      console.error('Failed to reconnect session:', error)
+      console.error('Failed to get workspace files:', error)
       throw error
     }
   }

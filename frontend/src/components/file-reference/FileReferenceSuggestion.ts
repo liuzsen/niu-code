@@ -35,13 +35,43 @@ export const loadFileList = async (files: string[]) => {
   })
 }
 
+// 添加文件到缓存
+export const addFileToCache = (file: string) => {
+  if (!cachedFiles.includes(file)) {
+    cachedFiles.push(file)
+    // 重新初始化 Fuse 实例
+    fuseInstance = new Fuse(cachedFiles, {
+      threshold: 0.3,
+      includeScore: true,
+    })
+  }
+}
+
+// 从缓存移除文件
+export const removeFileFromCache = (file: string) => {
+  const index = cachedFiles.indexOf(file)
+  if (index !== -1) {
+    cachedFiles.splice(index, 1)
+    // 重新初始化 Fuse 实例
+    fuseInstance = new Fuse(cachedFiles, {
+      threshold: 0.3,
+      includeScore: true,
+    })
+  }
+}
+
+// 获取当前缓存文件列表（用于调试）
+export const getCachedFiles = () => {
+  return [...cachedFiles]
+}
+
 // 转换文件路径为 FileItem
 const convertPathToFileItem = (path: string): FileItem => {
   return {
     path,
-    command: ({ editor }) => {
+    command: ({ editor, range }) => {
       // 插入文件路径
-      editor.chain().focus().insertContent(path + ' ').run()
+      editor.chain().focus().deleteRange(range).insertContent("@" + path + ' ').run()
     }
   }
 }

@@ -14,6 +14,8 @@ pub mod setting;
 pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.route("/api/fs/home", get().to(fs::home));
     cfg.route("/api/fs/ls", get().to(fs::ls));
+    cfg.route("/api/fs/files", get().to(fs::get_workspace_files));
+    cfg.route("/api/fs/updates", get().to(fs::sse_handler));
     cfg.route("/api/connect", get().to(server::websocket::ws_handler));
     cfg.route("/api/chat/start", post().to(chat::start_chat));
     cfg.route("/api/claude/info", get().to(chat::get_claude_info));
