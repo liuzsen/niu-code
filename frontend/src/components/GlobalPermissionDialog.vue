@@ -68,18 +68,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, inject, onMounted, watch, nextTick, useTemplateRef } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, useTemplateRef } from 'vue'
 import type { PermissionUpdate } from '../types/message'
 import type { PermissionResult } from '@anthropic-ai/claude-code'
-import type { MessageManager } from '../services/messageManager'
-import { useChatManager } from '../stores/chatManager'
+import { useChatManager } from '../stores/chat'
 import { useWorkspace } from '../stores/workspace'
 import { useToast } from 'primevue'
 import { extractFileName } from '../utils/pathProcess'
+import { useMessageSender } from '../composables/useMessageSender'
 
 const chatManager = useChatManager()
 const workspace = useWorkspace()
-const messageManager = inject('messageManager') as MessageManager
+const { sendPermissionResponse: sendResponse } = useMessageSender()
 const selectedIndex = ref(0)
 const chatId = computed(() => chatManager.foregroundChat.chatId)
 const permissionContainer = useTemplateRef("permissionContainer")
@@ -145,7 +145,7 @@ const toast = useToast()
 
 const sendPermissionResponse = (result: PermissionResult) => {
   try {
-    messageManager.sendPermissionResponse(chatId.value, result)
+    sendResponse(chatId.value, result)
     chatManager.foregroundChat.pendingRequest = undefined
   } catch (error) {
     toast.add({

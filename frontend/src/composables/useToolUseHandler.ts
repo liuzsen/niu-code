@@ -1,6 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { cleanToolResult } from '../utils/messageExtractors'
-import { useChatManager } from '../stores/chatManager'
+import { useChatManager } from '../stores/chat'
 import type { ToolUseState } from '../types'
 
 export function useToolUseHandler(toolId: string) {

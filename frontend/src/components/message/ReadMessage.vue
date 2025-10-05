@@ -94,7 +94,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useChatManager } from '../../stores/chatManager'
+import { useChatManager } from '../../stores/chat'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'

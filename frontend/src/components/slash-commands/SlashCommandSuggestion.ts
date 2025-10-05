@@ -5,7 +5,7 @@ import type { Range } from '@tiptap/core'
 
 import SlashCommandList from './SlashCommandList.vue'
 import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
-import { useChatManager } from '../../stores/chatManager'
+import { useChatManager } from '../../stores/chat'
 import { useClaudeInfo } from '../../stores/claudeInfo'
 import type { SlashCommand } from '@anthropic-ai/claude-code'
 
@@ -97,7 +97,8 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
         editor.chain().focus().clearContent(true).run()
         const chatManager = useChatManager()
         const chatId = chatManager.foregroundChat.chatId
-        messageManager.sendStop(chatId)
+        const { sendStop } = useMessageSender()
+        sendStop(chatId)
         chatManager.chats = []
       }
       else if (sdkCommand.name == 'resume') {
@@ -213,7 +214,7 @@ const updatePosition = (editor: Editor, element: HTMLElement) => {
 
 import { exitSuggestion } from '@tiptap/suggestion'
 import { PluginKey } from '@tiptap/pm/state'
-import { messageManager } from '../../services/messageManager'
+import { useMessageSender } from '../../composables/useMessageSender'
 
 export type CommandSuggestionProps = SuggestionProps<CommandItem, SelectedCommand>
 export type CommandSuggestionOptions = SuggestionOptions<CommandItem, SelectedCommand>

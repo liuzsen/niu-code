@@ -1,9 +1,10 @@
 import { ref } from 'vue'
 import { apiService } from '../services/api'
-import { messageManager } from '../services/messageManager'
-import { useChatManager } from '../stores/chatManager'
+import { useChatStore } from '../stores/chat'
 import { useWorkspace } from '../stores/workspace'
-import type { UnifiedSessionInfo } from '../types/session'
+import { useMessageSender } from './useMessageSender'
+import { useMessageHandler } from './useMessageHandler'
+import type { UnifiedSessionInfo, MessageRecord } from '../types/session'
 import type { Editor } from '@tiptap/core'
 
 const isSessionListVisible = ref(false)
@@ -12,8 +13,34 @@ const restoreProgress = ref({ current: 0, total: 0 })
 const editorRef = ref<Editor | null>(null)
 
 export function useResume() {
-  const chatManager = useChatManager()
+  const chatStore = useChatStore()
   const workspace = useWorkspace()
+  const { sendRegisterChat } = useMessageSender()
+  const { startReplay, endReplay } = useMessageHandler()
+  const chatManager = useChatStore()
+
+  // 重放单条消息记录
+  function replayMessageRecord(chatId: string, record: MessageRecord) {
+    const message = record.message
+
+    if ('UserInput' in message) {
+      sendRegisterChat(chatId)
+    } else if ('Claude' in message) {
+      // 伪装成 ServerMessage
+      const serverMessage = {
+        chat_id: chatId,
+        data: { kind: 'claude', ...message.Claude }
+      }
+      chatManager.addClaudeMessage(chatId, serverMessage.data)
+    } else if ('SystemInfo' in message) {
+      // 伪装成 ServerMessage
+      const serverMessage = {
+        chat_id: chatId,
+        data: { kind: 'system_info', ...message.SystemInfo }
+      }
+      chatManager.setSystemInfo(chatId, serverMessage.data)
+    }
+  }
 
   async function showSessionList(editor?: Editor) {
     editorRef.value = editor || null
@@ -29,12 +56,12 @@ export function useResume() {
 
   async function resumeSession(sessionId: string) {
     // 快速路径：检查前端是否已有该 session_id 的对话
-    const existingChat = chatManager.getChatBySessionId(sessionId)
+    const existingChat = chatStore.getChatBySessionId(sessionId)
 
     if (existingChat) {
       // 如果已存在，直接切换到前台
       console.log(`Fast path: switching to existing chat ${existingChat.chatId}`)
-      chatManager.switchToChat(existingChat.chatId)
+      chatStore.switchToChat(existingChat.chatId)
       isSessionListVisible.value = false
       // 重新聚焦到编辑器
       if (editorRef.value) {
@@ -53,13 +80,13 @@ export function useResume() {
     }
 
     // 创建新的 ChatState
-    const newChat = chatManager.newChat('default')
+    const newChat = chatStore.newChat('default')
 
     // 先注册新的 chat_id
-    messageManager.sendRegisterChat(newChat.chatId)
+    sendRegisterChat(newChat.chatId)
 
     // 开始恢复
-    messageManager.startReplay(newChat.chatId)
+    startReplay(newChat.chatId)
     isRestoring.value = true
 
     try {
@@ -76,8 +103,8 @@ export function useResume() {
         const record = records[i]
         restoreProgress.value.current = i + 1
 
-        // 统一通过 messageManager 处理重放消息
-        messageManager.replayMessageRecord(newChat.chatId, record)
+        // 统一通过 useChatSession 处理重放消息
+        replayMessageRecord(newChat.chatId, record)
       }
 
       // 自动从消息中提取 sessionId（如果尚未设置）
@@ -87,7 +114,7 @@ export function useResume() {
 
       isSessionListVisible.value = false
     } finally {
-      messageManager.endReplay()
+      endReplay()
       isRestoring.value = false
       restoreProgress.value = { current: 0, total: 0 }
       // 恢复完成后重新聚焦到编辑器

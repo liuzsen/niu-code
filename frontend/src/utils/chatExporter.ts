@@ -1,4 +1,4 @@
-import { useChatManager } from '../stores/chatManager'
+import { useChatManager } from '../stores/chat'
 import { useGlobalToast } from '../stores/toast'
 
 export function exportCurrentChat() {

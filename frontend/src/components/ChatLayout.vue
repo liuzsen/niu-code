@@ -11,11 +11,12 @@ import { computed } from 'vue'
 import MessageList from './MessageList.vue'
 import MessageInput from './MessageInput.vue'
 import GlobalPermissionDialog from './GlobalPermissionDialog.vue'
-import { useChatManager } from '../stores/chatManager'
-import { wsService } from '../services'
+import { useChatManager } from '../stores/chat'
+import { useWebSocket } from '../composables/useWebSocket'
 
-const error = computed(() => wsService.state.error)
-const isConnected = computed(() => wsService.state.connected)
+const ws = useWebSocket()
+const error = computed(() => ws.state.error)
+const isConnected = computed(() => ws.state.connected)
 const chatManager = useChatManager()
 
 const hasPendingRequest = computed(() => !!chatManager.foregroundChat?.pendingRequest)

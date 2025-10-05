@@ -19,7 +19,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
-import { useChatManager } from '../../stores/chatManager'
+import { useChatManager } from '../../stores/chat'
 import type { CommandItem } from './SlashCommandSuggestion';
 
 interface Props {

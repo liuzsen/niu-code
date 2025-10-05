@@ -40,12 +40,14 @@ export class WebSocketService {
     this.url = url
   }
 
-  onConnected(handler: () => void) {
+  onConnected(handler: () => void): () => void {
     this.ConnectedHandlers.add(handler)
+    return () => this.ConnectedHandlers.delete(handler)
   }
 
-  onReconnectionFailed(handler: () => void) {
+  onReconnectionFailed(handler: () => void): () => void {
     this.reconnectionFailedHandlers.add(handler)
+    return () => this.reconnectionFailedHandlers.delete(handler)
   }
 
   // 注册消息处理器
@@ -213,6 +215,3 @@ export class WebSocketService {
     }
   }
 }
-
-// Global instance
-export const wsService = new WebSocketService(`ws://${window.location.host}/api/connect`)

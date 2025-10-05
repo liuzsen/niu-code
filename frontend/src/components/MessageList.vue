@@ -27,7 +27,7 @@
 import { ref, nextTick, watch, computed } from 'vue'
 import ChatMessage from './ChatMessage.vue'
 import WelcomeScreen from './WelcomeScreen.vue'
-import { useChatManager } from '../stores/chatManager'
+import { useChatManager } from '../stores/chat'
 import { useWorkspace } from '../stores/workspace'
 
 // 使用统一的聊天 store

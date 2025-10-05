@@ -38,8 +38,8 @@
         <div class="flex items-center gap-2">
           <!-- Config Name Selector -->
           <Select v-model="selectedConfigName" :options="configOptions" optionLabel="label" optionValue="value"
-            placeholder="选择配置" :disabled="foregroundChat?.started()" @change="onConfigChange"
-            class="h-7 text-sm no-dropdown" :label-class="'px-2 pt-1 pb-0.5'" size="small">
+            placeholder="选择配置" :disabled="foregroundChat?.started()" class="h-7 text-sm no-dropdown"
+            :label-class="'px-2 pt-1 pb-0.5'" size="small">
           </Select>
 
           <!-- Permission Mode Selector -->
@@ -50,7 +50,8 @@
           </Select>
 
           <!-- Send Button -->
-          <Button @click="sendUserInput" :disabled="!editable" icon="pi pi-arrow-up" severity="secondary" size="small"
+          <Button @click="handleSendUserInput" :disabled="!editable" icon="pi pi-arrow-up" severity="secondary"
+            size="small"
             class="rounded-full w-10 h-10 p-0 shrink-0 dark:bg-surface-950 dark:text-surface-300 bg-surface-300 text-surface-700"
             v-tooltip.top="{ value: 'enter', pt: { text: 'bg-surface-300 dark:bg-surface-950 text-xs' } }"
             :title="disabledTooltip" />
@@ -68,22 +69,22 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed, onMounted, onUnmounted, ref } from 'vue'
+import { watch, computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
-import { useChatManager } from '../stores/chatManager'
-import { messageManager } from '../services/messageManager'
+import { useChatStore } from '../stores/chat'
+import { useMessageSender } from '../composables/useMessageSender'
+import { useFileWatch } from '../composables/useFileWatch'
 import { exportCurrentChat } from '../utils/chatExporter'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { htmlToMarkdown } from '../utils/contentConverter'
 import { SlashCommandsExtension, suggestionOptions, slashCommandPluginKey } from './slash-commands'
 import FileReferenceExtension from './file-reference/FileReferenceExtension'
-import { loadFileList, addFileToCache, removeFileFromCache, fileReferencePluginKey } from './file-reference/FileReferenceSuggestion'
+import { fileReferencePluginKey } from './file-reference/FileReferenceSuggestion'
 import { useWorkspace } from '../stores/workspace'
 import { apiService } from '../services/api'
-import { fileUpdateService } from '../services/fileUpdates'
-import { useGlobalToast } from '../stores/toast'
+import type { PermissionMode } from '@anthropic-ai/claude-code'
 import '../assets/tiptap.css'
 
 interface Props {
@@ -99,12 +100,15 @@ const permissionModeOptions = [
   { label: 'bypassPermissions', value: 'bypassPermissions' },
 ]
 
-// 使用导入的 messageManager
-const chatManager = useChatManager()
-
-const foregroundChat = computed(() => chatManager.foregroundChat)
+// 使用新的 composables
+const chatStore = useChatStore()
+const { sendUserInput: sendMessage, sendSetMode } = useMessageSender()
 const workspace = useWorkspace()
-const toast = useGlobalToast()
+
+// 初始化文件监听
+useFileWatch()
+
+const foregroundChat = computed(() => chatStore.foregroundChat)
 
 // 配置选择相关
 const configOptions = ref<{ label: string; value: string }[]>([])
@@ -127,30 +131,23 @@ const loadConfigNames = async () => {
   }
 }
 
-// 配置变更处理
-const onConfigChange = () => {
-  // 配置名称已通过 v-model 更新到 foregroundChat.session.configName
-  // 无需额外处理
-}
-
-// 组合的禁用状态
+// 编辑器可用状态
 const editable = computed(() => workspace.hasWorkingDirectory)
 
 // 禁用原因提示
 const disabledTooltip = computed(() => {
   if (!foregroundChat.value?.pendingRequest) return ''
-
   return '等待工具权限确认...'
 })
 
-const sendUserInput = () => {
+// 发送用户输入
+const handleSendUserInput = async () => {
   if (!editor.value || editor.value.isEmpty) return
 
   const textContent = editor.value.getText()
   if (!textContent.trim()) return
 
   const htmlContent = editor.value.getHTML()
-
   const chatId = foregroundChat.value?.chatId || ''
 
   // 将 HTML 转换为 Markdown
@@ -158,10 +155,11 @@ const sendUserInput = () => {
 
   console.log(markdownContent)
 
-  messageManager.sendUserInput(chatId, markdownContent)
+  // 使用 composable 发送消息
+  sendMessage(chatId, markdownContent)
 
-  editor.value.commands.focus();
-  editor.value.commands.clearContent();
+  editor.value.commands.focus()
+  editor.value.commands.clearContent()
 }
 
 // 初始化 TipTap 编辑器
@@ -184,7 +182,7 @@ const editor = useEditor({
   editorProps: {
     handleKeyDown: (view, event) => {
       if (event.key === 'Enter' && event.shiftKey) {
-        // 修改事件的 shiftKey 属性，让后续处理器认为这是普通 Enter
+        // Shift+Enter: 换行
         Object.defineProperty(event, 'shiftKey', {
           get: () => false
         })
@@ -195,19 +193,17 @@ const editor = useEditor({
         // 检查斜杠命令建议列表是否正在显示
         const slashSuggestionState = slashCommandPluginKey.getState(view.state)
         if (slashSuggestionState?.active) {
-          // 如果建议列表正在显示,返回 false 让建议插件处理 Enter 键
           return false
         }
 
         // 检查文件引用建议列表是否正在显示
         const fileSuggestionState = fileReferencePluginKey.getState(view.state)
         if (fileSuggestionState?.active) {
-          // 如果文件引用列表正在显示,返回 false 让建议插件处理 Enter 键
           return false
         }
 
         // 建议列表未显示,发送消息
-        sendUserInput()
+        handleSendUserInput()
         return true
       }
     },
@@ -230,72 +226,6 @@ onMounted(() => {
   loadConfigNames()
 })
 
-// 文件更新订阅管理
-let unsubscribeFileUpdates: (() => void) | null = null
-
-// 监听工作目录变化，加载文件列表并订阅文件更新
-watch(() => workspace.workingDirectory, async (newDir) => {
-  // 清理之前的订阅
-  if (unsubscribeFileUpdates) {
-    unsubscribeFileUpdates()
-    unsubscribeFileUpdates = null
-  }
-
-  if (newDir) {
-    try {
-      // 初始加载文件列表
-      const files = await apiService.getWorkspaceFiles(newDir)
-      await loadFileList(files)
-      console.log('File list loaded:', files.length, 'files')
-
-      // 订阅文件更新
-      unsubscribeFileUpdates = fileUpdateService.subscribe(
-        newDir,
-        {
-          // 单个文件变更回调
-          onFileChange: (type: 'created' | 'removed', file: string) => {
-            try {
-              console.log(`File ${type}:`, file)
-
-              // 直接更新缓存，不需要重新拉取完整文件列表
-              if (type === 'created') {
-                addFileToCache(file)
-              } else if (type === 'removed') {
-                removeFileFromCache(file)
-              }
-            } catch (error) {
-              console.error(`Failed to handle file ${type}:`, error)
-            }
-          },
-          // 错误回调
-          onError: (error: string) => {
-            console.error('File update service error:', error)
-            // 使用 toast 提示用户文件更新错误
-            toast.add({
-              severity: 'warn',
-              summary: '文件更新错误',
-              detail: `无法实时更新文件列表: ${error}`,
-              life: 3000
-            })
-          }
-        }
-      )
-
-      console.log('Subscribed to file updates for workDir:', newDir)
-    } catch (error) {
-      console.error('Failed to load file list:', error)
-    }
-  }
-}, { immediate: true })
-
-// 组件卸载时清理订阅
-onUnmounted(() => {
-  if (unsubscribeFileUpdates) {
-    unsubscribeFileUpdates()
-    unsubscribeFileUpdates = null
-  }
-})
-
 // 权限模式更新处理
 const onPermissionModeUpdate = (newValue: PermissionMode) => {
   if (foregroundChat.value?.session) {
@@ -304,15 +234,11 @@ const onPermissionModeUpdate = (newValue: PermissionMode) => {
 }
 
 // 权限模式变更处理
-const onPermissionModeChange = () => {
-  // 发送模式更新消息到服务器
+const onPermissionModeChange = async () => {
   const chatId = foregroundChat.value?.chatId || ''
   const mode = foregroundChat.value?.session.permissionMode || 'default'
-
-  messageManager.sendSetMode(chatId, mode)
+  await sendSetMode(chatId, mode)
 }
-
-import type { PermissionMode } from '@anthropic-ai/claude-code'
 </script>
 
 <style scoped>

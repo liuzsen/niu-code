@@ -42,21 +42,22 @@ import { useRouter } from 'vue-router'
 import { useLayout } from '../composables/useLayout'
 import { mockFiles, currentMockFile, setSelectedMockFile, isDevelopment } from '../utils/mockLoader'
 import { useToast } from 'primevue/usetoast'
-import { wsService } from '../services'
+import { useWebSocket } from '../composables/useWebSocket'
 
 const router = useRouter()
-const wsState = wsService.state;
+const ws = useWebSocket()
+const wsState = ws.state;
 const isConnected = computed(() => wsState.connected);
 const isConnecting = computed(() => wsState.connecting);
 
 const connectionStatus = computed(() => {
-  if (wsService.state.connected) return 'Connected'
-  if (wsService.state.connecting) return 'Connecting...'
+  if (ws.state.connected) return 'Connected'
+  if (ws.state.connecting) return 'Connecting...'
   return 'Disconnected'
 })
 
 const connect = () => {
-  wsService.connect()
+  ws.connect()
 }
 
 // const { connectionStatus, isConnecting, isConnected, connect } = useConnection()

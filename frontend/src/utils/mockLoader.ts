@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { useChatManager } from '../stores/chatManager'
+import { useChatManager } from '../stores/chat'
 
 export const isDevelopment = import.meta.env.DEV
 
