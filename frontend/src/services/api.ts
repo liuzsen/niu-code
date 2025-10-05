@@ -251,6 +251,38 @@ export class ApiService {
     }
   }
 
+  async getWorkspaceFiles(): Promise<string[]> {
+    // Mock data - 模拟工作目录下的文件列表
+    return [
+      'frontend/src/App.vue',
+      'frontend/src/main.ts',
+      'frontend/src/style.css',
+      'frontend/src/components/ChatPanel.vue',
+      'frontend/src/components/InputEditor.vue',
+      'frontend/src/components/slash-commands/SlashCommandsExtension.ts',
+      'frontend/src/components/slash-commands/SlashCommandSuggestion.ts',
+      'frontend/src/components/slash-commands/SlashCommandList.vue',
+      'frontend/src/services/api.ts',
+      'frontend/src/services/websocket.ts',
+      'frontend/src/services/messageManager.ts',
+      'frontend/src/stores/chatManager.ts',
+      'frontend/src/types/message.ts',
+      'frontend/src/types/session.ts',
+      'frontend/package.json',
+      'frontend/vite.config.ts',
+      'frontend/tsconfig.json',
+      'backend/src/main.rs',
+      'backend/src/api.rs',
+      'backend/src/api/chat.rs',
+      'backend/src/api/fs.rs',
+      'backend/src/api/setting.rs',
+      'backend/Cargo.toml',
+      'README.md',
+      'CLAUDE.md',
+      'architecture.md',
+    ]
+  }
+
   // === 下面是旧的废弃方法，将在后续清理 ===
 
   async loadActiveSessions(workDir: string): Promise<SessionInfo[]> {

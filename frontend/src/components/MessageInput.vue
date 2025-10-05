@@ -78,6 +78,8 @@ import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { htmlToMarkdown } from '../utils/contentConverter'
 import { SlashCommandsExtension, suggestionOptions, slashCommandPluginKey } from './slash-commands'
+import FileReferenceExtension from './file-reference/FileReferenceExtension'
+import { loadFileList, fileReferencePluginKey } from './file-reference/FileReferenceSuggestion'
 import { useWorkspace } from '../stores/workspace'
 import { apiService } from '../services/api'
 import '../assets/tiptap.css'
@@ -169,6 +171,7 @@ const editor = useEditor({
     SlashCommandsExtension.configure({
       suggestion: suggestionOptions,
     }),
+    FileReferenceExtension,
   ],
   editable: editable.value,
   autofocus: true,
@@ -187,9 +190,16 @@ const editor = useEditor({
 
       if (event.key === 'Enter') {
         // 检查斜杠命令建议列表是否正在显示
-        const suggestionState = slashCommandPluginKey.getState(view.state)
-        if (suggestionState?.active) {
+        const slashSuggestionState = slashCommandPluginKey.getState(view.state)
+        if (slashSuggestionState?.active) {
           // 如果建议列表正在显示,返回 false 让建议插件处理 Enter 键
+          return false
+        }
+
+        // 检查文件引用建议列表是否正在显示
+        const fileSuggestionState = fileReferencePluginKey.getState(view.state)
+        if (fileSuggestionState?.active) {
+          // 如果文件引用列表正在显示,返回 false 让建议插件处理 Enter 键
           return false
         }
 
@@ -216,6 +226,19 @@ watch(editable, (editable) => {
 onMounted(() => {
   loadConfigNames()
 })
+
+// 监听工作目录变化，加载文件列表
+watch(() => workspace.workingDirectory, async (newDir) => {
+  if (newDir) {
+    try {
+      const files = await apiService.getWorkspaceFiles()
+      await loadFileList(files)
+      console.log('File list loaded:', files.length, 'files')
+    } catch (error) {
+      console.error('Failed to load file list:', error)
+    }
+  }
+}, { immediate: true })
 
 // 权限模式更新处理
 const onPermissionModeUpdate = (newValue: PermissionMode) => {

@@ -22,6 +22,7 @@ declare module 'vue' {
     ExitPlanModeMessage: typeof import('./src/components/message/ExitPlanModeMessage.vue')['default']
     FallbackMessage: typeof import('./src/components/message/FallbackMessage.vue')['default']
     FileEditTool: typeof import('./src/components/tool-use/FileEditTool.vue')['default']
+    FileReferenceList: typeof import('./src/components/file-reference/FileReferenceList.vue')['default']
     FileWriteTool: typeof import('./src/components/tool-use/FileWriteTool.vue')['default']
     GeneralSettingsTab: typeof import('./src/components/settings/GeneralSettingsTab.vue')['default']
     GlobalPermissionDialog: typeof import('./src/components/GlobalPermissionDialog.vue')['default']
