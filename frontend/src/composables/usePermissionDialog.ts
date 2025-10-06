@@ -97,7 +97,7 @@ export function usePermissionDialog(request: ToolPermissionRequest | null) {
 
     const result: PermissionResult = {
       behavior: 'deny',
-      message: "",
+      message: "user denied",
       interrupt: true
     };
 
