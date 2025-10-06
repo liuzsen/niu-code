@@ -1,9 +1,9 @@
 import { watch, onUnmounted } from 'vue'
 import { useWorkspace } from '../stores/workspace'
-import { useGlobalToast } from '../stores/toast'
 import { apiService } from '../services/api'
 import { fileUpdateService } from '../services/fileUpdates'
 import { loadFileList, addFileToCache, removeFileFromCache } from '../components/file-reference/FileReferenceSuggestion'
+import { errorHandler } from '../services/errorHandler'
 
 /**
  * 文件监听 Composable
@@ -11,7 +11,6 @@ import { loadFileList, addFileToCache, removeFileFromCache } from '../components
  */
 export function useFileWatch() {
   const workspace = useWorkspace()
-  const toast = useGlobalToast()
 
   // 文件更新订阅管理
   let unsubscribeFileUpdates: (() => void) | null = null
@@ -57,13 +56,8 @@ export function useFileWatch() {
         // 错误回调
         onError: (error: string) => {
           console.error('File update service error:', error)
-          // 使用 toast 提示用户文件更新错误
-          toast.add({
-            severity: 'warn',
-            summary: '文件更新错误',
-            detail: `无法实时更新文件列表: ${error}`,
-            life: 3000
-          })
+          const appError = errorHandler.createNetworkError('无法实时更新文件列表')
+          errorHandler.handle(appError)
         }
       })
 

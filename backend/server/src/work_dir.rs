@@ -204,17 +204,8 @@ impl FileWatcherRegistry {
             };
 
             if watcher.should_ignore_path(path) {
-                debug!(
-                    "Skipping change for ignored path: {:?} in work_dir: {:?}",
-                    path, work_dir
-                );
                 return; // 忽略这个变更
             }
-
-            debug!(
-                "File change detected: {:?} in work_dir: {:?}",
-                change, work_dir
-            );
 
             // 通知变更，检查是否需要清理
             let has_remaining_notifiers = watcher.notify_change(change);

@@ -26,6 +26,7 @@ declare module 'vue' {
     FileWriteTool: typeof import('./src/components/tool-use/FileWriteTool.vue')['default']
     GeneralSettingsTab: typeof import('./src/components/settings/GeneralSettingsTab.vue')['default']
     GlobalPermissionDialog: typeof import('./src/components/GlobalPermissionDialog.vue')['default']
+    GrepMessage: typeof import('./src/components/message/GrepMessage.vue')['default']
     InputText: typeof import('primevue/inputtext')['default']
     MarkdownRenderer: typeof import('./src/components/message/MarkdownRenderer.vue')['default']
     Message: typeof import('primevue/message')['default']

@@ -42,7 +42,6 @@ pub async fn load_session_infos(work_dir: &Path) -> Result<Vec<ClaudeSessionInfo
         if entry.path().extension() != Some(OsStr::new("jsonl")) {
             continue;
         }
-        println!("{}", entry.path().display());
 
         let file = File::open(entry.path()).await?;
         let reader = BufReader::new(file);
