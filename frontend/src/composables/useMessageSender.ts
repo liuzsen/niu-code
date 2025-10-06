@@ -54,6 +54,7 @@ export function useMessageSender() {
       return
     }
 
+
     // 确保会话已启动
     await ensureChatStarted(chatId)
 

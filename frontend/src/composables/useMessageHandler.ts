@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, ref, type Ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import type { ServerMessage } from '../types/message'
 import { useWebSocket } from './useWebSocket'
 import { useChatManager } from '../stores/chat'
@@ -11,7 +11,7 @@ interface MessageHandlerInstance {
   startReplay: (chatId: string) => void
   endReplay: () => void
   handleServerMessage: (message: ServerMessage) => void
-  isReplaying: Ref<string | undefined>
+  isReplaying: boolean
 }
 
 // 全局去重标志
@@ -160,7 +160,9 @@ export function useMessageHandler() {
     startReplay,
     endReplay,
     handleServerMessage,
-    isReplaying: replayingChat
+    get isReplaying() {
+      return !!replayingChat.value
+    }
   }
 
   // 保存清理函数的引用
