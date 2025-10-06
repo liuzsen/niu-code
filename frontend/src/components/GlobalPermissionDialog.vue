@@ -10,210 +10,40 @@
         </div>
       </div>
 
-      <!-- ExitPlanMode 专用选项 -->
-      <template v-if="isExitPlanMode">
-        <div class="permission-option" :class="{ 'permission-option-selected': selectedIndex === 0 }"
-          @click="allowWithSuggestion" @mouseenter="selectedIndex = 0">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-check text-green-500"></i>
-            <span>Yes, and auto-accept edits</span>
-          </div>
+      <div v-for="(option, index) in options" :key="option.id" class="permission-option"
+        :class="{ 'permission-option-selected': selectedIndex === index }" @click="executeOption(option)"
+        @mouseenter="selectedIndex = index">
+        <div class="flex items-center gap-2">
+          <i class="pi" :class="[option.icon, option.iconClass]"></i>
+          <span :class="option.textClass" v-html="option.text"></span>
         </div>
-        <div class="permission-option" :class="{ 'permission-option-selected': selectedIndex === 1 }"
-          @click="allowPermission" @mouseenter="selectedIndex = 1">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-check text-gray-500"></i>
-            <span>Yes, and manually approve edits</span>
-          </div>
-        </div>
-        <div class="permission-option" :class="{ 'permission-option-selected': selectedIndex === 2 }"
-          @click="denyPermission" @mouseenter="selectedIndex = 2">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-times text-red-500"></i>
-            <span class="font-medium">No, keep planning (ESC)</span>
-          </div>
-        </div>
-      </template>
-
-      <!-- 通用工具权限选项 -->
-      <template v-else>
-        <div class="permission-option" :class="{ 'permission-option-selected': selectedIndex === 0 }"
-          @click="allowPermission" @mouseenter="selectedIndex = 0">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-check text-green-500"></i>
-            <span>Yes</span>
-          </div>
-        </div>
-
-        <div v-for="(suggestion, index) in suggestions" :key="index" class="permission-option"
-          :class="{ 'permission-option-selected': selectedIndex === index + 1 }"
-          @click="allowWithGenericSuggestion(suggestion)" @mouseenter="selectedIndex = index + 1">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-lightbulb text-orange-500"></i>
-            <span class="font-medium" v-html="suggestionText(suggestion)"></span>
-          </div>
-        </div>
-
-        <div class="permission-option"
-          :class="{ 'permission-option-selected': selectedIndex === (suggestions?.length || 0) + 1 }"
-          @click="denyPermission" @mouseenter="selectedIndex = (suggestions?.length || 0) + 1">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-times text-red-500"></i>
-            <span class="font-medium">No, and tell Claude what to do differently (ESC)</span>
-          </div>
-        </div>
-      </template>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick, useTemplateRef } from 'vue'
-import type { PermissionUpdate } from '../types/message'
-import type { PermissionResult } from '@anthropic-ai/claude-code'
+import { ref, computed, watch, nextTick, useTemplateRef, type ComponentPublicInstance, onMounted } from 'vue'
 import { useChatManager } from '../stores/chat'
-import { useWorkspace } from '../stores/workspace'
-import { useToast } from 'primevue'
-import { extractFileName } from '../utils/pathProcess'
-import { useMessageSender } from '../composables/useMessageSender'
+import { usePermissionDialog, type PermissionOption } from '../composables/usePermissionDialog'
 
 const chatManager = useChatManager()
-const workspace = useWorkspace()
-const { sendPermissionResponse: sendResponse } = useMessageSender()
+
+// Template ref
+const permissionContainer = useTemplateRef<ComponentPublicInstance & { focus: () => void }>("permissionContainer")
+
+// State
 const selectedIndex = ref(0)
-const chatId = computed(() => chatManager.foregroundChat.chatId)
-const permissionContainer = useTemplateRef("permissionContainer")
 
-const request = computed(() => chatManager.foregroundChat.pendingRequest)
+// Computed properties
+const request = computed(() => chatManager.foregroundChat.pendingRequest || null)
+const { questionText, options, escCallback } = usePermissionDialog(request.value)
 
-const isExitPlanMode = computed(() => request.value?.tool_use.tool_name === 'ExitPlanMode')
-
-const suggestions = computed(() => request.value?.suggestions)
-
-const questionText = computed(() => {
-  if (!request.value) return ''
-
-  if (isExitPlanMode.value) {
-    return 'Would you like to proceed?'
-  }
-
-  const toolName = request.value.tool_use.tool_name
-
-  if (toolName === 'Edit' || toolName === 'Write') {
-    const file_path = request.value.tool_use.input.file_path
-    const fileName = extractFileName(file_path)
-    return `Do you want to make this edit to ${fileName}?`
-  }
-
-  if (toolName === 'Bash') {
-    return `Do you want to run this command?`
-  }
-
-  return `Do you want to allow this ${toolName} operation?`
-})
-
-function suggestionText(suggestion: PermissionUpdate) {
-  switch (suggestion.type) {
-    case 'setMode':
-      if (suggestion.mode == 'acceptEdits') {
-        if (suggestion.destination == 'session') {
-          return 'Yes, allow all edits during this session'
-        } else if (suggestion.destination == 'projectSettings') {
-          return 'Yes, allow all edits in this project'
-        }
-      }
-      break
-    case "addRules": {
-      const rule = suggestion.rules[0];
-      if (rule.toolName == "Bash") {
-        if (suggestion.destination == 'localSettings') {
-          const cmd = rule.ruleContent?.replace(":*", "");
-          const cmd_html = `<span class="text-orange-500 font-bold">${cmd}</span>`
-          return `Yes and don't ask again for commands ${cmd_html} in ${workspace.workingDirectory}`
-        }
-      }
-      break
-    }
-    default:
-      return suggestion
-  }
-
-  return `Unknown suggestion type: ${suggestion}`
-}
-
-const toast = useToast()
-
-const sendPermissionResponse = (result: PermissionResult) => {
-  try {
-    sendResponse(chatId.value, result)
-    chatManager.foregroundChat.pendingRequest = undefined
-  } catch (error) {
-    toast.add({
-      severity: 'error',
-      summary: 'Error',
-      detail: `Failed to send permission response:\n ${error}`,
-    })
-  }
-}
-
-const denyPermission = () => {
-  if (!request.value) return
-
-  const result: PermissionResult = {
-    behavior: 'deny',
-    message: "",
-    interrupt: true
-  };
-
-  sendPermissionResponse(result)
-}
-
-const allowPermission = () => {
-  if (!request.value) return
-
-  const result: PermissionResult = {
-    behavior: 'allow',
-    updatedInput: request.value.tool_use.input as Record<string, unknown>,
-    updatedPermissions: []
-  };
-
-  sendPermissionResponse(result)
-}
-
-const allowWithSuggestion = () => {
-  if (!request.value) return
-
-  const result: PermissionResult = {
-    behavior: 'allow',
-    updatedInput: request.value.tool_use.input as Record<string, unknown>,
-    updatedPermissions: [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }],
-  };
-  chatManager.foregroundChat.session.permissionMode = 'acceptEdits'
-  sendPermissionResponse(result)
-}
-
-const allowWithGenericSuggestion = (suggestion: PermissionUpdate) => {
-  if (!request.value) return
-
-  const result: PermissionResult = {
-    behavior: 'allow',
-    updatedInput: request.value.tool_use.input as Record<string, unknown>,
-    updatedPermissions: [suggestion]
-  };
-  sendPermissionResponse(result)
-}
-
-const totalOptions = computed(() => {
-  if (isExitPlanMode.value) {
-    return 3
-  }
-  return (suggestions.value?.length || 0) + 2
-})
-
+// Navigation and execution
 const handleKeyDown = (event: KeyboardEvent) => {
   if (!request.value) return
 
-  const maxIndex = totalOptions.value - 1
+  const maxIndex = options.value.length - 1
 
   switch (event.key) {
     case 'ArrowUp':
@@ -230,40 +60,38 @@ const handleKeyDown = (event: KeyboardEvent) => {
       break
     case 'Escape':
       event.preventDefault()
-      denyPermission()
+      if (escCallback) {
+        escCallback()
+      }
       break
   }
 }
 
+const executeOption = (option: PermissionOption) => {
+  option.action()
+}
+
 const executeSelectedOption = () => {
-  if (isExitPlanMode.value) {
-    if (selectedIndex.value === 0) {
-      allowWithSuggestion()
-    } else if (selectedIndex.value === 1) {
-      allowPermission()
-    } else if (selectedIndex.value === 2) {
-      denyPermission()
-    }
-  } else {
-    if (selectedIndex.value === 0) {
-      allowPermission()
-    } else if (selectedIndex.value === (suggestions.value?.length || 0) + 1) {
-      denyPermission()
-    } else if (suggestions.value && selectedIndex.value <= suggestions.value.length) {
-      allowWithGenericSuggestion(suggestions.value[selectedIndex.value - 1])
-    }
+  const selectedOption = options.value[selectedIndex.value]
+  if (selectedOption) {
+    executeOption(selectedOption)
   }
 }
 
-onMounted(() => {
+const focusDialog = () => {
   permissionContainer.value?.focus()
+}
+
+// Lifecycle
+onMounted(() => {
+  focusDialog()
 })
 
 watch(() => request.value, (newRequest) => {
   if (newRequest) {
     selectedIndex.value = 0
     nextTick(() => {
-      permissionContainer.value?.focus()
+      focusDialog()
     })
   }
 }, { immediate: true })

@@ -7,7 +7,6 @@ import { errorHandler } from '../services/errorHandler'
 
 // 定义返回类型
 interface MessageHandlerInstance {
-  processMessage: (message: ServerMessage) => void
   startReplay: (chatId: string) => void
   endReplay: () => void
   handleServerMessage: (message: ServerMessage) => void
@@ -75,7 +74,6 @@ export function useMessageHandler() {
     // 自动提取并设置 session_id
     const chat = chatManager.getChat(chat_id)
     if (chat && !chat.sessionId) {
-      console.log(`Auto-setting sessionId for chat ${chat_id}: ${data.session_id}`)
       chat.sessionId = data.session_id
     }
 
@@ -156,7 +154,6 @@ export function useMessageHandler() {
 
   // 创建实例
   messageHandlerInstance = {
-    processMessage,
     startReplay,
     endReplay,
     handleServerMessage,
