@@ -94,7 +94,7 @@ export class FileUpdateService {
               }
               break
 
-  
+
             case 'Error':
               if (data.message) {
                 console.error('File update error for workDir:', data.work_dir, 'error:', data.message)
@@ -156,14 +156,6 @@ export class FileUpdateService {
       this.eventSource = null
     }
     this.currentWorkDir = ''
-  }
-
-  // 手动重新连接
-  reconnect(): void {
-    if (this.currentWorkDir && this.fileChangeCallbacks.size > 0) {
-      this.disconnect()
-      this.connect(this.currentWorkDir)
-    }
   }
 
   // 获取连接状态

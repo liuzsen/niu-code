@@ -4,12 +4,14 @@ import { useWebSocket } from './useWebSocket'
 import { useChatManager } from '../stores/chat'
 import { extract_tool_result } from '../utils/messageExtractors'
 import { errorHandler } from '../services/errorHandler'
+import { playNotificationSound } from '../utils/sound'
+import { useMessageSender } from './useMessageSender'
 
 // 定义返回类型
 interface MessageHandlerInstance {
   startReplay: (chatId: string) => void
   endReplay: () => void
-  handleServerMessage: (message: ServerMessage) => void
+  processMessage: (message: ServerMessage) => void
   isReplaying: boolean
 }
 
@@ -77,6 +79,13 @@ export function useMessageHandler() {
       chat.sessionId = data.session_id
     }
 
+    console.log('Received Claude message:', data)
+    // 检查是否为 SDKResultMessage，如果是则播放通知声音
+    if (data.type === 'result') {
+      console.log("is result")
+      playNotificationSound()
+    }
+
     // 检查是否包含工具结果
     const toolResult = extract_tool_result(data)
     if (toolResult) {
@@ -128,7 +137,13 @@ export function useMessageHandler() {
   // 处理 WebSocket 连接成功
   function handleConnected() {
     console.log('WebSocket connected, registering all chats')
-    // 注册所有聊天会在 useChatSession 中处理
+    for (const chat of chatManager.chats) {
+      // 如果会话已启动，那么可能是重连，需要再次注册
+      if (chat.started()) {
+        console.log('Registering started chat:', chat.chatId)
+        useMessageSender().sendRegisterChat(chat.chatId)
+      }
+    }
   }
 
   // 处理重连失败
@@ -156,7 +171,7 @@ export function useMessageHandler() {
   messageHandlerInstance = {
     startReplay,
     endReplay,
-    handleServerMessage,
+    processMessage,
     get isReplaying() {
       return !!replayingChat.value
     }
