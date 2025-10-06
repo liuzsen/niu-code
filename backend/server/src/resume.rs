@@ -33,7 +33,7 @@ pub struct ClaudeSessionInfo {
 }
 
 pub async fn load_session_infos(work_dir: &Path) -> Result<Vec<ClaudeSessionInfo>> {
-    let logs_dir = dbg!(logs_dir(work_dir)?);
+    let logs_dir = logs_dir(work_dir)?;
     debug!("loading logs dir: {}", logs_dir.display());
     let mut dir = read_dir(logs_dir).await?;
 

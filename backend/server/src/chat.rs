@@ -326,6 +326,7 @@ impl ChatManager {
     }
 
     fn remove_chat(&mut self, chat_id: &ChatId) {
+        debug!("Remove chat: {}", chat_id);
         self.chat_to_cli.remove(chat_id);
         self.chat_to_conn.remove(chat_id);
     }
@@ -598,8 +599,8 @@ impl ChatManager {
                 self.remove_chat(&chat_id);
             }
 
+            self.chat_to_cli.insert(chat_id.clone(), cli_id);
             let session = self.cli_sessions.get_mut(&cli_id).unwrap();
-
             session.chat = Some(SessionChat {
                 id: chat_id,
                 lag_count: 0,

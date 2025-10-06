@@ -6,6 +6,7 @@ import { useMessageSender } from './useMessageSender'
 import { useMessageHandler } from './useMessageHandler'
 import type { UnifiedSessionInfo, MessageRecord } from '../types/session'
 import type { Editor } from '@tiptap/core'
+import type { ServerMessage } from '../types'
 
 const isSessionListVisible = ref(false)
 const isRestoring = ref(false)
@@ -15,30 +16,35 @@ const editorRef = ref<Editor | null>(null)
 export function useResume() {
   const chatStore = useChatStore()
   const workspace = useWorkspace()
-  const { sendRegisterChat } = useMessageSender()
-  const { startReplay, endReplay } = useMessageHandler()
-  const chatManager = useChatStore()
+  const { sendRegisterChat, sendUserInput, sendPermissionResponse } = useMessageSender()
+  const { startReplay, endReplay, handleServerMessage } = useMessageHandler()
 
   // 重放单条消息记录
   function replayMessageRecord(chatId: string, record: MessageRecord) {
     const message = record.message
 
     if ('UserInput' in message) {
-      sendRegisterChat(chatId)
+      sendUserInput(chatId, message.UserInput)
     } else if ('Claude' in message) {
-      // 伪装成 ServerMessage
-      const serverMessage = {
+      const serverMessage: ServerMessage = {
         chat_id: chatId,
         data: { kind: 'claude', ...message.Claude }
       }
-      chatManager.addClaudeMessage(chatId, serverMessage.data)
+      handleServerMessage(serverMessage)
     } else if ('SystemInfo' in message) {
-      // 伪装成 ServerMessage
-      const serverMessage = {
+      const serverMessage: ServerMessage = {
         chat_id: chatId,
         data: { kind: 'system_info', ...message.SystemInfo }
       }
-      chatManager.setSystemInfo(chatId, serverMessage.data)
+      handleServerMessage(serverMessage)
+    } else if ('PermissionResp' in message) {
+      sendPermissionResponse(chatId, message.PermissionResp)
+    } else if ('CanUseTool' in message) {
+      const serverMessage: ServerMessage = {
+        chat_id: chatId,
+        data: { kind: 'can_use_tool', ...message.CanUseTool }
+      }
+      handleServerMessage(serverMessage)
     }
   }
 

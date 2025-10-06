@@ -4,6 +4,7 @@ import { useWebSocket } from './useWebSocket'
 import { useChatManager } from '../stores/chat'
 import { useWorkspace } from '../stores/workspace'
 import { apiService } from '../services/api'
+import { useMessageHandler } from './useMessageHandler'
 
 // 定义返回类型
 interface MessageSenderInstance {
@@ -32,6 +33,7 @@ export function useMessageSender() {
   const { ws } = useWebSocket()
   const chatManager = useChatManager()
   const workspace = useWorkspace()
+  const messageHandler = useMessageHandler()
 
   /**
    * 发送用户输入消息
@@ -47,6 +49,10 @@ export function useMessageSender() {
 
     // 更新本地状态
     chatManager.addUserMessage(chatId, { content })
+
+    if (messageHandler.isReplaying) {
+      return
+    }
 
     // 确保会话已启动
     await ensureChatStarted(chatId)
@@ -110,6 +116,10 @@ export function useMessageSender() {
 
     // 清除待处理的权限请求
     chatManager.foregroundChat.pendingRequest = undefined
+
+    if (messageHandler.isReplaying) {
+      return
+    }
 
     const message: ClientMessage = {
       chat_id: chatId,

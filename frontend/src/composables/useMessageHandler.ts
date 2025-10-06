@@ -10,6 +10,7 @@ interface MessageHandlerInstance {
   processMessage: (message: ServerMessage) => void
   startReplay: (chatId: string) => void
   endReplay: () => void
+  handleServerMessage: (message: ServerMessage) => void
   isReplaying: Ref<string | undefined>
 }
 
@@ -158,6 +159,7 @@ export function useMessageHandler() {
     processMessage,
     startReplay,
     endReplay,
+    handleServerMessage,
     isReplaying: replayingChat
   }
 
