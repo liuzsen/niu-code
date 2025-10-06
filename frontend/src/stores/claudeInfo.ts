@@ -7,14 +7,9 @@ export const useClaudeInfo = defineStore('claude-info', () => {
   const systemInfo = ref<ClaudeSystemInfo | null>(null)
 
   const loadClaudeInfo = async (workDir: string) => {
-    try {
-      const info = await apiService.getClaudeInfo(workDir)
-      systemInfo.value = info
-      return info
-    } catch (error) {
-      console.error('Failed to load Claude info:', error)
-      throw error
-    }
+    const info = await apiService.getClaudeInfo(workDir)
+    systemInfo.value = info || null
+    return info
   }
 
   const clearClaudeInfo = () => {

@@ -1,13 +1,7 @@
-import { reactive } from 'vue'
 import type { ClientMessage, ServerMessage } from '../types/message'
+import { errorHandler } from './errorHandler'
+import { ErrorSeverity } from '../types/error'
 
-interface WebSocketState {
-  connected: boolean
-  connecting: boolean
-  error: string | null
-}
-
-// 扩展的类型定义
 export interface WebSocketError {
   type: 'parse_error' | 'connection_error'
   error: Error
@@ -15,34 +9,47 @@ export interface WebSocketError {
 }
 
 export class WebSocketService {
+  private state: "connected" | "connecting" | "reconnecting" | "disconnected" = "disconnected"
+
   private ws: WebSocket | null = null
   private url: string
 
-  // 类型安全的消息处理器
   private messageHandlers: Set<(message: ServerMessage) => void> = new Set()
-  private errorHandlers: Set<(error: WebSocketError) => void> = new Set()
-  private ConnectedHandlers: Set<() => void> = new Set()
+  private connectedHandlers: Set<() => void> = new Set()
   private reconnectionFailedHandlers: Set<() => void> = new Set()
 
-  // 重连相关状态
   private reconnectAttempts = 0
-  private readonly maxReconnectAttempts = 3
+  private readonly maxReconnectAttempts = 5
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null
-  private readonly reconnectDelay = 2000 // 2秒
-
-  public state = reactive<WebSocketState>({
-    connected: false,
-    connecting: false,
-    error: null
-  })
 
   constructor(url: string) {
     this.url = url
   }
 
+  // 状态获取方法
+  getConnectionState() {
+    return this.state
+  }
+
+  isConnected() {
+    return this.state === 'connected'
+  }
+
+  isConnecting() {
+    return this.state === 'connecting'
+  }
+
+  isReconnecting() {
+    return this.state === 'reconnecting'
+  }
+
+  getReconnectAttempt() {
+    return this.reconnectAttempts
+  }
+
   onConnected(handler: () => void): () => void {
-    this.ConnectedHandlers.add(handler)
-    return () => this.ConnectedHandlers.delete(handler)
+    this.connectedHandlers.add(handler)
+    return () => this.connectedHandlers.delete(handler)
   }
 
   onReconnectionFailed(handler: () => void): () => void {
@@ -50,46 +57,34 @@ export class WebSocketService {
     return () => this.reconnectionFailedHandlers.delete(handler)
   }
 
-  // 注册消息处理器
   onMessage(handler: (message: ServerMessage) => void): () => void {
     this.messageHandlers.add(handler)
     return () => this.messageHandlers.delete(handler)
   }
 
-  // 注册错误处理器
-  onError(handler: (error: WebSocketError) => void): () => void {
-    this.errorHandlers.add(handler)
-    return () => this.errorHandlers.delete(handler)
-  }
-
   connect(): Promise<void> {
     return new Promise((resolve, reject) => {
-      if (this.state.connected || this.state.connecting) {
+      if (this.isConnected() || this.isConnecting()) {
         resolve()
         return
       }
 
-      this.state.connecting = true
-      this.state.error = null
+      this.state = 'connecting'
 
       try {
         this.ws = new WebSocket(this.url)
 
         this.ws.onopen = () => {
           console.log('WebSocket connected')
-          this.state.connected = true
-          this.state.connecting = false
+          this.state = 'connected'
           this.reconnectAttempts = 0
 
-          // 清除重连定时器
           if (this.reconnectTimer) {
             clearTimeout(this.reconnectTimer)
             this.reconnectTimer = null
           }
 
-          this.ConnectedHandlers.forEach(handler => {
-            handler()
-          })
+          this.connectedHandlers.forEach(handler => handler())
           resolve()
         }
 
@@ -99,40 +94,32 @@ export class WebSocketService {
 
         this.ws.onclose = () => {
           console.log('WebSocket disconnected')
-          this.state.connected = false
-          this.state.connecting = false
+          this.state = 'disconnected'
           this.ws = null
 
-          // 尝试重连
           this.attemptReconnect()
         }
 
-        this.ws.onerror = (error) => {
-          console.error('WebSocket error:', error)
-          this.state.error = 'Connection error'
-          this.state.connecting = false
+        this.ws.onerror = (event) => {
+          console.error('WebSocket error:', event)
+          this.state = 'disconnected'
 
-          // 通知错误处理器
-          this.errorHandlers.forEach(handler => {
-            handler({
-              type: 'connection_error',
-              error: error instanceof Error ? error : new Error(String(error))
-            })
-          })
+          // 只在非重连状态下显示错误（避免重复通知）
+          if (!this.isReconnecting()) {
+            const error = errorHandler.createNetworkError('WebSocket 连接错误')
+            errorHandler.handle(error)
+          }
 
-          reject(error)
+          reject(new Error('WebSocket connection error'))
         }
       } catch (error) {
-        this.state.connecting = false
-        this.state.error = 'Failed to create connection'
+        this.state = 'disconnected'
 
-        // 通知错误处理器
-        this.errorHandlers.forEach(handler => {
-          handler({
-            type: 'connection_error',
-            error: error instanceof Error ? error : new Error(String(error))
-          })
-        })
+        const wsError = errorHandler.createNetworkError(
+          'WebSocket 创建失败',
+          error instanceof Error ? error : String(error)
+        )
+        errorHandler.handle(wsError)
 
         reject(error)
       }
@@ -140,26 +127,27 @@ export class WebSocketService {
   }
 
   private attemptReconnect(): void {
-    // 检查是否超过最大重连次数
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.log('Max reconnection attempts reached, triggering reconnection failed')
       this.handleReconnectionFailed()
       return
     }
 
-    this.reconnectAttempts++
-    console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`)
+    this.state = 'reconnecting'
+
+    const backoff = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000)
+    console.log(`Reconnecting in ${backoff}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`)
 
     this.reconnectTimer = setTimeout(() => {
+      this.reconnectAttempts++
       this.connect().catch(error => {
         console.error('Reconnection failed:', error)
-        // attemptReconnect 会在 onclose 中再次被调用
       })
-    }, this.reconnectDelay)
+    }, backoff)
   }
 
-  private handleReconnectionFailed(): void {
+  private async handleReconnectionFailed(): Promise<void> {
     console.log('Reconnection failed after max attempts')
+    this.state = 'disconnected'
     this.reconnectAttempts = 0
 
     if (this.reconnectTimer) {
@@ -167,16 +155,17 @@ export class WebSocketService {
       this.reconnectTimer = null
     }
 
-    this.reconnectionFailedHandlers.forEach(handler => {
-      handler()
-    })
+    // 创建严重错误并通知用户
+    const error = errorHandler.createNetworkError('WebSocket 重连失败，请刷新页面')
+    error.severity = ErrorSeverity.CRITICAL
+    await errorHandler.handle(error)
+
+    this.reconnectionFailedHandlers.forEach(handler => handler())
   }
 
-  // 发送消息 - 纯网络通信，不处理业务逻辑
-  /** @internal - 仅供 MessageManager 使用，外部请使用 messageManager.sendXxx() 方法 */
   sendMessage(message: ClientMessage): void {
     console.log("send message:", message)
-    if (!this.state.connected || !this.ws) {
+    if (!this.isConnected() || !this.ws) {
       throw new Error('WebSocket not connected')
     }
 
@@ -188,12 +177,10 @@ export class WebSocketService {
     }
   }
 
-  // 处理接收的消息
   private handleMessage(event: MessageEvent) {
     try {
       const message: ServerMessage = JSON.parse(event.data)
 
-      // 调用所有消息处理器
       this.messageHandlers.forEach(handler => {
         try {
           handler(message)
@@ -203,15 +190,6 @@ export class WebSocketService {
       })
     } catch (error) {
       console.error('Error parsing server message:', error)
-
-      // 通知错误处理器
-      this.errorHandlers.forEach(handler => {
-        handler({
-          type: 'parse_error',
-          error: error instanceof Error ? error : new Error(String(error)),
-          rawMessage: event.data
-        })
-      })
     }
   }
 }

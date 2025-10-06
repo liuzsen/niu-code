@@ -158,8 +158,6 @@ watch(currentPath, async (newPath) => {
     isSearching.value = true
     await loadDirectory(parentPath)
     isSearching.value = false
-    // searchDebounce.value = setTimeout(async () => {
-    // }, 1) // 300ms debounce
   }
 })
 
@@ -185,26 +183,26 @@ const loadDirectory = async (path: string) => {
     return
   }
 
-  try {
-    const entries = await apiService.ls(path)
+  const entries = await apiService.ls(path)
 
-    // Cache the results
-    directoryCache.value.set(path, entries)
-
-    directoryItems.value = entries
-      .filter(entry => entry !== '.' && entry !== '..')
-      .map(entry => ({
-        name: entry,
-        path: path + (path.endsWith('/') ? '' : '/') + entry
-      }))
-    selectedIndex.value = directoryItems.value.length > 0 ? 0 : -1
-  } catch (err) {
-    console.error('Failed to load directory:', err)
+  if (!entries) {
     directoryItems.value = []
     selectedIndex.value = -1
-  } finally {
     loading.value = false
+    return
   }
+
+  // Cache the results
+  directoryCache.value.set(path, entries)
+
+  directoryItems.value = entries
+    .filter(entry => entry !== '.' && entry !== '..')
+    .map(entry => ({
+      name: entry,
+      path: path + (path.endsWith('/') ? '' : '/') + entry
+    }))
+  selectedIndex.value = directoryItems.value.length > 0 ? 0 : -1
+  loading.value = false
 }
 
 const handleItemClick = (item: DirectoryItem, index: number) => {
@@ -254,11 +252,10 @@ const handlePathSubmit = async () => {
 }
 
 const onDialogShow = async () => {
-  try {
-    const homePath = await apiService.getHome()
+  const homePath = await apiService.getHome()
+  if (homePath) {
     currentPath.value = homePath + '/'
-  } catch (err) {
-    console.error('Failed to get home directory:', err)
+  } else {
     currentPath.value = '/'
   }
 }

@@ -19,7 +19,6 @@ let messageSenderInstance: MessageSenderInstance | null = null
 
 /**
  * 消息发送 Composable - 带去重逻辑
- * 无论被调用多少次，都返回同一个实例
  */
 export function useMessageSender() {
   // 去重：如果已经创建过实例，直接返回现有实例
@@ -30,7 +29,7 @@ export function useMessageSender() {
 
   console.log('useMessageSender: 创建新的消息发送器实例')
 
-  const ws = useWebSocket()
+  const { ws } = useWebSocket()
   const chatManager = useChatManager()
   const workspace = useWorkspace()
 
@@ -82,15 +81,14 @@ export function useMessageSender() {
       sendRegisterChat(chatId)
 
       // 通过 HTTP API 开始对话
-      try {
-        await apiService.startChat({
-          chat_id: chatId,
-          work_dir: workspace.workingDirectory,
-          mode: chat.session.permissionMode,
-          config_name: chat.session.configName
-        })
-      } catch (error) {
-        console.error('Failed to start chat via HTTP:', error)
+      const result = await apiService.startChat({
+        chat_id: chatId,
+        work_dir: workspace.workingDirectory,
+        mode: chat.session.permissionMode,
+        config_name: chat.session.configName
+      })
+
+      if (!result) {
         return
       }
 

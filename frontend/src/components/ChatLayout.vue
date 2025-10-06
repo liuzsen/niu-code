@@ -2,7 +2,7 @@
   <div class="flex flex-col flex-1 h-full min-h-0 max-w-[800px] w-[80%] mx-auto gap-4 p-4">
     <MessageList />
     <GlobalPermissionDialog v-if="hasPendingRequest" />
-    <MessageInput v-else :disabled="!isConnected" :error="error || undefined" />
+    <MessageInput v-else />
   </div>
 </template>
 
@@ -12,13 +12,8 @@ import MessageList from './MessageList.vue'
 import MessageInput from './MessageInput.vue'
 import GlobalPermissionDialog from './GlobalPermissionDialog.vue'
 import { useChatManager } from '../stores/chat'
-import { useWebSocket } from '../composables/useWebSocket'
 
-const ws = useWebSocket()
-const error = computed(() => ws.state.error)
-const isConnected = computed(() => ws.state.connected)
 const chatManager = useChatManager()
-
 const hasPendingRequest = computed(() => !!chatManager.foregroundChat?.pendingRequest)
 
 </script>

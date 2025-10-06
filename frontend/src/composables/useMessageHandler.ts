@@ -2,8 +2,8 @@ import { onMounted, onUnmounted, ref, type Ref } from 'vue'
 import type { ServerMessage } from '../types/message'
 import { useWebSocket } from './useWebSocket'
 import { useChatManager } from '../stores/chat'
-import { useGlobalToast } from '../stores/toast'
 import { extract_tool_result } from '../utils/messageExtractors'
+import { errorHandler } from '../services/errorHandler'
 
 // 定义返回类型
 interface MessageHandlerInstance {
@@ -29,9 +29,8 @@ export function useMessageHandler() {
 
   console.log('useMessageHandler: 创建新的消息处理器实例')
 
-  const ws = useWebSocket()
+  const { ws } = useWebSocket()
   const chatManager = useChatManager()
-  const toast = useGlobalToast()
 
   // 重放状态
   const replayingChat = ref<string | undefined>(undefined)
@@ -39,8 +38,6 @@ export function useMessageHandler() {
 
   // 处理服务器消息（主入口）
   function handleServerMessage(message: ServerMessage) {
-    console.log('useMessageHandler received message:', message)
-
     // 重放期间缓存消息
     if (replayingChat.value === message.chat_id) {
       replayBuffer.value.push(message)
@@ -111,9 +108,16 @@ export function useMessageHandler() {
   }
 
   // 处理错误消息
-  function handleErrorMessage(message: ServerMessage) {
+  async function handleErrorMessage(message: ServerMessage) {
     console.error('Server error:', message)
-    // TODO: 可以在这里添加更详细的错误处理
+
+    if (message.data.kind === 'server_error') {
+      const error = errorHandler.createServerError(
+        'SYSTEM_ERROR',
+        message.data.error
+      )
+      await errorHandler.handle(error)
+    }
   }
 
   // 处理系统信息
@@ -131,17 +135,7 @@ export function useMessageHandler() {
   // 处理重连失败
   function handleReconnectionFailed() {
     console.log('Handling reconnection failure - clearing chats')
-
-    // 清空所有对话
     chatManager.clearChats()
-
-    // 显示 toast 提示
-    toast.add({
-      severity: 'error',
-      summary: '连接中断',
-      detail: '连接中断，请检查网络连接，重新连接后使用 /resume 命令恢复对话',
-      life: 10000
-    })
   }
 
   // 重放状态管理

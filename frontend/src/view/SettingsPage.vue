@@ -152,20 +152,9 @@ const handleSaveAll = async () => {
 }
 
 const loadAllSettings = async () => {
-  try {
-    // Load Claude settings
-    const settings = await apiService.getSetting()
+  const settings = await apiService.getSetting()
+  if (settings) {
     claudeSettings.value = settings
-
-    // TODO: Load general settings from backend when API is ready
-    // For now, use default values
-  } catch (e) {
-    toast.add({
-      severity: 'error',
-      summary: '加载配置失败',
-      detail: e instanceof Error ? e.message : '未知错误',
-      life: 3000
-    })
   }
 }
 

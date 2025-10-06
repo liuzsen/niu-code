@@ -1,2 +1,3 @@
-export { ApiService, apiService, type ApiOkResponse, type ApiErrorResponse } from './api'
+export { ApiService, apiService } from './api'
 export { WebSocketService } from './websocket'
+export type { ApiOkResponse, ApiErrorResponse } from '../types/error'

@@ -26,20 +26,31 @@ pub fn config(cfg: &mut web::ServiceConfig) {
 
 #[derive(Serialize)]
 pub struct ApiOkResponse<T> {
-    code: u32,
+    code: Ok,
     data: T,
+}
+
+pub struct Ok;
+
+impl Serialize for Ok {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str("ok")
+    }
 }
 
 impl<T> ApiOkResponse<T> {
     pub fn new(data: T) -> Self {
-        Self { code: 0, data }
+        Self { code: Ok, data }
     }
 }
 
 #[derive(Serialize)]
 pub struct ApiErrorResponse {
     code: &'static str,
-    tip: Option<Cow<'static, str>>,
+    err: Option<Cow<'static, str>>,
 }
 
 #[derive(Display, Debug, From)]
@@ -49,32 +60,32 @@ pub enum ApiError {
 }
 
 #[derive(Display, Debug)]
-#[display("{}: {:?}", "code", "tip")]
+#[display("{}: {:?}", "code", "err")]
 pub struct BizError {
     pub code: &'static str,
-    pub tip: Option<Cow<'static, str>>,
+    pub err: Option<Cow<'static, str>>,
 }
 
 impl BizError {
     const CHAT_NOT_REGISTGERD: BizError = BizError {
         code: "chat/not-registerd",
-        tip: None,
+        err: None,
     };
 
     const CONFIG_NOT_FOUND: BizError = BizError {
         code: "chat/config-not-found",
-        tip: None,
+        err: None,
     };
 
     fn with_context<T: Display>(mut self, context: T) -> BizError {
-        self.tip = match self.tip {
-            Some(tip) => {
-                let tip = format!("{}: {}", tip, context);
-                Some(Cow::Owned(tip))
+        self.err = match self.err {
+            Some(err) => {
+                let err = format!("{}: {}", err, context);
+                Some(Cow::Owned(err))
             }
             None => {
-                let tip = format!("{}", context);
-                Some(Cow::Owned(tip))
+                let err = format!("{}", context);
+                Some(Cow::Owned(err))
             }
         };
 
@@ -84,18 +95,21 @@ impl BizError {
 
 impl ResponseError for ApiError {
     fn status_code(&self) -> actix_web::http::StatusCode {
-        actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        match self {
+            ApiError::Anyhow(..) => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR,
+            ApiError::BizError(..) => actix_web::http::StatusCode::BAD_REQUEST,
+        }
     }
 
     fn error_response(&self) -> actix_web::HttpResponse<actix_web::body::BoxBody> {
         let error = match self {
             ApiError::Anyhow(error) => ApiErrorResponse {
                 code: "SYSTEM_ERROR",
-                tip: Some(Cow::Owned(error.to_string())),
+                err: Some(Cow::Owned(error.to_string())),
             },
             ApiError::BizError(biz_error) => ApiErrorResponse {
                 code: biz_error.code,
-                tip: biz_error.tip.clone(),
+                err: biz_error.err.clone(),
             },
         };
         let body = serde_json::to_string(&error).unwrap();

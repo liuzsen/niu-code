@@ -58,13 +58,6 @@
         </div>
       </div>
     </div>
-
-
-    <!-- Error Message -->
-    <div v-if="error" class="mt-2 text-sm text-red-500">
-      <i class="pi pi-exclamation-triangle mr-1"></i>
-      {{ error }}
-    </div>
   </div>
 </template>
 
@@ -83,15 +76,10 @@ import { SlashCommandsExtension, suggestionOptions, slashCommandPluginKey } from
 import FileReferenceExtension from './file-reference/FileReferenceExtension'
 import { fileReferencePluginKey } from './file-reference/FileReferenceSuggestion'
 import { useWorkspace } from '../stores/workspace'
-import { apiService } from '../services/api'
+import { apiService } from '../services'
+import { useWebSocket } from '../composables/useWebSocket'
 import type { PermissionMode } from '@anthropic-ai/claude-code'
 import '../assets/tiptap.css'
-
-interface Props {
-  error?: string
-}
-
-defineProps<Props>()
 
 const permissionModeOptions = [
   { label: 'default', value: 'default' },
@@ -104,6 +92,7 @@ const permissionModeOptions = [
 const chatStore = useChatStore()
 const { sendUserInput: sendMessage, sendSetMode } = useMessageSender()
 const workspace = useWorkspace()
+const { state: websocketState } = useWebSocket()
 
 // 初始化文件监听
 useFileWatch()
@@ -123,21 +112,40 @@ const selectedConfigName = computed({
 
 // 加载配置列表
 const loadConfigNames = async () => {
-  try {
-    const names = await apiService.getConfigNames()
+  const names = await apiService.getConfigNames()
+  if (names) {
     configOptions.value = names.map(name => ({ label: name, value: name }))
-  } catch (error) {
-    console.error('Failed to load config names:', error)
   }
 }
 
 // 编辑器可用状态
-const editable = computed(() => workspace.hasWorkingDirectory)
+const editable = computed(() => {
+  if (websocketState.reconnecting) {
+    return false
+  }
+
+  if (!workspace.hasWorkingDirectory) {
+    return false
+  }
+
+  return true
+})
 
 // 禁用原因提示
 const disabledTooltip = computed(() => {
-  if (!foregroundChat.value?.pendingRequest) return ''
-  return '等待工具权限确认...'
+  if (websocketState.reconnecting) {
+    return 'WebSocket 正在重连，请稍候...'
+  }
+
+  if (!workspace.hasWorkingDirectory) {
+    return '请先选择工作目录'
+  }
+
+  if (foregroundChat.value?.pendingRequest) {
+    return '等待工具权限确认...'
+  }
+
+  return ''
 })
 
 // 发送用户输入

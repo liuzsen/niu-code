@@ -47,11 +47,12 @@ export function useResume() {
     isSessionListVisible.value = true
   }
 
-  async function loadSessionList(): Promise<UnifiedSessionInfo[]> {
+  async function loadSessionList(): Promise<UnifiedSessionInfo[] | undefined> {
     if (!workspace.workingDirectory) {
       throw new Error('工作目录未设置')
     }
-    return await apiService.loadSessionList(workspace.workingDirectory)
+    const result = await apiService.loadSessionList(workspace.workingDirectory)
+    return result
   }
 
   async function resumeSession(sessionId: string) {
@@ -96,6 +97,10 @@ export function useResume() {
         mode: newChat.session.permissionMode,
         resume: sessionId
       })
+
+      if (!records) {
+        throw new Error('Failed to restore session')
+      }
 
       restoreProgress.value = { current: 0, total: records.length }
 

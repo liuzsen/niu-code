@@ -45,14 +45,13 @@ import { useToast } from 'primevue/usetoast'
 import { useWebSocket } from '../composables/useWebSocket'
 
 const router = useRouter()
-const ws = useWebSocket()
-const wsState = ws.state;
-const isConnected = computed(() => wsState.connected);
-const isConnecting = computed(() => wsState.connecting);
+const { ws, state } = useWebSocket()
+const isConnected = computed(() => state.connected)
+const isConnecting = computed(() => state.connecting)
 
 const connectionStatus = computed(() => {
-  if (ws.state.connected) return 'Connected'
-  if (ws.state.connecting) return 'Connecting...'
+  if (state.connected) return 'Connected'
+  if (state.connecting) return 'Connecting...'
   return 'Disconnected'
 })
 

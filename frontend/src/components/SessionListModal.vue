@@ -94,7 +94,6 @@ const selectedIndex = ref(-1)
 const loading = ref(false)
 const error = ref<string | null>(null)
 const itemRefs = useTemplateRef<HTMLElement[]>('items')
-const showActiveOnly = ref(false)
 
 watch(isSessionListVisible, (newVal) => {
   visible.value = newVal
@@ -108,10 +107,8 @@ async function loadSessions() {
   error.value = null
   try {
     let allSessions = await loadSessionList()
-
-    // 可选：根据过滤条件筛选
-    if (showActiveOnly.value) {
-      allSessions = allSessions.filter(s => s.is_active)
+    if (!allSessions) {
+      return
     }
 
     // 按最后活动时间倒序排列

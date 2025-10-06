@@ -25,48 +25,49 @@ export function useFileWatch() {
         unsubscribeFileUpdates()
         unsubscribeFileUpdates = null
       }
-
-      if (newDir) {
-        try {
-          // 初始加载文件列表
-          const files = await apiService.getWorkspaceFiles(newDir)
-          await loadFileList(files)
-          console.log('File list loaded:', files.length, 'files')
-
-          // 订阅文件更新
-          unsubscribeFileUpdates = fileUpdateService.subscribe(newDir, {
-            // 单个文件变更回调
-            onFileChange: (type: 'created' | 'removed', file: string) => {
-              try {
-                console.log(`File ${type}:`, file)
-
-                if (type === 'created') {
-                  addFileToCache(file)
-                } else if (type === 'removed') {
-                  removeFileFromCache(file)
-                }
-              } catch (error) {
-                console.error(`Failed to handle file ${type}:`, error)
-              }
-            },
-            // 错误回调
-            onError: (error: string) => {
-              console.error('File update service error:', error)
-              // 使用 toast 提示用户文件更新错误
-              toast.add({
-                severity: 'warn',
-                summary: '文件更新错误',
-                detail: `无法实时更新文件列表: ${error}`,
-                life: 3000
-              })
-            }
-          })
-
-          console.log('Subscribed to file updates for workDir:', newDir)
-        } catch (error) {
-          console.error('Failed to load file list:', error)
-        }
+      if (!newDir) {
+        return
       }
+
+      // 初始加载文件列表
+      const files = await apiService.getWorkspaceFiles(newDir)
+      if (!files) {
+        return
+      }
+
+      await loadFileList(files)
+      console.log('File list loaded:', files.length, 'files')
+
+      // 订阅文件更新
+      unsubscribeFileUpdates = fileUpdateService.subscribe(newDir, {
+        // 单个文件变更回调
+        onFileChange: (type: 'created' | 'removed', file: string) => {
+          try {
+            console.log(`File ${type}:`, file)
+
+            if (type === 'created') {
+              addFileToCache(file)
+            } else if (type === 'removed') {
+              removeFileFromCache(file)
+            }
+          } catch (error) {
+            console.error(`Failed to handle file ${type}:`, error)
+          }
+        },
+        // 错误回调
+        onError: (error: string) => {
+          console.error('File update service error:', error)
+          // 使用 toast 提示用户文件更新错误
+          toast.add({
+            severity: 'warn',
+            summary: '文件更新错误',
+            detail: `无法实时更新文件列表: ${error}`,
+            life: 3000
+          })
+        }
+      })
+
+      console.log('Subscribed to file updates for workDir:', newDir)
     },
     { immediate: true }
   )
