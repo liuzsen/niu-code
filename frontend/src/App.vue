@@ -10,7 +10,6 @@ import SessionListModal from './components/SessionListModal.vue'
 import { Toast, useToast } from 'primevue'
 import { provideWebSocket } from './composables/useWebSocket'
 import { useMessageHandler } from './composables/useMessageHandler'
-import { useChatSession } from './composables/useChatSession'
 
 const globalToast = useGlobalToast()
 globalToast.setToast(useToast())
@@ -20,8 +19,5 @@ provideWebSocket()
 
 // 初始化消息处理器
 useMessageHandler()
-
-// 初始化会话管理
-useChatSession()
 
 </script>
