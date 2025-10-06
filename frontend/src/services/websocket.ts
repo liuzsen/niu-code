@@ -93,7 +93,7 @@ export class WebSocketService {
         }
 
         this.ws.onclose = () => {
-          console.log('WebSocket disconnected')
+          console.warn('WebSocket disconnected')
           this.state = 'disconnected'
           this.ws = null
 
@@ -135,7 +135,7 @@ export class WebSocketService {
     this.state = 'reconnecting'
 
     const backoff = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000)
-    console.log(`Reconnecting in ${backoff}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`)
+    console.info(`Reconnecting in ${backoff}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`)
 
     this.reconnectTimer = setTimeout(() => {
       this.reconnectAttempts++

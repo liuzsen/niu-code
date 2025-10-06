@@ -9,15 +9,13 @@ import type { Editor } from '@tiptap/core'
 import type { ServerMessage } from '../types'
 
 const isSessionListVisible = ref(false)
-const isRestoring = ref(false)
-const restoreProgress = ref({ current: 0, total: 0 })
 const editorRef = ref<Editor | null>(null)
 
 export function useResume() {
   const chatStore = useChatStore()
   const workspace = useWorkspace()
   const { sendRegisterChat, sendUserInput, sendPermissionResponse } = useMessageSender()
-  const { startReplay, endReplay, handleServerMessage } = useMessageHandler()
+  const messageHandler = useMessageHandler()
 
   // 重放单条消息记录
   function replayMessageRecord(chatId: string, record: MessageRecord) {
@@ -30,13 +28,13 @@ export function useResume() {
         chat_id: chatId,
         data: { kind: 'claude', ...message.Claude }
       }
-      handleServerMessage(serverMessage)
+      messageHandler.processMessage(serverMessage)
     } else if ('SystemInfo' in message) {
       const serverMessage: ServerMessage = {
         chat_id: chatId,
         data: { kind: 'system_info', ...message.SystemInfo }
       }
-      handleServerMessage(serverMessage)
+      messageHandler.processMessage(serverMessage)
     } else if ('PermissionResp' in message) {
       sendPermissionResponse(chatId, message.PermissionResp)
     } else if ('CanUseTool' in message) {
@@ -44,7 +42,7 @@ export function useResume() {
         chat_id: chatId,
         data: { kind: 'can_use_tool', ...message.CanUseTool }
       }
-      handleServerMessage(serverMessage)
+      messageHandler.processMessage(serverMessage)
     }
   }
 
@@ -87,14 +85,13 @@ export function useResume() {
     }
 
     // 创建新的 ChatState
-    const newChat = chatStore.newChat('default')
+    const newChat = chatStore.newChat()
 
     // 先注册新的 chat_id
     sendRegisterChat(newChat.chatId)
 
     // 开始恢复
-    startReplay(newChat.chatId)
-    isRestoring.value = true
+    messageHandler.startReplay(newChat.chatId)
 
     try {
       const records = await apiService.startChat({
@@ -108,11 +105,9 @@ export function useResume() {
         throw new Error('Failed to restore session')
       }
 
-      restoreProgress.value = { current: 0, total: records.length }
 
       for (let i = 0; i < records.length; i++) {
         const record = records[i]
-        restoreProgress.value.current = i + 1
 
         // 统一通过 useChatSession 处理重放消息
         replayMessageRecord(newChat.chatId, record)
@@ -125,9 +120,7 @@ export function useResume() {
 
       isSessionListVisible.value = false
     } finally {
-      endReplay()
-      isRestoring.value = false
-      restoreProgress.value = { current: 0, total: 0 }
+      messageHandler.endReplay()
       // 恢复完成后重新聚焦到编辑器
       if (editorRef.value) {
         editorRef.value.commands.focus()
@@ -137,8 +130,6 @@ export function useResume() {
 
   return {
     isSessionListVisible,
-    isRestoring,
-    restoreProgress,
     showSessionList,
     loadSessionList,
     resumeSession

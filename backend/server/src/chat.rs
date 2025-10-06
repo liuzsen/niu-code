@@ -480,11 +480,13 @@ impl ChatManager {
 
         let Some(conn_id) = self.chat_to_conn.get(&chat.id) else {
             warn!(%chat.id, "conn not found when handle cli message");
+            chat.lag_count += 1;
             return;
         };
 
         let Some(ws_writer) = self.connections.get(conn_id) else {
             debug!(%conn_id, "ws not found when handle cli message");
+            chat.lag_count += 1;
             return;
         };
 

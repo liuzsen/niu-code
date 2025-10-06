@@ -24,11 +24,9 @@ let messageSenderInstance: MessageSenderInstance | null = null
 export function useMessageSender() {
   // 去重：如果已经创建过实例，直接返回现有实例
   if (messageSenderInstance) {
-    console.log('useMessageSender: 返回已存在的消息发送器实例')
     return messageSenderInstance
   }
 
-  console.log('useMessageSender: 创建新的消息发送器实例')
 
   const { ws } = useWebSocket()
   const chatManager = useChatManager()
@@ -47,16 +45,15 @@ export function useMessageSender() {
       return
     }
 
-    // 更新本地状态
-    chatManager.addUserMessage(chatId, { content })
-
     if (messageHandler.isReplaying) {
+      chatManager.addUserMessage(chatId, { content })
       return
     }
 
-
     // 确保会话已启动
     await ensureChatStarted(chatId)
+
+    chatManager.addUserMessage(chatId, { content })
 
     // 发送到服务器
     const message: ClientMessage = {

@@ -82,9 +82,9 @@ import type { PermissionMode } from '@anthropic-ai/claude-code'
 import '../assets/tiptap.css'
 
 const permissionModeOptions = [
-  { label: 'default', value: 'default' },
   { label: 'plan', value: 'plan' },
-  { label: 'acceptEdits', value: 'acceptEdits' },
+  { label: 'askBeforeEdits', value: 'default' },
+  { label: 'autoEdits', value: 'acceptEdits' },
   { label: 'bypassPermissions', value: 'bypassPermissions' },
 ]
 
@@ -160,8 +160,6 @@ const handleSendUserInput = async () => {
 
   // 将 HTML 转换为 Markdown
   const markdownContent = htmlToMarkdown(htmlContent)
-
-  console.log(markdownContent)
 
   // 使用 composable 发送消息
   sendMessage(chatId, markdownContent)

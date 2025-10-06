@@ -25,7 +25,7 @@ export class ChatState {
 
   pendingRequest?: ToolPermissionRequest
 
-  constructor(mode: PermissionMode, configName?: string) {
+  constructor(mode: PermissionMode = 'plan', configName?: string) {
     this.session = {
       permissionMode: mode,
       configName
@@ -33,7 +33,7 @@ export class ChatState {
   }
 
   started(): boolean {
-    return this.sessionId !== undefined
+    return this.sessionId !== undefined || this.messages.length > 0
   }
 
   addToolResult(result: ToolResultBlockParam) {
@@ -77,7 +77,7 @@ export type ChatMessageData =
  */
 export const useChatStore = defineStore('chat', {
   state: () => ({
-    chats: [new ChatState('default')] as ChatState[]
+    chats: [new ChatState()] as ChatState[]
   }),
 
   getters: {
@@ -88,7 +88,7 @@ export const useChatStore = defineStore('chat', {
     /**
      * 创建新的聊天会话
      */
-    newChat(mode: PermissionMode = 'default', configName?: string): ChatState {
+    newChat(mode?: PermissionMode, configName?: string): ChatState {
       const chat = new ChatState(mode, configName)
       this.chats.unshift(chat)
       return chat
@@ -98,7 +98,7 @@ export const useChatStore = defineStore('chat', {
      * 清空所有聊天会话
      */
     clearChats() {
-      this.chats = [new ChatState('default')]
+      this.chats = [this.newChat()]
     },
 
     /**
