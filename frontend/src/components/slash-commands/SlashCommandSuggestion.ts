@@ -96,10 +96,7 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
       if (sdkCommand.name == 'clear (reset, new)') {
         editor.chain().focus().clearContent(true).run()
         const chatManager = useChatManager()
-        const chatId = chatManager.foregroundChat.chatId
-        const { sendStop } = useMessageSender()
-        sendStop(chatId)
-        chatManager.chats = []
+        chatManager.newChat()
       }
       else if (sdkCommand.name == 'resume') {
         // 清空输入框
@@ -214,7 +211,6 @@ const updatePosition = (editor: Editor, element: HTMLElement) => {
 
 import { exitSuggestion } from '@tiptap/suggestion'
 import { PluginKey } from '@tiptap/pm/state'
-import { useMessageSender } from '../../composables/useMessageSender'
 
 export type CommandSuggestionProps = SuggestionProps<CommandItem, SelectedCommand>
 export type CommandSuggestionOptions = SuggestionOptions<CommandItem, SelectedCommand>
