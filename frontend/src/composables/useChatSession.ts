@@ -10,7 +10,7 @@ import { useChatManager } from '../stores/chat'
  */
 export function useChatSession() {
   const { sendRegisterChat, sendUserInput, sendPermissionResponse } = useMessageSender()
-  const { processMessage, startReplay, endReplay } = useMessageHandler()
+  const messageHandler = useMessageHandler()
   const chatManager = useChatManager()
 
   /**
@@ -38,21 +38,21 @@ export function useChatSession() {
         chat_id: chatId,
         data: { kind: 'claude', ...message.Claude }
       }
-      processMessage(serverMessage)
+      messageHandler.handleServerMessage(serverMessage)
     } else if ('SystemInfo' in message) {
       // 伪装成 ServerMessage
       const serverMessage: ServerMessage = {
         chat_id: chatId,
         data: { kind: 'system_info', ...message.SystemInfo }
       }
-      processMessage(serverMessage)
+      messageHandler.handleServerMessage(serverMessage)
     } else if ('CanUseTool' in message) {
       // 伪装成 ServerMessage
       const serverMessage: ServerMessage = {
         chat_id: chatId,
         data: { kind: 'can_use_tool', ...message.CanUseTool }
       }
-      processMessage(serverMessage)
+      messageHandler.handleServerMessage(serverMessage)
     } else if ('PermissionResp' in message) {
       sendPermissionResponse(chatId, message.PermissionResp)
     }
@@ -61,7 +61,5 @@ export function useChatSession() {
   return {
     registerAllChats,
     replayMessageRecord,
-    startReplay,
-    endReplay
   }
 }
