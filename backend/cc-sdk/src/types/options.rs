@@ -2,10 +2,7 @@ use std::{collections::HashMap, fmt::Debug, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::{
-    CanUseToolCallBackDyn, PermissionMode, can_use_tool::PermissionUpdate,
-    tool_input::ToolInputSchemas,
-};
+use crate::types::{CanUseToolCallBackDyn, PermissionMode, can_use_tool::PermissionUpdate};
 
 pub type Dict<T> = HashMap<String, T>;
 
@@ -51,13 +48,6 @@ pub struct ClaudeCodeOptions {
 
 #[derive(Debug)]
 pub enum Unsupported {}
-
-#[derive(Deserialize, Serialize)]
-pub struct CanUseToolParams {
-    pub tool_name: String,
-    pub input: ToolInputSchemas,
-    pub options: CandUseToolParamOptions,
-}
 
 #[derive(Deserialize, Serialize)]
 pub struct CandUseToolParamOptions {

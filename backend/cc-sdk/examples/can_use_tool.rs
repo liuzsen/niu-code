@@ -88,7 +88,7 @@ impl CanUseToolCallBack for CanUseTool {
                 }
             }
             _ => Ok(Arc::new(PermissionResult::Allow(PermissionAllow {
-                updated_input: input,
+                updated_input: input.into(),
                 updated_permissions: None,
             }))),
         }

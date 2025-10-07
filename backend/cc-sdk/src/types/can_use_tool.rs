@@ -2,7 +2,7 @@ use std::{fmt::Debug, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::{PermissionMode, ToolUseParams};
+use crate::types::{PermissionMode, ToolUseParams, UntaggedToolUseParams};
 
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(tag = "behavior")]
@@ -23,7 +23,7 @@ pub struct PermissionDeny {
 #[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PermissionAllow {
-    pub updated_input: ToolUseParams,
+    pub updated_input: UntaggedToolUseParams,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_permissions: Option<Vec<PermissionUpdate>>,
 }

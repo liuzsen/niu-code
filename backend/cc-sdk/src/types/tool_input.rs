@@ -1,7 +1,54 @@
 use derive_more::From;
 use serde::{Deserialize, Serialize};
 
-pub type ToolInputSchemas = serde_json::Value;
+macro_rules! to_untagged {
+    ($($type:ident),* $(,)?) => {
+        $(
+        impl From<$type> for UntaggedToolUseParams {
+            fn from(value: $type) -> Self {
+                Self(serde_json::to_value(value).unwrap())
+            }
+        }
+        )*
+    };
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct UntaggedToolUseParams(serde_json::Value);
+
+to_untagged! {
+    BashInput,
+    FileEditInput,
+    GlobInput,
+    GrepInput,
+    FileMultiEditInput,
+    NotebookEditInput,
+    FileReadInput,
+    TodoWriteInput,
+    WebFetchInput,
+    WebSearchInput,
+    FileWriteInput,
+    AgentInput,
+    BashOutputInput,
+    ExitPlanModeInput,
+    KillShellInput,
+    ListMcpResourcesInput,
+    ReadMcpResourceInput,
+}
+
+impl From<serde_json::Value> for UntaggedToolUseParams {
+    fn from(value: serde_json::Value) -> Self {
+        Self(value)
+    }
+}
+
+impl From<ToolUseParams> for UntaggedToolUseParams {
+    fn from(value: ToolUseParams) -> Self {
+        let mut value = serde_json::to_value(value).unwrap();
+        let input = value["input"].take();
+        Self(input)
+    }
+}
 
 #[derive(Deserialize, Serialize, Debug, From)]
 #[serde(tag = "tool_name")]
