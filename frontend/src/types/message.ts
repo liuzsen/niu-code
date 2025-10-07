@@ -30,9 +30,10 @@ export interface ServerMessage {
 
 export type ServerMessageData =
     | { kind: 'claude' } & SDKMessage
-    | { kind: 'server_error'; error: string }
-    | { kind: 'system_info'; } & ClaudeSystemInfo
-    | { kind: 'can_use_tool'; } & ToolPermissionRequest;
+    | { kind: 'server_error', error: string }
+    | { kind: 'system_info' } & ClaudeSystemInfo
+    | { kind: 'can_use_tool' } & ToolPermissionRequest
+    | { kind: 'chat_subscribed_by_others' }
 
 export interface ClaudeSystemInfo {
     commands: SlashCommand[],

@@ -101,6 +101,14 @@ export const useChatStore = defineStore('chat', {
       this.chats = [this.newChat()]
     },
 
+    removeChat(chatId: string) {
+      this.chats = this.chats.filter((chat) => chat.chatId !== chatId)
+    },
+
+    isEmpty() {
+      return this.chats.length === 0
+    },
+
     /**
      * 根据 chatId 获取聊天会话
      */

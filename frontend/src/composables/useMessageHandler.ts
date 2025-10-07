@@ -4,8 +4,8 @@ import { useWebSocket } from './useWebSocket'
 import { useChatManager } from '../stores/chat'
 import { extract_tool_result } from '../utils/messageExtractors'
 import { errorHandler } from '../services/errorHandler'
-import { playNotificationSound } from '../utils/sound'
 import { useMessageSender } from './useMessageSender'
+import { notifyTaskCompleted, isUserActive, playDingSound, sendPlanApprovalNotification } from '../utils/notification'
 
 // 定义返回类型
 interface MessageHandlerInstance {
@@ -25,11 +25,8 @@ let messageHandlerInstance: MessageHandlerInstance | null = null
 export function useMessageHandler() {
   // 去重：如果已经初始化过，直接返回现有实例
   if (messageHandlerInstance) {
-    console.log('useMessageHandler: 返回已存在的消息处理器实例')
     return messageHandlerInstance
   }
-
-  console.log('useMessageHandler: 创建新的消息处理器实例')
 
   const { ws } = useWebSocket()
   const chatManager = useChatManager()
@@ -37,6 +34,10 @@ export function useMessageHandler() {
   // 重放状态
   const replayingChat = ref<string | undefined>(undefined)
   const replayBuffer = ref<ServerMessage[]>([])
+
+  function isReplaying() {
+    return !!replayingChat.value
+  }
 
   // 处理服务器消息（主入口）
   function handleServerMessage(message: ServerMessage) {
@@ -65,6 +66,17 @@ export function useMessageHandler() {
       case 'system_info':
         handleSystemInfo(message)
         break
+      case 'chat_subscribed_by_others':
+        handleChatSubscribedByOthers(message)
+        break
+    }
+  }
+
+  function handleChatSubscribedByOthers(message: ServerMessage) {
+    const { chat_id } = message
+    chatManager.removeChat(chat_id)
+    if (chatManager.isEmpty()) {
+      chatManager.newChat()
     }
   }
 
@@ -80,10 +92,9 @@ export function useMessageHandler() {
     }
 
     console.log('Received Claude message:', data)
-    // 检查是否为 SDKResultMessage，如果是则播放通知声音
-    if (data.type === 'result') {
-      console.log("is result")
-      playNotificationSound()
+    // 检查是否为 SDKResultMessage，如果是则发送任务完成通知
+    if (data.type === 'result' && !isReplaying()) {
+      notifyTaskCompleted()
     }
 
     // 检查是否包含工具结果
@@ -111,6 +122,11 @@ export function useMessageHandler() {
   function handleToolPermission(message: ServerMessage) {
     const { chat_id, data } = message
     if (data.kind === 'can_use_tool') {
+      // 如果是退出计划模式，且用户不在页面，则通知用户
+      if (data.tool_use.tool_name === 'ExitPlanMode' && !isReplaying() && !isUserActive()) {
+        playDingSound()
+        sendPlanApprovalNotification()
+      }
       chatManager.setPendingToolUseRequest(chat_id, data)
     }
   }
@@ -120,7 +136,7 @@ export function useMessageHandler() {
     console.error('Server error:', message)
 
     if (message.data.kind === 'server_error') {
-      const error = errorHandler.createServerError(
+      const error = errorHandler.createClientError(
         'SYSTEM_ERROR',
         message.data.error
       )
@@ -166,6 +182,7 @@ export function useMessageHandler() {
     }
     replayBuffer.value = []
   }
+
 
   // 创建实例
   messageHandlerInstance = {
