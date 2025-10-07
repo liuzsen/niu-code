@@ -47,7 +47,7 @@ pub enum ServerMessageData {
     ServerError(ServerError),
     SystemInfo(Arc<ClaudeSystemInfo>),
     CanUseTool(Arc<CanUseToolParams>),
-    ChatSubscribedByOthers,
+    ChatRemoved,
 }
 
 #[derive(Serialize, Clone)]

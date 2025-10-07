@@ -66,13 +66,13 @@ export function useMessageHandler() {
       case 'system_info':
         handleSystemInfo(message)
         break
-      case 'chat_subscribed_by_others':
-        handleChatSubscribedByOthers(message)
+      case 'chat_removed':
+        handleChatRemoved(message)
         break
     }
   }
 
-  function handleChatSubscribedByOthers(message: ServerMessage) {
+  function handleChatRemoved(message: ServerMessage) {
     const { chat_id } = message
     chatManager.removeChat(chat_id)
     if (chatManager.isEmpty()) {

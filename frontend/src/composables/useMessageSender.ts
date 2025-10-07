@@ -158,7 +158,7 @@ export function useMessageSender() {
     const message: ClientMessage = {
       chat_id: chatId,
       data: {
-        kind: 'stop'
+        kind: 'stop_session'
       }
     }
 

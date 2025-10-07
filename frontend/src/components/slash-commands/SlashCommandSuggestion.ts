@@ -19,6 +19,11 @@ export const appCommands: SlashCommand[] = [
     'name': 'resume',
     'description': 'Resume or switch to any session (active or inactive)',
     "argumentHint": ""
+  },
+  {
+    'name': 'stop',
+    'description': 'Stop the current session and terminate any running processes',
+    "argumentHint": ""
   }
 ]
 
@@ -108,6 +113,22 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
           const { showSessionList } = module.useResume()
           showSessionList(editor)
         })
+      }
+      else if (sdkCommand.name == 'stop') {
+        // 清空输入框
+        editor.chain().focus().deleteRange(range).run()
+
+        // 获取当前聊天会话并发送停止命令
+        const chatManager = useChatManager()
+        const currentChatId = chatManager.foregroundChat.chatId
+
+        if (currentChatId) {
+          // 动态导入 messageSender 来避免循环依赖
+          import('../../composables/useMessageSender.ts').then(module => {
+            const messageSender = module.useMessageSender()
+            messageSender.sendStop(currentChatId)
+          })
+        }
       }
       else {
         editor.chain().focus().deleteRange(range).insertContent(`/${sdkCommand.name} `).run()

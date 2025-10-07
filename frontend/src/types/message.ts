@@ -15,7 +15,7 @@ export type ClientMessageData =
     | { kind: 'permission_resp' } & PermissionResult
     | { kind: 'set_mode', mode: PermissionMode }
     | { kind: 'get_info' }
-    | { kind: 'stop' }
+    | { kind: 'stop_session' }
 
 // StartChatOptions moved to HTTP API, no longer used in WebSocket messages
 
@@ -33,7 +33,7 @@ export type ServerMessageData =
     | { kind: 'server_error', error: string }
     | { kind: 'system_info' } & ClaudeSystemInfo
     | { kind: 'can_use_tool' } & ToolPermissionRequest
-    | { kind: 'chat_subscribed_by_others' }
+    | { kind: 'chat_removed' }
 
 export interface ClaudeSystemInfo {
     commands: SlashCommand[],

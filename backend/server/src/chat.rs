@@ -336,7 +336,7 @@ impl ChatManager {
             let conn = self.connections.get(conn_id).unwrap();
             let _ = conn.send_msg(ServerMessage {
                 chat_id: chat_id.clone(),
-                data: ServerMessageData::ChatSubscribedByOthers,
+                data: ServerMessageData::ChatRemoved,
             });
         }
         self.chat_to_cli.remove(chat_id);
@@ -531,7 +531,7 @@ impl ChatManager {
             ServerMessageData::SystemInfo(info) => CacheMessage::SystemInfo(Arc::clone(info)),
             ServerMessageData::CanUseTool(params) => CacheMessage::CanUseTool(Arc::clone(params)),
             ServerMessageData::ServerError(_) => return,
-            ServerMessageData::ChatSubscribedByOthers => return,
+            ServerMessageData::ChatRemoved => return,
         };
 
         session.messages.push(MessageRecord {
