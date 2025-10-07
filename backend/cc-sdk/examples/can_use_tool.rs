@@ -50,13 +50,13 @@ struct CanUseTool {}
 impl CanUseToolCallBack for CanUseTool {
     async fn call(
         &mut self,
-        input: cc_sdk::types::ToolInputSchemasWithName,
+        input: cc_sdk::types::ToolUseParams,
         suggestions: Option<Vec<cc_sdk::types::PermissionUpdate>>,
     ) -> anyhow::Result<Arc<PermissionResult>> {
         println!("Ask permission for tool: {}", input.tool_name());
 
         match input {
-            cc_sdk::types::ToolInputSchemasWithName::Bash { input } => {
+            cc_sdk::types::ToolUseParams::Bash { input } => {
                 println!("\n-------------------------------------------------");
                 println!("Claude want to run command: {}", to_red(&input.command));
                 println!(
@@ -88,7 +88,7 @@ impl CanUseToolCallBack for CanUseTool {
                 }
             }
             _ => Ok(Arc::new(PermissionResult::Allow(PermissionAllow {
-                updated_input: input.into(),
+                updated_input: input,
                 updated_permissions: None,
             }))),
         }

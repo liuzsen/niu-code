@@ -9,13 +9,13 @@ use serde::{Deserialize, Serialize};
 
 pub type ChatId = String;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct ClientMessage {
     pub chat_id: ChatId,
     pub data: ClientMessageData,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(tag = "kind")]
 #[serde(rename_all = "snake_case")]
 pub enum ClientMessageData {
@@ -27,7 +27,7 @@ pub enum ClientMessageData {
     StopSession,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 pub struct UserInput {
     pub content: Arc<String>,
     pub resume: Option<String>,
@@ -57,7 +57,7 @@ pub struct ServerError {
 
 #[derive(Serialize)]
 pub struct CanUseToolParams {
-    pub tool_use: cc_sdk::types::ToolInputSchemasWithName,
+    pub tool_use: cc_sdk::types::ToolUseParams,
     pub suggestions: Option<Vec<cc_sdk::types::PermissionUpdate>>,
 }
 

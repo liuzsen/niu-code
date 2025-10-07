@@ -2,9 +2,9 @@ use std::{fmt::Debug, sync::Arc};
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::{PermissionMode, ToolInputSchemasWithName, tool_input::ToolInputSchemas};
+use crate::types::{PermissionMode, ToolUseParams};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(tag = "behavior")]
 #[serde(rename_all = "snake_case")]
 pub enum PermissionResult {
@@ -12,7 +12,7 @@ pub enum PermissionResult {
     Deny(PermissionDeny),
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PermissionDeny {
     pub message: String,
@@ -20,10 +20,10 @@ pub struct PermissionDeny {
     pub interrupt: Option<bool>,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct PermissionAllow {
-    pub updated_input: ToolInputSchemas,
+    pub updated_input: ToolUseParams,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub updated_permissions: Option<Vec<PermissionUpdate>>,
 }
@@ -89,7 +89,7 @@ pub enum PermissionUpdateDestination {
 pub trait CanUseToolCallBack: Send + Sync + Debug + 'static + Sized {
     fn call(
         &mut self,
-        tool_use: ToolInputSchemasWithName,
+        tool_use: ToolUseParams,
         suggestions: Option<Vec<PermissionUpdate>>,
     ) -> impl Future<Output = anyhow::Result<Arc<PermissionResult>>> + Send;
 
@@ -102,7 +102,7 @@ pub trait CanUseToolCallBack: Send + Sync + Debug + 'static + Sized {
 pub trait CanUseToolCallBackDyn: Send + Sync + Debug + 'static {
     async fn call(
         &mut self,
-        tool_use: ToolInputSchemasWithName,
+        tool_use: ToolUseParams,
         suggestions: Option<Vec<PermissionUpdate>>,
     ) -> anyhow::Result<Arc<PermissionResult>>;
 }
@@ -114,7 +114,7 @@ where
 {
     async fn call(
         &mut self,
-        tool_use: ToolInputSchemasWithName,
+        tool_use: ToolUseParams,
         suggestions: Option<Vec<PermissionUpdate>>,
     ) -> anyhow::Result<Arc<PermissionResult>> {
         CanUseToolCallBack::call(self, tool_use, suggestions).await

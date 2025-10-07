@@ -29,7 +29,7 @@ use which::which;
 
 use crate::types::{
     BoxedCanUseTollCallback, ClaudeCodeOptions, DebugCallBack, Executable, PermissionMode,
-    PermissionUpdate, SDKMessage, SDKUserMessage, ToolInputSchemas, ToolInputSchemasWithName,
+    PermissionUpdate, SDKMessage, SDKUserMessage, ToolInputSchemas, ToolUseParams,
 };
 
 pub trait PromptGenerator: Send + Unpin + 'static {
@@ -413,7 +413,7 @@ pub struct HookCallbackRequest {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct CanUseToolRequest {
     #[serde(flatten)]
-    tool_use: ToolInputSchemasWithName,
+    tool_use: ToolUseParams,
     permission_suggestions: Option<Vec<PermissionUpdate>>,
 }
 
@@ -544,7 +544,15 @@ impl ControlHandler {
                     .await
                     .context("CanUseTool call error")?;
 
-                Ok(serde_json::to_value(resp).unwrap())
+                match &*resp {
+                    crate::types::PermissionResult::Allow(..) => {
+                        let mut json = serde_json::to_value(resp).unwrap();
+                        json.as_object_mut().unwrap().remove("tool_name");
+                        json["updatedInput"] = json["updatedInput"]["input"].clone();
+                        Ok(json)
+                    }
+                    _ => Ok(serde_json::to_value(resp).unwrap()),
+                }
             }
             ControlRequstMessage::HookCallback(..) => {
                 bail!("unsupported HookCallback")

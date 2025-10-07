@@ -177,7 +177,7 @@ impl CanUseTool {
 impl CanUseToolCallBack for CanUseTool {
     async fn call(
         &mut self,
-        tool_use: cc_sdk::types::ToolInputSchemasWithName,
+        tool_use: cc_sdk::types::ToolUseParams,
         suggestions: Option<Vec<cc_sdk::types::PermissionUpdate>>,
     ) -> anyhow::Result<Arc<PermissionResult>> {
         let (tx, rx) = oneshot::channel();

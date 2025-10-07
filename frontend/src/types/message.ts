@@ -42,10 +42,10 @@ export interface ClaudeSystemInfo {
 
 export interface ToolPermissionRequest {
     suggestions?: PermissionUpdate[],
-    tool_use: ToolInputSchemasWithName
+    tool_use: ToolUse
 }
 
-export type ToolInputSchemasWithName = | {
+export type ToolUse = | {
     tool_name: "Bash"
     input: BashInput
 } | {
@@ -99,5 +99,8 @@ export type ToolInputSchemasWithName = | {
 } | {
     tool_name: "ReadMcpResource"
     input: ReadMcpResourceInput
+} | {
+    tool_name: `mcp__${string}`,
+    input: unknown
 }
 

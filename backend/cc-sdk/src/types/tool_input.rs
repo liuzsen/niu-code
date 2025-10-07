@@ -1,102 +1,116 @@
 use derive_more::From;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
+pub type ToolInputSchemas = serde_json::Value;
 
 #[derive(Deserialize, Serialize, Debug, From)]
-#[serde(untagged)]
-pub enum ToolInputSchemas {
-    Agent(AgentInput),
-    Bash(BashInput),
-    BashOutput(BashOutputInput),
-    ExitPlanMode(ExitPlanModeInput),
-    FileEdit(FileEditInput),
-    FileMultiEdit(FileMultiEditInput),
-    FileWrite(FileWriteInput),
-    FileRead(FileReadInput),
-    Glob(GlobInput),
-    Grep(GrepInput),
-    KillShell(KillShellInput),
-    ListMcpResources(ListMcpResourcesInput),
-    Mcp(McpInput),
-    NotebookEdit(NotebookEditInput),
-    ReadMcpResource(ReadMcpResourceInput),
-    TodoWrite(TodoWriteInput),
-    WebFetch(WebFetchInput),
-    WebSearch(WebSearchInput),
+#[serde(tag = "tool_name")]
+pub enum ToolUseParams {
+    Bash {
+        input: BashInput,
+    },
+    Edit {
+        input: FileEditInput,
+    },
+    Glob {
+        input: GlobInput,
+    },
+    Grep {
+        input: GrepInput,
+    },
+    MultiEdit {
+        input: FileMultiEditInput,
+    },
+    NotebookEdit {
+        input: NotebookEditInput,
+    },
+    // NotebookRead
+    Read {
+        input: FileReadInput,
+    },
+    // Task
+    TodoWrite {
+        input: TodoWriteInput,
+    },
+    WebFetch {
+        input: WebFetchInput,
+    },
+    WebSearch {
+        input: WebSearchInput,
+    },
+    Write {
+        input: FileWriteInput,
+    },
+
+    Agent {
+        input: AgentInput,
+    },
+    BashOutput {
+        input: BashOutputInput,
+    },
+    ExitPlanMode {
+        input: ExitPlanModeInput,
+    },
+    KillShell {
+        input: KillShellInput,
+    },
+    ListMcpResources {
+        input: ListMcpResourcesInput,
+    },
+    ReadMcpResource {
+        input: ReadMcpResourceInput,
+    },
+    #[serde(untagged)]
+    Mcp {
+        tool_name: McpToolName,
+        input: serde_json::Value,
+    },
 }
 
-impl From<ToolInputSchemasWithName> for ToolInputSchemas {
-    fn from(value: ToolInputSchemasWithName) -> Self {
-        match value {
-            ToolInputSchemasWithName::Bash { input } => input.into(),
-            ToolInputSchemasWithName::Edit { input } => input.into(),
-            ToolInputSchemasWithName::Glob { input } => input.into(),
-            ToolInputSchemasWithName::Agent { input } => input.into(),
-            ToolInputSchemasWithName::Grep { input } => input.into(),
-            ToolInputSchemasWithName::MultiEdit { input } => input.into(),
-            ToolInputSchemasWithName::NotebookEdit { input } => input.into(),
-            ToolInputSchemasWithName::Read { input } => input.into(),
-            ToolInputSchemasWithName::TodoWrite { input } => input.into(),
-            ToolInputSchemasWithName::WebFetch { input } => input.into(),
-            ToolInputSchemasWithName::WebSearch { input } => input.into(),
-            ToolInputSchemasWithName::Write { input } => input.into(),
-            ToolInputSchemasWithName::BashOutput { input } => input.into(),
-            ToolInputSchemasWithName::ExitPlanMode { input } => input.into(),
-            ToolInputSchemasWithName::KillShell { input } => input.into(),
-            ToolInputSchemasWithName::ListMcpResources { input } => input.into(),
-            ToolInputSchemasWithName::Mcp { input } => input.into(),
-            ToolInputSchemasWithName::ReadMcpResource { input } => input.into(),
+#[derive(Serialize, Debug)]
+pub struct McpToolName(String);
+
+impl<'de> Deserialize<'de> for McpToolName {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        if s.starts_with("mcp__") {
+            Ok(McpToolName(s))
+        } else {
+            Err(serde::de::Error::custom("invalid tool name"))
         }
     }
 }
 
 #[derive(Deserialize, Serialize, Debug)]
-#[serde(tag = "tool_name")]
-pub enum ToolInputSchemasWithName {
-    Bash { input: BashInput },
-    Edit { input: FileEditInput },
-    Glob { input: GlobInput },
-    Grep { input: GrepInput },
-    MultiEdit { input: FileMultiEditInput },
-    NotebookEdit { input: NotebookEditInput },
-    // NotebookRead
-    Read { input: FileReadInput },
-    // Task
-    TodoWrite { input: TodoWriteInput },
-    WebFetch { input: WebFetchInput },
-    WebSearch { input: WebSearchInput },
-    Write { input: FileWriteInput },
-
-    Agent { input: AgentInput },
-    BashOutput { input: BashOutputInput },
-    ExitPlanMode { input: ExitPlanModeInput },
-    KillShell { input: KillShellInput },
-    ListMcpResources { input: ListMcpResourcesInput },
-    Mcp { input: McpInput },
-    ReadMcpResource { input: ReadMcpResourceInput },
+pub struct McpToolUse {
+    tool_name: McpToolName,
+    input: serde_json::Value,
 }
 
-impl ToolInputSchemasWithName {
+impl ToolUseParams {
     pub fn tool_name(&self) -> &'static str {
         match self {
-            ToolInputSchemasWithName::Bash { .. } => "Bash",
-            ToolInputSchemasWithName::Edit { .. } => "Edit",
-            ToolInputSchemasWithName::Glob { .. } => "Glob",
-            ToolInputSchemasWithName::Agent { .. } => "Agent",
-            ToolInputSchemasWithName::Grep { .. } => "Grep",
-            ToolInputSchemasWithName::MultiEdit { .. } => "MultiEdit",
-            ToolInputSchemasWithName::NotebookEdit { .. } => "NotebookEdit",
-            ToolInputSchemasWithName::Read { .. } => "Read",
-            ToolInputSchemasWithName::TodoWrite { .. } => "TodoWrite",
-            ToolInputSchemasWithName::WebFetch { .. } => "WebFetch",
-            ToolInputSchemasWithName::WebSearch { .. } => "WebSearch",
-            ToolInputSchemasWithName::Write { .. } => "Write",
-            ToolInputSchemasWithName::BashOutput { .. } => "BashOutput",
-            ToolInputSchemasWithName::ExitPlanMode { .. } => "ExitPlanMode",
-            ToolInputSchemasWithName::KillShell { .. } => "KillShell",
-            ToolInputSchemasWithName::ListMcpResources { .. } => "ListMcpResources",
-            ToolInputSchemasWithName::Mcp { .. } => "Mcp",
-            ToolInputSchemasWithName::ReadMcpResource { .. } => "ReadMcpResource",
+            ToolUseParams::Bash { .. } => "Bash",
+            ToolUseParams::Edit { .. } => "Edit",
+            ToolUseParams::Glob { .. } => "Glob",
+            ToolUseParams::Agent { .. } => "Agent",
+            ToolUseParams::Grep { .. } => "Grep",
+            ToolUseParams::MultiEdit { .. } => "MultiEdit",
+            ToolUseParams::NotebookEdit { .. } => "NotebookEdit",
+            ToolUseParams::Read { .. } => "Read",
+            ToolUseParams::TodoWrite { .. } => "TodoWrite",
+            ToolUseParams::WebFetch { .. } => "WebFetch",
+            ToolUseParams::WebSearch { .. } => "WebSearch",
+            ToolUseParams::Write { .. } => "Write",
+            ToolUseParams::BashOutput { .. } => "BashOutput",
+            ToolUseParams::ExitPlanMode { .. } => "ExitPlanMode",
+            ToolUseParams::KillShell { .. } => "KillShell",
+            ToolUseParams::ListMcpResources { .. } => "ListMcpResources",
+            ToolUseParams::Mcp { .. } => "Mcp",
+            ToolUseParams::ReadMcpResource { .. } => "ReadMcpResource",
         }
     }
 }
@@ -279,12 +293,6 @@ pub struct ListMcpResourcesInput {
     /// Optional server name to filter resources by
     #[serde(skip_serializing_if = "Option::is_none")]
     pub server: Option<String>,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct McpInput {
-    #[serde(flatten)]
-    pub additional_properties: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
