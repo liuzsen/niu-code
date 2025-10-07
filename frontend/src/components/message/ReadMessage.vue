@@ -27,7 +27,7 @@
         </div>
 
         <!-- Read Content -->
-        <div class="p-4 pb-0">
+        <div class="p-4 pb-2">
             <div>
                 <!-- File Path -->
                 <div class="flex items-start gap-2">
