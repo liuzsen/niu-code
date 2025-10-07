@@ -623,6 +623,10 @@ impl ChatManager {
                 lag_count: 0,
             });
 
+            if let Some(mode) = options.mode {
+                session.send_set_mode(mode);
+            }
+
             let messages = session.messages.clone();
             Ok(Ok(messages))
         } else {
@@ -730,6 +734,12 @@ impl CliSession {
                 None
             }
         })
+    }
+
+    fn send_set_mode(&self, mode: PermissionMode) {
+        if let Err(err) = self.mail_addr.send(ClaudeCliMessage::SetMode(mode)) {
+            warn!(?err, "Failed to send set mode");
+        }
     }
 }
 
