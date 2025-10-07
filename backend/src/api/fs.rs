@@ -139,10 +139,7 @@ pub async fn sse_handler(work_dir: web::Query<WorkDirParam>) -> Result<HttpRespo
     let sse_stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx).map(
         move |event| -> Result<Bytes, Error> {
             match serde_json::to_string(&event) {
-                Ok(data) => {
-                    debug!("Sending SSE event: {}", data);
-                    Ok(Bytes::from(format!("data: {}\n\n", data)))
-                }
+                Ok(data) => Ok(Bytes::from(format!("data: {}\n\n", data))),
                 Err(e) => {
                     error!("Failed to serialize SSE event: {}", e);
                     Ok(Bytes::from(

@@ -268,6 +268,10 @@ impl ChatManager {
     ) {
         let Some(cli_id) = self.get_chat_cli_id(chat_id) else {
             debug!(chat_id, "no cli found when record user permission response");
+            self.report_err(
+                chat_id,
+                "No cli found. It maybe subscribed by another user.",
+            );
             return;
         };
         let Some(session) = self.cli_sessions.get_mut(&cli_id) else {
@@ -327,6 +331,14 @@ impl ChatManager {
 
     fn remove_chat(&mut self, chat_id: &ChatId) {
         debug!("Remove chat: {}", chat_id);
+        if let Some(conn_id) = self.chat_to_conn.get(chat_id) {
+            debug!("notify client when remove chat: {}", chat_id);
+            let conn = self.connections.get(conn_id).unwrap();
+            let _ = conn.send_msg(ServerMessage {
+                chat_id: chat_id.clone(),
+                data: ServerMessageData::ChatSubscribedByOthers,
+            });
+        }
         self.chat_to_cli.remove(chat_id);
         self.chat_to_conn.remove(chat_id);
     }
@@ -407,7 +419,9 @@ impl ChatManager {
             if let Err(err) = result {
                 info!(%err, "send error message to chat ws failed");
             }
-        };
+        } else {
+            debug!(%chat_id, "no ws found when report error");
+        }
     }
 
     fn chat_conn(&self, chat_id: &ChatId) -> Option<WsSender> {
@@ -485,7 +499,7 @@ impl ChatManager {
         };
 
         let Some(ws_writer) = self.connections.get(conn_id) else {
-            debug!(%conn_id, "ws not found when handle cli message");
+            warn!(%conn_id, "ws not found when handle cli message");
             chat.lag_count += 1;
             return;
         };
@@ -516,7 +530,8 @@ impl ChatManager {
             }
             ServerMessageData::SystemInfo(info) => CacheMessage::SystemInfo(Arc::clone(info)),
             ServerMessageData::CanUseTool(params) => CacheMessage::CanUseTool(Arc::clone(params)),
-            ServerMessageData::ServerError(_) => return, // Don't cache errors
+            ServerMessageData::ServerError(_) => return,
+            ServerMessageData::ChatSubscribedByOthers => return,
         };
 
         session.messages.push(MessageRecord {
