@@ -46,6 +46,7 @@ declare module 'vue' {
     SessionListModal: typeof import('./src/components/SessionListModal.vue')['default']
     SlashCommandList: typeof import('./src/components/slash-commands/SlashCommandList.vue')['default']
     SystemMessage: typeof import('./src/components/message/SystemMessage.vue')['default']
+    Textarea: typeof import('primevue/textarea')['default']
     TextMessage: typeof import('./src/components/message/TextMessage.vue')['default']
     TodoWriteMessage: typeof import('./src/components/message/TodoWriteMessage.vue')['default']
     UnknownToolUseMessage: typeof import('./src/components/message/UnknownToolUseMessage.vue')['default']

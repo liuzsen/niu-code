@@ -141,7 +141,7 @@ export function notifyTaskCompleted() {
     severity: 'success',
     summary: '任务完成',
     detail: 'Claude 已完成当前任务',
-    life: 0
+    life: 2000
   })
 
   if (!isUserActive()) {
