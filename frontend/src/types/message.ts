@@ -42,10 +42,10 @@ export interface ClaudeSystemInfo {
 
 export interface ToolPermissionRequest {
     suggestions?: PermissionUpdate[],
-    tool_use: ToolUse
+    tool_use: ToolUseParams
 }
 
-export type ToolUse = | {
+export type ToolUseParams = | {
     tool_name: "Bash"
     input: BashInput
 } | {

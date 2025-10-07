@@ -23,11 +23,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, useTemplateRef, type ComponentPublicInstance, onMounted } from 'vue'
-import { useChatManager } from '../stores/chat'
+import { ref, useTemplateRef, type ComponentPublicInstance, onMounted } from 'vue'
 import { usePermissionDialog, type PermissionOption } from '../composables/usePermissionDialog'
+import type { ToolPermissionRequest } from '../types';
 
-const chatManager = useChatManager()
+const props = defineProps<{
+  request: ToolPermissionRequest
+}>()
 
 // Template ref
 const permissionContainer = useTemplateRef<ComponentPublicInstance & { focus: () => void }>("permissionContainer")
@@ -36,13 +38,10 @@ const permissionContainer = useTemplateRef<ComponentPublicInstance & { focus: ()
 const selectedIndex = ref(0)
 
 // Computed properties
-const request = computed(() => chatManager.foregroundChat.pendingRequest || null)
-const { questionText, options, escCallback } = usePermissionDialog(request.value)
+const { questionText, options, escCallback } = usePermissionDialog(props.request)
 
 // Navigation and execution
 const handleKeyDown = (event: KeyboardEvent) => {
-  if (!request.value) return
-
   const maxIndex = options.value.length - 1
 
   switch (event.key) {
@@ -86,15 +85,6 @@ const focusDialog = () => {
 onMounted(() => {
   focusDialog()
 })
-
-watch(() => request.value, (newRequest) => {
-  if (newRequest) {
-    selectedIndex.value = 0
-    nextTick(() => {
-      focusDialog()
-    })
-  }
-}, { immediate: true })
 </script>
 
 <style scoped>

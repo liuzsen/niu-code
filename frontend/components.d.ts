@@ -29,6 +29,7 @@ declare module 'vue' {
     GrepMessage: typeof import('./src/components/message/GrepMessage.vue')['default']
     InputText: typeof import('primevue/inputtext')['default']
     MarkdownRenderer: typeof import('./src/components/message/MarkdownRenderer.vue')['default']
+    McpMessage: typeof import('./src/components/message/McpMessage.vue')['default']
     Message: typeof import('primevue/message')['default']
     MessageInput: typeof import('./src/components/MessageInput.vue')['default']
     MessageList: typeof import('./src/components/MessageList.vue')['default']

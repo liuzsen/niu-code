@@ -57,6 +57,11 @@
                 <FallbackRenderer :data="message"></FallbackRenderer>
               </div>
             </div>
+            <div v-else-if="mcp_tool_use" :key="mcp_tool_use.id">
+              <McpMessage :id="mcp_tool_use.id" :tool-name="mcp_tool_use.tool_use.tool_name"
+                :input="mcp_tool_use.tool_use.input">
+              </McpMessage>
+            </div>
             <div v-else-if="unknown_tool_use" :key="unknown_tool_use.id">
               <UnknownToolUseMessage :id="unknown_tool_use.id" :name="unknown_tool_use.tool_use.tool_name"
                 :input="unknown_tool_use.tool_use.input">
@@ -93,12 +98,13 @@ import MultiEditRenderer from './message/MultiEditMessage.vue'
 import ReadRenderer from './message/ReadMessage.vue'
 import GrepRenderer from './message/GrepMessage.vue'
 import FallbackRenderer from './message/FallbackMessage.vue'
-import { extract_system_init, extract_assistant_text, extract_result, extract_tool_use, extract_unknown_tool_use, extract_claude_user_text } from '../utils/messageExtractors'
+import { extract_system_init, extract_assistant_text, extract_result, extract_tool_use, extract_unknown_tool_use, extract_claude_user_text, extract_mcp_tool_use } from '../utils/messageExtractors'
 import MarkdownRenderer from './message/MarkdownRenderer.vue'
 import BashRenderer from './message/BashMessage.vue'
 import ExitPlanModeMessage from './message/ExitPlanModeMessage.vue'
 import UnknownToolUseMessage from './message/UnknownToolUseMessage.vue'
 import ClaudeUserMessage from './message/ClaudeUserMessage.vue'
+import McpMessage from './message/McpMessage.vue'
 
 interface Props {
   message: ChatMessage
@@ -112,6 +118,14 @@ const tool_use = computed(() => {
   }
 
   return extract_tool_use(props.message.data.content)
+})
+
+const mcp_tool_use = computed(() => {
+  if (props.message.data.from != "agent") {
+    return undefined
+  }
+
+  return extract_mcp_tool_use(props.message.data.content)
 })
 
 const unknown_tool_use = computed(() => {

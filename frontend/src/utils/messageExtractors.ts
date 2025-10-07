@@ -1,6 +1,6 @@
 import type { SDKAssistantMessage, SDKMessage, SDKResultMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
 import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
-import type { ToolInputSchemasWithName } from '../types'
+import type { ToolUseParams } from '../types'
 
 // 清理工具结果内容
 export function cleanToolResult(content: unknown): string {
@@ -26,14 +26,24 @@ export function cleanToolResult(content: unknown): string {
 }
 
 export function extractTaggedContent(text: string) {
-  const regex = /<[^>]+>(.*?)<\/[^>]+>/s;
-  const match = text.match(regex);
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<root>${text}</root>`, 'text/xml');
 
-  if (match) {
-    return match[1];
+    const parseError = doc.querySelector('parsererror');
+    if (parseError) {
+      return text;
+    }
+
+    const rootElement = doc.documentElement;
+    if (rootElement.children.length > 0) {
+      return rootElement.children[0].textContent || text;
+    }
+
+    return text;
+  } catch {
+    return text;
   }
-
-  return text;
 }
 
 // Bash 数据类型
@@ -87,21 +97,18 @@ export function extract_claude_user_text(sdkMessage: SDKMessage): string | null 
   if (sdkMessage.type !== 'user') {
     return null
   }
-  console.log("111", sdkMessage)
   if (sdkMessage.message.role != "user") {
     return null
   }
-  console.log("222", sdkMessage)
   if (typeof sdkMessage.message.content != "string") {
     return null
   }
-  console.log("333", sdkMessage)
   return sdkMessage.message.content
 }
 
 export interface ToolUseBlock {
   id: string;
-  tool_use: ToolInputSchemasWithName
+  tool_use: ToolUseParams
 }
 
 export interface UnkownToolUseBlock {
@@ -109,6 +116,36 @@ export interface UnkownToolUseBlock {
   tool_use: {
     tool_name: string
     input: unknown
+  }
+}
+
+export interface McpToolUseBlock {
+  id: string;
+  tool_use: {
+    tool_name: `mcp__${string}`
+    input: unknown
+  }
+}
+
+export function extract_mcp_tool_use(sdkMessage: SDKMessage): McpToolUseBlock | null {
+  if (!is_assistant_msg(sdkMessage)) return null
+
+  const content = sdkMessage.message.content[0]
+  if (content.type != 'tool_use') {
+    return null
+  }
+
+  // Check if tool name starts with "mcp__"
+  if (!content.name.startsWith('mcp__')) {
+    return null
+  }
+
+  return {
+    id: content.id,
+    tool_use: {
+      tool_name: content.name as `mcp__${string}`,
+      input: content.input
+    }
   }
 }
 
@@ -154,9 +191,9 @@ export function extract_tool_use(sdkMessage: SDKMessage): ToolUseBlock | null {
   return {
     id: content.id,
     tool_use: {
-      tool_name: content.name as ToolInputSchemasWithName['tool_name'],
+      tool_name: content.name as ToolUseParams['tool_name'],
       input: content.input
-    } as ToolInputSchemasWithName
+    } as ToolUseParams
   }
 }
 

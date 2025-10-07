@@ -16,7 +16,7 @@ export interface PermissionOption {
   action: () => void
 }
 
-export function usePermissionDialog(request: ToolPermissionRequest | null) {
+export function usePermissionDialog(request: ToolPermissionRequest) {
   const workspace = useWorkspace()
   const chatManager = useChatManager()
   const toast = useToast()
