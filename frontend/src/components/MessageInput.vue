@@ -186,6 +186,31 @@ const editor = useEditor({
     editor.commands.focus()
   },
   editorProps: {
+    handlePaste: (view, event,) => {
+      const clipboardData = event.clipboardData
+      if (!clipboardData) return false
+
+      // 检查是否包含文件（图片）
+      const files = Array.from(clipboardData.files)
+      const images = files.filter(file => file.type.startsWith('image/'))
+
+      if (images.length > 0) {
+        // TODO: 处理图片粘贴
+        console.log('Image pasted:', images)
+        event.preventDefault()
+        return true
+      }
+
+      // 处理纯文本粘贴 - 移除所有格式（包括代码块）
+      const text = clipboardData.getData('text/plain')
+      if (text) {
+        // 直接插入纯文本，忽略 HTML 格式
+        view.dispatch(view.state.tr.insertText(text))
+        return true // 阻止默认的粘贴行为
+      }
+
+      return false // 让 TipTap 处理其他情况
+    },
     handleKeyDown: (view, event) => {
       if (event.key === 'Enter' && event.shiftKey) {
         // Shift+Enter: 换行
