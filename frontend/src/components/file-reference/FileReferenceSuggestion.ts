@@ -26,12 +26,24 @@ let fuseInstance: Fuse<string> | null = null
 
 function newFuse(files: string[]) {
   return new Fuse(files, {
-    threshold: 0.4,
+    threshold: 0.6,
     includeScore: true,
-    ignoreLocation: true,
+    ignoreLocation: false,
     isCaseSensitive: false,
-    minMatchCharLength: 1,
+    minMatchCharLength: 2,
     findAllMatches: true,
+    keys: [
+      {
+        name: 'path',
+        weight: 0.3
+      },
+      {
+        name: 'filename',
+        weight: 0.7,
+        getFn: (obj) => obj.split('/').pop() || ''
+      }
+    ],
+    shouldSort: true
   })
 }
 
@@ -114,14 +126,7 @@ export const suggestionOptions: FileSuggestionOptions = {
     } else {
       // 使用 Fuse.js 进行模糊搜索
       if (!fuseInstance) {
-        fuseInstance = new Fuse(cachedFiles, {
-          threshold: 0.4,
-          includeScore: true,
-          ignoreLocation: true,
-          isCaseSensitive: false,
-          minMatchCharLength: 1,
-          findAllMatches: true,
-        })
+        fuseInstance = newFuse(cachedFiles)
       }
 
       const results = fuseInstance.search(query)
