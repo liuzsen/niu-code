@@ -49,6 +49,9 @@
               <GrepRenderer v-else-if="tool_use.tool_use.tool_name == 'Grep'" :id="tool_use.id"
                 :input="tool_use.tool_use.input">
               </GrepRenderer>
+              <GlobRenderer v-else-if="tool_use.tool_use.tool_name == 'Glob'" :id="tool_use.id"
+                :input="tool_use.tool_use.input">
+              </GlobRenderer>
               <TodoWriteRenderer v-else-if="tool_use.tool_use.tool_name == 'TodoWrite'" :id="tool_use.id"
                 :input="tool_use.tool_use.input"></TodoWriteRenderer>
               <ExitPlanModeMessage v-else-if="tool_use.tool_use.tool_name == 'ExitPlanMode'" :id="tool_use.id"
@@ -97,6 +100,7 @@ import EditRenderer from './message/EditMessage.vue'
 import MultiEditRenderer from './message/MultiEditMessage.vue'
 import ReadRenderer from './message/ReadMessage.vue'
 import GrepRenderer from './message/GrepMessage.vue'
+import GlobRenderer from './message/GlobMessage.vue'
 import FallbackRenderer from './message/FallbackMessage.vue'
 import { extract_system_init, extract_assistant_text, extract_result, extract_tool_use, extract_unknown_tool_use, extract_claude_user_text, extract_mcp_tool_use } from '../utils/messageExtractors'
 import MarkdownRenderer from './message/MarkdownRenderer.vue'

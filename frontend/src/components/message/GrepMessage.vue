@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- Grep Header -->
-        <div class="p-4 border-b border-surface-200 dark:border-surface-700">
+        <div class="p-2 border-b border-surface-200 dark:border-surface-700">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-search dark:text-surface-500"></i>
@@ -31,7 +31,7 @@
         </div>
 
         <!-- Grep Content -->
-        <div class="p-4">
+        <div class="p-2">
             <div>
                 <!-- Search Parameters -->
                 <div class="space-y-3 mb-4">
@@ -39,38 +39,38 @@
                     <div class="flex items-center gap-2">
                         <span class="font-mono text-sm font-semibold">🔍</span>
                         <div class="text-xs text-surface-600 dark:text-surface-500">Pattern</div>
-                        <code class="font-mono text-sm bg-surface-400 dark:bg-surface-800 px-1 rounded-sm">{{ input.pattern }}</code>
+                        <code
+                            class="font-mono text-sm bg-surface-400 dark:bg-surface-800 px-1 rounded-sm">{{ input.pattern }}</code>
                     </div>
 
                     <!-- Path -->
                     <div v-if="input.path" class="flex items-center gap-2">
                         <span class="font-mono text-sm font-semibold">📁</span>
                         <div class="text-xs text-surface-600 dark:text-surface-500">Search Path</div>
-                        <code class="font-mono text-sm bg-surface-400 dark:bg-surface-800 px-1 rounded-sm">{{ toRelativePath(input.path) }}</code>
+                        <code
+                            class="font-mono text-sm bg-surface-400 dark:bg-surface-800 px-1 rounded-sm">{{ toRelativePath(input.path) }}</code>
                     </div>
                 </div>
 
                 <!-- Search Results -->
-                <div v-if="grepResult">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="text-surface-600 dark:text-surface-500 text-xs">
-                            {{ resultSummary }}
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <Button size="small" severity="secondary" variant="text" @click="copyToClipboard">
-                                <i class="pi pi-copy text-sm"></i>
-                                Copy
+                <div v-if="grepResult && resultContent">
+                    <!-- Result Preview -->
+                    <div class="relative bg-surface-50 dark:bg-surface-900 rounded-lg p-3">
+                        <!-- Action buttons - fixed position in top right corner -->
+                        <div
+                            class="absolute top-1 right-1 flex items-center gap-1 z-10 bg-surface-50 dark:bg-surface-900 rounded">
+                            <Button size="small" severity="secondary" variant="text" @click="copyToClipboard"
+                                class="w-6 h-6 p-0 hover:bg-surface-200 dark:hover:bg-surface-800 rounded"
+                                v-tooltip.left="'Copy'">
+                                <i class="pi pi-copy text-xs"></i>
                             </Button>
                             <Button v-if="showExpandButton" size="small" severity="secondary" variant="text"
-                                @click="showFullContent = true">
+                                @click="showFullContent = true"
+                                class="w-6 h-6 p-0 hover:bg-surface-200 dark:hover:bg-surface-800 rounded"
+                                v-tooltip.left="'View Full'">
                                 <i class="pi pi-expand text-xs"></i>
-                                View Full
                             </Button>
                         </div>
-                    </div>
-
-                    <!-- Result Preview -->
-                    <div class="bg-surface-50 dark:bg-surface-900 rounded-lg p-3">
                         <div v-if="input.output_mode === 'content'" class="space-y-2">
                             <div v-for="(match, index) in limitedContentMatches" :key="index"
                                 class="border-l-2 border-blue-500 pl-2">
@@ -106,11 +106,13 @@
                         </div>
                         <div v-else class="font-mono text-sm">
                             <!-- Default to files_with_matches mode -->
-                            <div v-for="(file, index) in limitedDefaultFileMatches" :key="index" class="font-mono text-sm">
+                            <div v-for="(file, index) in limitedDefaultFileMatches" :key="index"
+                                class="font-mono text-sm">
                                 <i class="pi pi-file text-xs mr-1"></i>
                                 {{ toRelativePath(file) }}
                             </div>
-                            <div v-if="hasMoreDefaultFiles" class="text-xs text-surface-500 dark:text-surface-400 italic">
+                            <div v-if="hasMoreDefaultFiles"
+                                class="text-xs text-surface-500 dark:text-surface-400 italic">
                                 ... {{ defaultFileMatches.length - 10 }} more files
                             </div>
                         </div>
@@ -144,7 +146,7 @@
                         <div class="flex items-start gap-2">
                             <span class="text-xs text-surface-500 dark:text-surface-400 font-mono min-w-16">{{
                                 match.lineNumber
-                                }}</span>
+                            }}</span>
                             <pre
                                 class="font-mono text-sm leading-relaxed whitespace-pre-wrap flex-1">{{ match.content }}</pre>
                         </div>
@@ -228,23 +230,6 @@ const resultContent = computed(() => {
         }
     }
     return ''
-})
-
-// 结果摘要
-const resultSummary = computed(() => {
-    const content = resultContent.value
-    if (!content) return 'No results'
-
-    const lines = content.split('\n').filter(line => line.trim())
-    const lineCount = lines.length
-
-    if (props.input.output_mode === 'count') {
-        return `${lineCount} files with counts`
-    } else if (props.input.output_mode === 'content') {
-        return `${lineCount} matching lines`
-    } else {
-        return `${lineCount} files found`
-    }
 })
 
 // 解析内容匹配结果
