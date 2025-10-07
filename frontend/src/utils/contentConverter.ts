@@ -145,22 +145,6 @@ turndownService.addRule('lineBreak', {
   }
 })
 
-// 清理和优化 HTML 内容
-function cleanHtmlContent(html: string): string {
-  return html
-    // 移除 TipTap 特定的注释和属性
-    .replace(/<!--.*?-->/g, '')
-    .replace(/data-pm-slice="[^"]*"/g, '')
-    .replace(/contenteditable="[^"]*"/g, '')
-    .replace(/spellcheck="[^"]*"/g, '')
-    // 移除空的 p 标签
-    .replace(/<p>\s*<\/p>/g, '')
-    .replace(/<p><br><\/p>/g, '')
-    // 清理多余的空格
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
 /**
  * 将 HTML 内容转换为 Markdown 格式
  * @param html HTML 字符串
@@ -173,10 +157,10 @@ export function htmlToMarkdown(html: string): string {
 
   try {
     // 清理 HTML 内容
-    const cleanedHtml = cleanHtmlContent(html)
+    // const cleanedHtml = cleanHtmlContent(html)
 
     // 执行转换
-    const markdown = turndownService.turndown(cleanedHtml)
+    const markdown = turndownService.turndown(html)
 
     // 后处理：清理多余的空行
     return markdown
