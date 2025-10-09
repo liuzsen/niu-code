@@ -27,6 +27,11 @@ if (import.meta.env.DEV) {
     name: 'diff-test',
     component: () => import('../view/DiffViewerTest.vue')
   })
+  routes.push({
+    path: '/notification-test',
+    name: 'notification-test',
+    component: () => import('../view/NotificationTest.vue')
+  })
 }
 
 const router = createRouter({

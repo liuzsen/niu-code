@@ -180,6 +180,8 @@ impl ChatManager {
     }
 
     async fn handle_msg(&mut self, msg: ChatManagerMessage) {
+        let name = msg.name();
+        debug!(name, "handle ChatManagerMessage");
         match msg {
             ChatManagerMessage::NewConnect { conn_id, ws_writer } => {
                 debug!("register connection endpoint in manager");
@@ -216,6 +218,8 @@ impl ChatManager {
                 let _ = responder.send(result);
             }
         }
+
+        debug!(name, "ChatManagerMessage done");
     }
 
     async fn handle_client_msg(&mut self, conn_id: ConnId, msg: ClientMessage) {
@@ -805,4 +809,19 @@ pub struct StartChatOptions {
 pub enum StartChatError {
     ChatNotRegistered,
     ConfigNotFound(String),
+}
+
+impl ChatManagerMessage {
+    fn name(&self) -> &'static str {
+        match self {
+            ChatManagerMessage::NewConnect { .. } => "NewConnect",
+            ChatManagerMessage::ClientMessage { .. } => "ClientMessage",
+            ChatManagerMessage::CliMessage { .. } => "CliMessage",
+            ChatManagerMessage::ConnectionClosed { .. } => "ConnectionClosed",
+            ChatManagerMessage::GetActiveSessions { .. } => "GetActiveSessions",
+            ChatManagerMessage::GetClaudeInfo { .. } => "GetClaudeInfo",
+            ChatManagerMessage::StartChat { .. } => "StartChat",
+            ChatManagerMessage::CleanSessions => "CleanSessions",
+        }
+    }
 }
