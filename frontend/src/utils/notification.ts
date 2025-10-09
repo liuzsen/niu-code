@@ -130,6 +130,18 @@ export function sendPlanApprovalNotification() {
 }
 
 /**
+ * 发送工具权限请求的浏览器通知
+ * @param toolName 工具名称
+ */
+export function sendToolPermissionNotification(toolName: string) {
+  sendBrowserNotification(
+    '需要工具权限',
+    `Claude 请求使用 ${toolName} 工具`,
+    'claude-tool-permission'
+  )
+}
+
+/**
  * 显示任务完成通知
  * - 如果用户在页面活跃：显示 toast（不自动关闭）
  * - 如果用户不在页面活跃：播放声音 + 浏览器通知

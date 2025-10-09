@@ -5,7 +5,7 @@ import { useChatManager } from '../stores/chat'
 import { extract_tool_result } from '../utils/messageExtractors'
 import { errorHandler } from '../services/errorHandler'
 import { useMessageSender } from './useMessageSender'
-import { notifyTaskCompleted, isUserActive, playDingSound, sendPlanApprovalNotification } from '../utils/notification'
+import { notifyTaskCompleted, isUserActive, playDingSound, sendPlanApprovalNotification, sendToolPermissionNotification } from '../utils/notification'
 
 // 定义返回类型
 interface MessageHandlerInstance {
@@ -123,10 +123,15 @@ export function useMessageHandler() {
   function handleToolPermission(message: ServerMessage) {
     const { chat_id, data } = message
     if (data.kind === 'can_use_tool') {
-      // 如果是退出计划模式，且用户不在页面，则通知用户
-      if (data.tool_use.tool_name === 'ExitPlanMode' && !isReplaying() && !isUserActive()) {
+      // 当收到任何工具权限请求时，如果不在重放且用户不活跃，则通知用户
+      if (!isReplaying() && !isUserActive()) {
         playDingSound()
-        sendPlanApprovalNotification()
+        // 根据工具类型发送不同的通知消息
+        if (data.tool_use.tool_name === 'ExitPlanMode') {
+          sendPlanApprovalNotification()
+        } else {
+          sendToolPermissionNotification(data.tool_use.tool_name)
+        }
       }
       chatManager.setPendingToolUseRequest(chat_id, data)
     }
