@@ -80,6 +80,9 @@ const isSearching = ref(false)
 const searchDebounce = ref<number | null>(null)
 const searchQuery = ref('')
 
+// Check if we're in browsing mode (path ends with /)
+const isBrowsingMode = computed(() => currentPath.value.trim().endsWith('/'))
+
 // Filter directory items based on current path (excluding trailing slash)
 const filteredDirectoryItems = computed(() => {
   const path = currentPath.value.trim()
@@ -163,7 +166,13 @@ watch(currentPath, async (newPath) => {
 
 // Watch filtered items to reset selection
 watch(filteredDirectoryItems, (newItems) => {
-  selectedIndex.value = newItems.length > 0 ? 0 : -1
+  // In browsing mode (path ends with /), don't select any item
+  // In search mode, select the first matched item
+  if (isBrowsingMode.value) {
+    selectedIndex.value = -1
+  } else {
+    selectedIndex.value = newItems.length > 0 ? 0 : -1
+  }
 }, { immediate: true })
 
 const loadDirectory = async (path: string) => {
@@ -178,7 +187,8 @@ const loadDirectory = async (path: string) => {
         name: entry,
         path: path + (path.endsWith('/') ? '' : '/') + entry
       }))
-    selectedIndex.value = directoryItems.value.length > 0 ? 0 : -1
+    // In browsing mode, don't select any item; in search mode, select first
+    selectedIndex.value = isBrowsingMode.value ? -1 : (directoryItems.value.length > 0 ? 0 : -1)
     loading.value = false
     return
   }
@@ -201,7 +211,8 @@ const loadDirectory = async (path: string) => {
       name: entry,
       path: path + (path.endsWith('/') ? '' : '/') + entry
     }))
-  selectedIndex.value = directoryItems.value.length > 0 ? 0 : -1
+  // In browsing mode, don't select any item; in search mode, select first
+  selectedIndex.value = isBrowsingMode.value ? -1 : (directoryItems.value.length > 0 ? 0 : -1)
   loading.value = false
 }
 
@@ -230,18 +241,29 @@ const handleKeyDown = (event: KeyboardEvent) => {
     }
   } else if (event.key === 'Enter') {
     event.preventDefault()
-    const selectedItem = filteredDirectoryItems.value[selectedIndex.value]
-    if (selectedItem) {
-      navigateToFolder(selectedItem.path)
-    } else if (currentPath.value.trim()) {
+    // In browsing mode (path ends with /) and no selection, submit the current path
+    // In search mode with a selection, navigate to the selected folder
+    if (isBrowsingMode.value && selectedIndex.value === -1) {
       handlePathSubmit()
+    } else {
+      const selectedItem = filteredDirectoryItems.value[selectedIndex.value]
+      if (selectedItem) {
+        navigateToFolder(selectedItem.path)
+      } else if (currentPath.value.trim()) {
+        handlePathSubmit()
+      }
     }
   }
 }
 
 const handlePathSubmit = async () => {
-  const path = currentPath.value.trim()
+  let path = currentPath.value.trim()
   if (!path) return
+
+  // Remove trailing slash when submitting
+  if (path.endsWith('/') && path.length > 1) {
+    path = path.slice(0, -1)
+  }
 
   try {
     emit('select', path)
