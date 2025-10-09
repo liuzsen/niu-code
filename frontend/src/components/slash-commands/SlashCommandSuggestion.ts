@@ -12,7 +12,7 @@ import type { SlashCommand } from '@anthropic-ai/claude-code'
 export const appCommands: SlashCommand[] = [
   {
     'name': 'clear (reset, new)',
-    'description': 'Clear conversation history and free up context',
+    'description': 'Clear chat interface and move current session to background (like bash clear)',
     "argumentHint": ""
   },
   {
@@ -21,8 +21,8 @@ export const appCommands: SlashCommand[] = [
     "argumentHint": ""
   },
   {
-    'name': 'stop',
-    'description': 'Stop the current session and terminate any running processes',
+    'name': 'exit (stop)',
+    'description': 'Exit and stop the current session, terminating the Claude cli',
     "argumentHint": ""
   }
 ]
@@ -114,7 +114,7 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
           showSessionList(editor)
         })
       }
-      else if (sdkCommand.name == 'stop') {
+      else if (sdkCommand.name == 'exit (stop)') {
         // 清空输入框
         editor.chain().focus().deleteRange(range).run()
 
