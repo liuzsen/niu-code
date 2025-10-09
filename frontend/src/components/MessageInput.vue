@@ -50,11 +50,18 @@
           </Select>
 
           <!-- Send Button -->
-          <Button @click="handleSendUserInput" :disabled="!editable" icon="pi pi-arrow-up" severity="secondary"
+          <Button v-if="!isGenerating" @click="handleSendUserInput" :disabled="!editable" icon="pi pi-arrow-up"
+            severity="secondary" size="small"
+            class="rounded-full w-10 h-10 p-0 shrink-0 transition-all duration-200 dark:bg-surface-950 dark:text-surface-300 bg-surface-300 text-surface-700"
+            v-tooltip.top="{ value: 'Enter', pt: { text: 'bg-surface-300 dark:bg-surface-950 text-xs' } }"
+            :title="disabledTooltip || '发送消息 (Enter)'" />
+
+          <!-- Interrupt Button -->
+          <Button v-else @click="handleStopGeneration" :disabled="!editable" icon="pi pi-stop" severity="secondary"
             size="small"
-            class="rounded-full w-10 h-10 p-0 shrink-0 dark:bg-surface-950 dark:text-surface-300 bg-surface-300 text-surface-700"
-            v-tooltip.top="{ value: 'enter', pt: { text: 'bg-surface-300 dark:bg-surface-950 text-xs' } }"
-            :title="disabledTooltip" />
+            class="rounded-full w-10 h-10 p-0 shrink-0 transition-all duration-200 bg-red-500 dark:bg-red-600 text-white hover:bg-red-600 dark:hover:bg-red-700"
+            v-tooltip.top="{ value: 'Ctrl + C', pt: { text: 'red dark:bg-surface-950 text-xs' } }"
+            title="停止生成 (interrupt)" />
         </div>
       </div>
     </div>
@@ -90,7 +97,7 @@ const permissionModeOptions = [
 
 // 使用新的 composables
 const chatStore = useChatStore()
-const { sendUserInput: sendMessage, sendSetMode } = useMessageSender()
+const { sendUserInput: sendMessage, sendSetMode, sendInterrupt } = useMessageSender()
 const workspace = useWorkspace()
 const { state: websocketState } = useWebSocket()
 
@@ -147,6 +154,17 @@ const disabledTooltip = computed(() => {
 
   return ''
 })
+
+// 按钮状态计算属性
+const isGenerating = computed(() => foregroundChat.value?.isGenerating || false)
+
+// 停止生成
+const handleStopGeneration = () => {
+  const chatId = foregroundChat.value?.chatId || ''
+  if (chatId) {
+    sendInterrupt(chatId)
+  }
+}
 
 // 发送用户输入
 const handleSendUserInput = async () => {
@@ -218,6 +236,22 @@ const editor = useEditor({
           get: () => false
         })
         return false
+      }
+
+      // Ctrl+C: 停止生成（仅在无文本选中时）
+      if (event.ctrlKey && event.key === 'c' && isGenerating.value) {
+        // 检查是否有选中的文本
+        const hasSelection = !view.state.selection.empty
+
+        // 如果有选中文本，允许默认的复制行为
+        if (hasSelection) {
+          return false
+        }
+
+        // 没有选中文本时才执行停止生成
+        event.preventDefault()
+        handleStopGeneration()
+        return true
       }
 
       if (event.key === 'Enter') {

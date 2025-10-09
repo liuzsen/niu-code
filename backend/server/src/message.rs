@@ -25,6 +25,7 @@ pub enum ClientMessageData {
     SetMode { mode: PermissionMode },
     GetInfo,
     StopSession,
+    Interrupt,
 }
 
 #[derive(Deserialize, Serialize, Debug)]

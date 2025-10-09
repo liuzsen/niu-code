@@ -246,6 +246,9 @@ impl ChatManager {
             crate::message::ClientMessageData::StopSession => {
                 self.stop_cli_by_chat(&chat_id);
             }
+            crate::message::ClientMessageData::Interrupt => {
+                self.forward_to_cli(&chat_id, ClaudeCliMessage::Interrupt);
+            }
         }
     }
 

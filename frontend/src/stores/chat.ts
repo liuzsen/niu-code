@@ -25,6 +25,9 @@ export class ChatState {
 
   pendingRequest?: ToolPermissionRequest
 
+  // 对话状态管理
+  isGenerating: boolean = false
+
   constructor(mode: PermissionMode = 'plan', configName?: string) {
     this.session = {
       permissionMode: mode,
@@ -64,6 +67,15 @@ export class ChatState {
 
   setSystemInfo(content: ClaudeSystemInfo) {
     this.session.systemInfo = content
+  }
+
+  // 对话状态管理方法
+  startGenerating() {
+    this.isGenerating = true
+  }
+
+  stopGenerating() {
+    this.isGenerating = false
   }
 }
 
@@ -174,6 +186,22 @@ export const useChatStore = defineStore('chat', {
     setPendingToolUseRequest(chatId: string, request: ToolPermissionRequest) {
       const chat = this.getChat(chatId)
       chat?.setPendingRequest(request)
+    },
+
+    /**
+     * 开始生成回复
+     */
+    startGenerating(chatId: string) {
+      const chat = this.getChat(chatId)
+      chat?.startGenerating()
+    },
+
+    /**
+     * 停止生成回复
+     */
+    stopGenerating(chatId: string) {
+      const chat = this.getChat(chatId)
+      chat?.stopGenerating()
     }
   }
 })

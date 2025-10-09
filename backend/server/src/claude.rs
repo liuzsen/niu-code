@@ -33,6 +33,7 @@ pub enum ClaudeCliMessage {
     GetInfo,
     CanUseTool(CanUseToolParams, CanUseToolReponder),
     Stop,
+    Interrupt,
 }
 
 pub type ClaudeReceiver = UnboundedReceiver<ClaudeCliMessage>;
@@ -119,6 +120,9 @@ impl ClaudeCli {
             }
             ClaudeCliMessage::Stop => {
                 unreachable!()
+            }
+            ClaudeCliMessage::Interrupt => {
+                stream.interrupt().context("Interrupt error")?;
             }
         }
 
@@ -226,6 +230,7 @@ impl ClaudeCliMessage {
             ClaudeCliMessage::GetInfo => "GetInfo",
             ClaudeCliMessage::CanUseTool(..) => "CanUseTool",
             ClaudeCliMessage::Stop => "Stop",
+            ClaudeCliMessage::Interrupt => "Interrupt",
         }
     }
 

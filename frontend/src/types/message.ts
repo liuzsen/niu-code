@@ -16,6 +16,7 @@ export type ClientMessageData =
     | { kind: 'set_mode', mode: PermissionMode }
     | { kind: 'get_info' }
     | { kind: 'stop_session' }
+    | { kind: 'interrupt' }
 
 // StartChatOptions moved to HTTP API, no longer used in WebSocket messages
 

@@ -12,6 +12,7 @@ interface MessageSenderInstance {
   sendPermissionResponse: (chatId: string, result: PermissionResult) => void
   sendSetMode: (chatId: string, mode: PermissionMode) => Promise<void>
   sendStop: (chatId: string) => void
+  sendInterrupt: (chatId: string) => void
   sendRegisterChat: (chatId: string) => void
 }
 
@@ -54,6 +55,9 @@ export function useMessageSender() {
     await ensureChatStarted(chatId)
 
     chatManager.addUserMessage(chatId, { content })
+
+    // 开始生成状态
+    chatManager.startGenerating(chatId)
 
     // 发送到服务器
     const message: ClientMessage = {
@@ -166,6 +170,25 @@ export function useMessageSender() {
   }
 
   /**
+   * 发送中断消息
+   */
+  function sendInterrupt(chatId: string) {
+    console.log('Sending interrupt for chat:', chatId)
+
+    // 停止生成状态
+    chatManager.stopGenerating(chatId)
+
+    const message: ClientMessage = {
+      chat_id: chatId,
+      data: {
+        kind: 'interrupt'
+      }
+    }
+
+    ws.sendMessage(message)
+  }
+
+  /**
    * 发送注册对话命令
    */
   function sendRegisterChat(chatId: string) {
@@ -186,6 +209,7 @@ export function useMessageSender() {
     sendPermissionResponse,
     sendSetMode,
     sendStop,
+    sendInterrupt,
     sendRegisterChat
   }
 

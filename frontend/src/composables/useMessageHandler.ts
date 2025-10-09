@@ -92,9 +92,10 @@ export function useMessageHandler() {
     }
 
     console.log('Received Claude message:', data)
-    // 检查是否为 SDKResultMessage，如果是则发送任务完成通知
+    // 检查是否为 SDKResultMessage，如果是则发送任务完成通知并停止生成状态
     if (data.type === 'result' && !isReplaying()) {
       notifyTaskCompleted()
+      chatManager.stopGenerating(chat_id)
     }
 
     // 检查是否包含工具结果
@@ -136,6 +137,9 @@ export function useMessageHandler() {
     console.error('Server error:', message)
 
     if (message.data.kind === 'server_error') {
+      // 停止生成状态
+      chatManager.stopGenerating(message.chat_id)
+
       const error = errorHandler.createClientError(
         'SYSTEM_ERROR',
         message.data.error
