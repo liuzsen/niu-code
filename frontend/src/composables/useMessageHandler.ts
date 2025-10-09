@@ -2,7 +2,7 @@ import { onMounted, onUnmounted, ref } from 'vue'
 import type { ServerMessage } from '../types/message'
 import { useWebSocket } from './useWebSocket'
 import { useChatManager } from '../stores/chat'
-import { extract_tool_result } from '../utils/messageExtractors'
+import { extract_tool_result, extract_tool_use } from '../utils/messageExtractors'
 import { errorHandler } from '../services/errorHandler'
 import { useMessageSender } from './useMessageSender'
 import { notifyTaskCompleted, isUserActive, playDingSound, sendPlanApprovalNotification, sendToolPermissionNotification } from '../utils/notification'
@@ -116,6 +116,16 @@ export function useMessageHandler() {
       } else {
         chatManager.addClaudeMessage(chat_id, data)
       }
+    }
+
+    // 检查是否为 TodoWrite 工具使用，更新 todoList
+    const toolUse = extract_tool_use(data)
+    if (toolUse && toolUse.tool_use.tool_name === 'TodoWrite') {
+      const todoData = {
+        todos: toolUse.tool_use.input.todos,
+        id: toolUse.id
+      }
+      chat?.updateTodoList(todoData)
     }
   }
 

@@ -3,6 +3,7 @@ import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
 import type { PermissionMode, SDKMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
 import type { UserInput, ToolPermissionRequest } from '../types/message'
 import type { ClaudeSystemInfo } from '../types/message'
+import type { TodoWriteData } from '../utils/messageExtractors'
 import { defineStore } from 'pinia'
 
 export type SessionState = "new_chat" | "started" | "generating" | "wait_input"
@@ -27,6 +28,9 @@ export class ChatState {
   toolResults: Map<string, ToolResultBlockParam> = new Map()
 
   pendingRequest?: ToolPermissionRequest
+
+  // Todo 列表（用于显示工作状态）
+  todoList?: TodoWriteData
 
   constructor(mode: PermissionMode = 'plan', configName?: string) {
     this.session = {
@@ -68,6 +72,10 @@ export class ChatState {
 
   setSystemInfo(content: ClaudeSystemInfo) {
     this.session.systemInfo = content
+  }
+
+  updateTodoList(todos: TodoWriteData) {
+    this.todoList = todos
   }
 
   // 对话状态管理方法
