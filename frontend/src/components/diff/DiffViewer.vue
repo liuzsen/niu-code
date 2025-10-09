@@ -165,25 +165,42 @@ onUnmounted(() => {
 const diffLines = computed((): DiffLine[] => {
     const dmp = new diff_match_patch()
 
-    // Perform line diff
-    const lineDiffs = dmp.diff_main(props.oldText, props.newText)
-    dmp.diff_cleanupSemantic(lineDiffs)
+    // Split texts into lines first
+    const oldLines = props.oldText.split('\n')
+    const newLines = props.newText.split('\n')
 
+    // Convert lines to characters for efficient diff
+    const lineArray: string[] = []
+    const charToLine: Map<string, string> = new Map()
+
+    const encodeLines = (lines: string[]): string => {
+        return lines.map(line => {
+            let char = charToLine.get(line)
+            if (!char) {
+                char = String.fromCharCode(lineArray.length)
+                lineArray.push(line)
+                charToLine.set(line, char)
+            }
+            return char
+        }).join('')
+    }
+
+    const oldEncoded = encodeLines(oldLines)
+    const newEncoded = encodeLines(newLines)
+
+    // Perform diff on encoded strings (each char represents a line)
+    const diffs = dmp.diff_main(oldEncoded, newEncoded, false)
+    dmp.diff_cleanupSemantic(diffs)
+
+    // Convert back to lines
     const result: DiffLine[] = []
     let oldLineNum = 1
     let newLineNum = 1
 
-    // Process each diff chunk
-    for (const [op, text] of lineDiffs) {
-        const lines = text.split('\n')
-
-        for (let i = 0; i < lines.length; i++) {
-            const lineText = lines[i]
-
-            // Skip empty last line from split
-            if (i === lines.length - 1 && lineText === '' && lines.length > 1) {
-                continue
-            }
+    for (const [op, text] of diffs) {
+        // Decode each character back to original line
+        for (let i = 0; i < text.length; i++) {
+            const lineText = lineArray[text.charCodeAt(i)]
 
             if (op === DIFF_EQUAL) {
                 result.push({

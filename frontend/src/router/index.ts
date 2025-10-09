@@ -22,6 +22,11 @@ if (import.meta.env.DEV) {
     name: 'markdown-test',
     component: () => import('../view/MarkdownRendererTest.vue')
   })
+  routes.push({
+    path: '/diff-test',
+    name: 'diff-test',
+    component: () => import('../view/DiffViewerTest.vue')
+  })
 }
 
 const router = createRouter({
