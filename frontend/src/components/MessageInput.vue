@@ -78,6 +78,7 @@ import { useFileWatch } from '../composables/useFileWatch'
 import { exportCurrentChat } from '../utils/chatExporter'
 import { EditorContent, useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
+import { DOMSerializer } from '@tiptap/pm/model'
 import { htmlToMarkdown } from '../utils/contentConverter'
 import { SlashCommandsExtension, suggestionOptions, slashCommandPluginKey } from './slash-commands'
 import FileReferenceExtension from './file-reference/FileReferenceExtension'
@@ -204,6 +205,28 @@ const editor = useEditor({
     editor.commands.focus()
   },
   editorProps: {
+    clipboardTextSerializer: (slice) => {
+      // 将 ProseMirror Slice 的内容转换为 HTML
+      const div = document.createElement('div')
+
+      // 从 slice 中获取 fragment 和 schema
+      const fragment = slice.content
+      const schema = fragment.firstChild?.type.schema || fragment.content[0]?.type.schema
+
+      if (!schema) {
+        // 如果无法获取 schema，返回纯文本
+        return slice.content.textBetween(0, slice.content.size, '\n')
+      }
+
+      const serializer = DOMSerializer.fromSchema(schema)
+      const domFragment = serializer.serializeFragment(fragment)
+      div.appendChild(domFragment)
+
+      const html = div.innerHTML
+
+      // 转换为 Markdown
+      return htmlToMarkdown(html)
+    },
     handlePaste: (view, event,) => {
       const clipboardData = event.clipboardData
       if (!clipboardData) return false
