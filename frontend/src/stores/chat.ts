@@ -5,6 +5,8 @@ import type { UserInput, ToolPermissionRequest } from '../types/message'
 import type { ClaudeSystemInfo } from '../types/message'
 import { defineStore } from 'pinia'
 
+export type SessionState = "new_chat" | "started" | "generating" | "wait_input"
+
 export class ChatState {
   chatId: string = uuidv4()
   sessionId?: string // 后端 session_id
@@ -15,6 +17,7 @@ export class ChatState {
     configName?: string
     systemInit?: SDKSystemMessage
     systemInfo?: ClaudeSystemInfo
+    state: SessionState
   }
 
   // 消息列表
@@ -25,13 +28,11 @@ export class ChatState {
 
   pendingRequest?: ToolPermissionRequest
 
-  // 对话状态管理
-  isGenerating: boolean = false
-
   constructor(mode: PermissionMode = 'plan', configName?: string) {
     this.session = {
       permissionMode: mode,
-      configName
+      configName,
+      state: "new_chat"
     }
   }
 
@@ -71,11 +72,20 @@ export class ChatState {
 
   // 对话状态管理方法
   startGenerating() {
-    this.isGenerating = true
+    this.session.state = 'generating'
   }
 
   stopGenerating() {
-    this.isGenerating = false
+    this.session.state = "wait_input"
+  }
+
+  lastMessage() {
+    return this.messages[this.messages.length - 1]
+  }
+
+
+  public get isGenerating(): boolean {
+    return this.session.state == 'generating'
   }
 }
 

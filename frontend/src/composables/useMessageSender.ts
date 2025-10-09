@@ -46,15 +46,13 @@ export function useMessageSender() {
       return
     }
 
+    chatManager.addUserMessage(chatId, { content })
     if (messageHandler.isReplaying) {
-      chatManager.addUserMessage(chatId, { content })
       return
     }
 
     // 确保会话已启动
     await ensureChatStarted(chatId)
-
-    chatManager.addUserMessage(chatId, { content })
 
     // 开始生成状态
     chatManager.startGenerating(chatId)
@@ -81,8 +79,9 @@ export function useMessageSender() {
       return
     }
 
-    const started = chat.started()
-    if (!started && workspace.workingDirectory) {
+    const state = chat.session.state
+
+    if (state == 'new_chat' && workspace.workingDirectory) {
       console.log('chat not started, calling HTTP API to start')
 
       // 先注册对话（通过 WebSocket）
@@ -107,6 +106,7 @@ export function useMessageSender() {
           kind: 'get_info'
         }
       })
+      chat.session.state = 'started'
     }
   }
 

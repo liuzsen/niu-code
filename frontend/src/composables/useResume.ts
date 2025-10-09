@@ -105,12 +105,16 @@ export function useResume() {
         throw new Error('Failed to restore session')
       }
 
-
-      for (let i = 0; i < records.length; i++) {
-        const record = records[i]
-
+      for (const record of records) {
         // 统一通过 useChatSession 处理重放消息
         replayMessageRecord(newChat.chatId, record)
+      }
+
+      const last = newChat.lastMessage()
+      if (last.from == 'agent' && last.content.type == 'result') {
+        newChat.session.state = 'wait_input'
+      } else {
+        newChat.session.state = 'generating'
       }
 
       // 自动从消息中提取 sessionId（如果尚未设置）
