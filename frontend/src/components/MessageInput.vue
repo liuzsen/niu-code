@@ -1,13 +1,9 @@
 <template>
   <div class="min-h-0">
     <!-- Prompt History Modal -->
-    <PromptHistoryList
-      :visible="promptHistoryModal.isVisible.value"
-      :allPrompts="promptHistoryModal.cachedPrompts.value"
-      :fuseInstance="promptHistoryModal.fuseInstance.value"
-      :onSelect="promptHistoryModal.selectPrompt"
-      :onClose="promptHistoryModal.hide"
-    />
+    <PromptHistoryList :visible="promptHistoryModal.isVisible.value"
+      :allPrompts="promptHistoryModal.cachedPrompts.value" :fuseInstance="promptHistoryModal.fuseInstance.value"
+      :onSelect="promptHistoryModal.selectPrompt" :onClose="promptHistoryModal.hide" />
 
     <div class="bg-surface-50 dark:bg-surface-800 border-surface-200 dark:border-surface-500 rounded-2xl p-3 shadow-sm">
       <!-- Input Area -->
