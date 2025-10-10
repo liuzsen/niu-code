@@ -28,6 +28,7 @@ use crate::{
         CanUseToolParams, ChatId, ClaudeSystemInfo, ClientMessage, ServerError, ServerMessage,
         ServerMessageData,
     },
+    prompt_hub::PromptHub,
     resume,
     setting::get_current_setting,
 };
@@ -89,6 +90,7 @@ pub struct SessionInfo {
 }
 
 pub struct ChatManager {
+    prompt_hub: Arc<PromptHub>,
     mailbox: UnboundedReceiver<ChatManagerMessage>,
     connections: HashMap<ConnId, WsSender>,
     cli_sessions: HashMap<CliId, CliSession>,
@@ -153,8 +155,9 @@ impl CliId {
 }
 
 impl ChatManager {
-    pub fn new(mailbox: UnboundedReceiver<ChatManagerMessage>) -> Self {
+    pub fn new(mailbox: UnboundedReceiver<ChatManagerMessage>, prompt_hub: Arc<PromptHub>) -> Self {
         Self {
+            prompt_hub,
             mailbox,
             connections: Default::default(),
             cli_sessions: Default::default(),
@@ -316,6 +319,12 @@ impl ChatManager {
             message: CacheMessage::UserInput(prompt.content.clone()),
         });
         session.last_activity = now;
+
+        // 添加到提示词中心
+        self.prompt_hub.add_prompt(
+            prompt.content.clone(),
+            Some(session.work_dir.clone()),
+        );
     }
 
     fn stop_cli_by_chat(&mut self, chat_id: &String) {

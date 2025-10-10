@@ -18,7 +18,7 @@ import { useGlobalToast } from '../stores/toast'
 const toast = useGlobalToast()
 
 // 状态管理
-const notificationPermission = ref<NotificationPermission>('default')
+const notificationPermission = ref<'default' | 'granted' | 'denied'>('default')
 const userActiveStatus = ref(false)
 const titleFlashingActive = ref(false)
 const iconBlinkingActive = ref(false)

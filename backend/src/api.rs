@@ -9,6 +9,7 @@ use serde::Serialize;
 
 pub mod chat;
 pub mod fs;
+pub mod prompt;
 pub mod setting;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
@@ -18,6 +19,7 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.route("/api/fs/updates", get().to(fs::sse_handler));
     cfg.route("/api/connect", get().to(server::websocket::ws_handler));
     cfg.route("/api/chat/start", post().to(chat::start_chat));
+    cfg.route("/api/chat/prompts", get().to(prompt::sse_handler));
     cfg.route("/api/claude/info", get().to(chat::get_claude_info));
     cfg.route("/api/session/list", get().to(chat::session_list));
     cfg.route("/api/setting", get().to(setting::get_setting));

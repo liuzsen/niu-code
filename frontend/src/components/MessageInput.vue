@@ -69,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed, onMounted, ref } from 'vue'
+import { watch, computed, onMounted, onBeforeUnmount, ref } from 'vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { useChatStore } from '../stores/chat'
@@ -83,6 +83,8 @@ import { htmlToMarkdown } from '../utils/contentConverter'
 import { SlashCommandsExtension, suggestionOptions, slashCommandPluginKey } from './slash-commands'
 import FileReferenceExtension from './file-reference/FileReferenceExtension'
 import { fileReferencePluginKey } from './file-reference/FileReferenceSuggestion'
+import { PromptHistoryExtension, createPromptHistorySuggestion, promptHistoryPluginKey } from './prompt-history'
+import { promptHistoryService } from '../services/promptHistory'
 import { useWorkspace } from '../stores/workspace'
 import { apiService } from '../services'
 import { useWebSocket } from '../composables/useWebSocket'
@@ -198,6 +200,9 @@ const editor = useEditor({
       suggestion: suggestionOptions,
     }),
     FileReferenceExtension,
+    PromptHistoryExtension.configure({
+      suggestion: createPromptHistorySuggestion(),
+    }),
   ],
   editable: editable.value,
   autofocus: true,
@@ -290,6 +295,12 @@ const editor = useEditor({
           return false
         }
 
+        // 检查历史搜索建议列表是否正在显示
+        const promptHistoryState = promptHistoryPluginKey.getState(view.state)
+        if (promptHistoryState?.active) {
+          return false
+        }
+
         // 建议列表未显示,发送消息
         handleSendUserInput()
         return true
@@ -309,9 +320,29 @@ watch(editable, (editable) => {
   }
 }, { immediate: true })
 
-// 在组件挂载时加载配置列表
+// 在组件挂载时加载配置列表和初始化历史服务
+let unsubscribePromptHistory: (() => void) | null = null
+
 onMounted(() => {
   loadConfigNames()
+
+  // Subscribe to prompt history SSE with new pattern
+  unsubscribePromptHistory = promptHistoryService.subscribe({
+    onPromptReceived: (record) => {
+      console.log('New prompt received:', record)
+      // The service handles storing the prompt internally
+    },
+    onError: (error) => {
+      console.error('Prompt history error:', error)
+    }
+  })
+})
+
+// Cleanup on unmount
+onBeforeUnmount(() => {
+  if (unsubscribePromptHistory) {
+    unsubscribePromptHistory()
+  }
 })
 
 // 权限模式更新处理
