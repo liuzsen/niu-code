@@ -56,6 +56,10 @@
                 :input="tool_use.tool_use.input"></TodoWriteRenderer>
               <ExitPlanModeMessage v-else-if="tool_use.tool_use.tool_name == 'ExitPlanMode'" :id="tool_use.id"
                 :input="tool_use.tool_use.input"></ExitPlanModeMessage>
+              <WebFetchRenderer v-else-if="tool_use.tool_use.tool_name == 'WebFetch'" :id="tool_use.id"
+                :input="tool_use.tool_use.input"></WebFetchRenderer>
+              <WebSearchRenderer v-else-if="tool_use.tool_use.tool_name == 'WebSearch'" :id="tool_use.id"
+                :input="tool_use.tool_use.input"></WebSearchRenderer>
               <div v-else>
                 <FallbackRenderer :data="message"></FallbackRenderer>
               </div>
@@ -109,6 +113,8 @@ import ExitPlanModeMessage from './message/ExitPlanModeMessage.vue'
 import UnknownToolUseMessage from './message/UnknownToolUseMessage.vue'
 import ClaudeUserMessage from './message/ClaudeUserMessage.vue'
 import McpMessage from './message/McpMessage.vue'
+import WebFetchRenderer from './message/WebFetchMessage.vue'
+import WebSearchRenderer from './message/WebSearchMessage.vue'
 
 interface Props {
   message: ChatMessage
