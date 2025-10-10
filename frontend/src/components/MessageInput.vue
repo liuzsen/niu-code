@@ -1,5 +1,14 @@
 <template>
   <div class="min-h-0">
+    <!-- Prompt History Modal -->
+    <PromptHistoryList
+      :visible="promptHistoryModal.isVisible.value"
+      :allPrompts="promptHistoryModal.cachedPrompts.value"
+      :fuseInstance="promptHistoryModal.fuseInstance.value"
+      :onSelect="promptHistoryModal.selectPrompt"
+      :onClose="promptHistoryModal.hide"
+    />
+
     <div class="bg-surface-50 dark:bg-surface-800 border-surface-200 dark:border-surface-500 rounded-2xl p-3 shadow-sm">
       <!-- Input Area -->
       <div class="mb-1">
@@ -69,7 +78,7 @@
 </template>
 
 <script setup lang="ts">
-import { watch, computed, onMounted, onBeforeUnmount, ref } from 'vue'
+import { watch, computed, onMounted, ref } from 'vue'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { useChatStore } from '../stores/chat'
@@ -83,8 +92,8 @@ import { htmlToMarkdown } from '../utils/contentConverter'
 import { SlashCommandsExtension, suggestionOptions, slashCommandPluginKey } from './slash-commands'
 import FileReferenceExtension from './file-reference/FileReferenceExtension'
 import { fileReferencePluginKey } from './file-reference/FileReferenceSuggestion'
-import { PromptHistoryExtension, createPromptHistorySuggestion, promptHistoryPluginKey } from './prompt-history'
-import { promptHistoryService } from '../services/promptHistory'
+import { usePromptHistoryModal } from './prompt-history/usePromptHistoryModal'
+import PromptHistoryList from './prompt-history/PromptHistoryList.vue'
 import { useWorkspace } from '../stores/workspace'
 import { apiService } from '../services'
 import { useWebSocket } from '../composables/useWebSocket'
@@ -106,6 +115,9 @@ const { state: websocketState } = useWebSocket()
 
 // 初始化文件监听
 useFileWatch()
+
+// Initialize prompt history modal
+const promptHistoryModal = usePromptHistoryModal()
 
 const foregroundChat = computed(() => chatStore.foregroundChat)
 
@@ -200,9 +212,6 @@ const editor = useEditor({
       suggestion: suggestionOptions,
     }),
     FileReferenceExtension,
-    PromptHistoryExtension.configure({
-      suggestion: createPromptHistorySuggestion(),
-    }),
   ],
   editable: editable.value,
   autofocus: true,
@@ -266,6 +275,15 @@ const editor = useEditor({
         return false
       }
 
+      // Ctrl+R: 打开历史对话搜索
+      if (event.ctrlKey && event.key === 'r') {
+        event.preventDefault()
+        if (editor.value) {
+          promptHistoryModal.show(editor.value)
+        }
+        return true
+      }
+
       // Ctrl+C: 停止生成（仅在无文本选中时）
       if (event.ctrlKey && event.key === 'c' && isGenerating.value) {
         // 检查是否有选中的文本
@@ -295,12 +313,6 @@ const editor = useEditor({
           return false
         }
 
-        // 检查历史搜索建议列表是否正在显示
-        const promptHistoryState = promptHistoryPluginKey.getState(view.state)
-        if (promptHistoryState?.active) {
-          return false
-        }
-
         // 建议列表未显示,发送消息
         handleSendUserInput()
         return true
@@ -320,29 +332,9 @@ watch(editable, (editable) => {
   }
 }, { immediate: true })
 
-// 在组件挂载时加载配置列表和初始化历史服务
-let unsubscribePromptHistory: (() => void) | null = null
-
+// 在组件挂载时加载配置列表
 onMounted(() => {
   loadConfigNames()
-
-  // Subscribe to prompt history SSE with new pattern
-  unsubscribePromptHistory = promptHistoryService.subscribe({
-    onPromptReceived: (record) => {
-      console.log('New prompt received:', record)
-      // The service handles storing the prompt internally
-    },
-    onError: (error) => {
-      console.error('Prompt history error:', error)
-    }
-  })
-})
-
-// Cleanup on unmount
-onBeforeUnmount(() => {
-  if (unsubscribePromptHistory) {
-    unsubscribePromptHistory()
-  }
 })
 
 // 权限模式更新处理

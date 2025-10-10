@@ -28,7 +28,7 @@ function newFuse(files: string[]) {
   return new Fuse(files, {
     threshold: 0.6,
     includeScore: true,
-    ignoreLocation: false,
+    ignoreLocation: true,
     isCaseSensitive: false,
     minMatchCharLength: 2,
     findAllMatches: true,

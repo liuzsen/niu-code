@@ -21,34 +21,6 @@ pub struct PromptRecord {
     pub work_dir: Option<PathBuf>,
 }
 
-#[test]
-fn aa() {
-    let prompts = [
-        "用 Rust 实现一个函数 is_prime(n: u32) -> bool，判断给定的无符号整数是否为质数。",
-        "用 Rust 定义一个泛型栈结构 Stack<T>，实现 push、pop 和 peek 方法，并使用 Vec<T> 作为底层存储。",
-        "用 Rust 实现快速排序算法，函数签名为 fn quicksort<T: Ord + Clone>(arr: &mut [T])。",
-        "用 Rust 读取指定路径的文本文件，统计每行的字节数，并将结果写入新文件。",
-        "使用 reqwest crate 编写一个异步函数 fetch_weather(city: &str) -> Result<f64, Box<dyn std::error::Error>>，从公开天气 API 获取当前温度。",
-        "使用 axum 框架编写一个最小的 REST API，当访问 GET / 时返回 JSON: {\"message\": \"Hello, World!\"}。",
-        "实现一个安全的除法函数 divide(a: f64, b: f64) -> Result<f64, String>，在除数为零时返回错误信息。",
-        "定义一个结构体 Car，包含字段 brand: String、model: String，并实现一个方法 fn start_engine(&self) -> String。",
-        "使用 regex crate 编写函数 is_valid_email(email: &str) -> bool，验证电子邮件格式是否合法。",
-        "使用 tokio 编写一个异步函数 fetch_multiple_urls(urls: Vec<&str>) -> Vec<String>，并发获取多个网页内容。",
-        "使用 rusqlite crate 创建一个 SQLite 数据库，定义 users 表（id INTEGER PRIMARY KEY, name TEXT），并插入一条测试记录。",
-        "为一个计算阶乘的函数 factorial(n: u64) -> u64 编写单元测试，覆盖正常值和边界情况（如 0）。",
-        "编写一个命令行程序，使用 clap 解析输入参数 --file <PATH>，并输出该文件的总行数。",
-        "使用 polars 或 csv crate 读取 CSV 文件，筛选出 age > 30 的行，并将结果写入 output.csv。",
-        "将以下使用 for 循环构建 Vec 的 Rust 代码重构为使用迭代器和 collect：[提供原始代码示例]。",
-    ];
-    let ph = init().unwrap();
-    for p in prompts {
-        ph.add_prompt(
-            Arc::new(p.to_string()),
-            Some("/data/home/sen/code/projects/ai/zsen-cc-web/".into()),
-        );
-    }
-}
-
 /// 提示词监听器 trait
 pub trait PromptListener: Send + Sync {
     fn on_new_prompt(&self, prompt: &PromptRecord) -> Result<(), ()>;

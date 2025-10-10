@@ -1,4 +1,2 @@
-export { PromptHistoryExtension } from './PromptHistoryExtension'
-export { createPromptHistorySuggestion, promptHistoryPluginKey } from './PromptHistorySuggestion'
-export type { PromptHistoryItem, PromptHistorySuggestionOptions } from './PromptHistorySuggestion'
+export { usePromptHistoryModal } from './usePromptHistoryModal'
 export { default as PromptHistoryList } from './PromptHistoryList.vue'
