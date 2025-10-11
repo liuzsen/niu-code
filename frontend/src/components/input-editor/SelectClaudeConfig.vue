@@ -29,8 +29,8 @@ const configOptions = ref<{ label: string; value: string }[]>([])
 const selectedConfigName = computed({
   get: () => props.chat?.session.configName || '',
   set: (value: string) => {
-    if (props.chat?.session) {
-      props.chat.session.configName = value
+    if (props.chat) {
+      props.chat.setConfig(value)
       emit('update:configName', value)
     }
   }

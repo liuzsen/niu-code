@@ -55,6 +55,10 @@ export class ChatState {
     })
   }
 
+  setConfig(config: string) {
+    this.session.configName = config
+  }
+
   addClaudeMessage(content: SDKMessage) {
     if (content.type === 'system' && content.subtype === 'init') {
       if (this.session.systemInit) return
