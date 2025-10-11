@@ -2,17 +2,61 @@
 @import "tailwindcss-primeui";
 @import "primeicons/primeicons.css";
 @plugin "@tailwindcss/typography";
-@custom-variant dark (&:where(.p-dark, .p-dark *));
+
+/* 导入主题系统 */
+@import "./styles/theme.css";
+
+/* 注册自定义颜色到 Tailwind */
+@theme {
+  /* 背景层级 */
+  --color-bg-base: var(--bg-base);
+  --color-bg-surface: var(--bg-surface);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-bg-interactive: var(--bg-interactive);
+  --color-bg-code: var(--bg-code);
+  --color-bg-hover: var(--bg-hover);
+
+  /* 文本层级 */
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-muted: var(--text-muted);
+
+  /* 边框 */
+  --color-border-default: var(--border-default);
+  --color-border-strong: var(--border-strong);
+  --color-border-subtle: var(--border-subtle);
+
+  /* 状态色 */
+  --color-status-success: var(--status-success);
+  --color-status-success-bg: var(--status-success-bg);
+  --color-status-success-border: var(--status-success-border);
+
+  --color-status-error: var(--status-error);
+  --color-status-error-bg: var(--status-error-bg);
+  --color-status-error-border: var(--status-error-border);
+
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-bg: var(--status-warning-bg);
+  --color-status-warning-border: var(--status-warning-border);
+
+  --color-status-info: var(--status-info);
+  --color-status-info-border: var(--status-info-border);
+
+  /* 特殊标签 */
+  --color-label-human: var(--label-human);
+  --color-label-agent: var(--label-agent);
+}
 
 #app {
   height: 100vh;
 }
 
-/* 全局自定义滚动条样式 */
-.custom-scrollbar-light {
+/* 全局自定义滚动条样式(使用主题变量) */
+.custom-scrollbar {
   /* Firefox */
   scrollbar-width: thin;
-  scrollbar-color: #888 transparent;
+  scrollbar-color: var(--border-strong) transparent;
 
   /* WebKit */
   &::-webkit-scrollbar {
@@ -24,23 +68,26 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: #888;
+    background-color: var(--border-strong);
     border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background-color: #666;
+    background-color: var(--border-default);
   }
 }
 
+/*
+ * 已废弃的滚动条类 (保留以兼容现有组件,统一使用 .custom-scrollbar)
+ * TODO: 后续移除,所有使用处改为 .custom-scrollbar
+ */
+.custom-scrollbar-light,
 .custom-scrollbar-dark {
-  /* Firefox */
   scrollbar-width: thin;
-  scrollbar-color: #374151 transparent;
+  scrollbar-color: var(--border-strong) transparent;
 
-  /* WebKit */
   &::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
   }
 
   &::-webkit-scrollbar-track {
@@ -48,11 +95,11 @@
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: #374151;
-    border-radius: 3px;
+    background-color: var(--border-strong);
+    border-radius: 4px;
   }
 
   &::-webkit-scrollbar-thumb:hover {
-    background-color: #4b5563;
+    background-color: var(--border-default);
   }
 }

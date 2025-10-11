@@ -1,0 +1,38 @@
+/**
+ * Dark 主题 - 深色主题
+ * 深灰/黑色系,适合夜间使用和低光环境
+ */
+
+[data-theme="dark"] {
+  /* 背景层级 */
+  --theme-bg-base: theme(colors.stone.900);
+  /* 页面主背景 */
+  --theme-bg-surface: theme(colors.stone.950);
+  /* 卡片/容器背景 */
+  --theme-bg-elevated: theme(colors.stone.950);
+  /* 弹窗/浮层背景 */
+  --theme-bg-interactive: theme(colors.zinc.950);
+  /* 输入框/列表项 */
+  --theme-bg-code: theme(colors.stone.900);
+  /* 代码块/标签背景 */
+  --theme-bg-hover: theme(colors.stone.800);
+  /* 悬停状态 */
+
+  /* 文本层级 */
+  --theme-text-primary: theme(colors.stone.50);
+  /* 主标题/重要文本 */
+  --theme-text-secondary: theme(colors.stone.200);
+  /* 正文内容 */
+  --theme-text-tertiary: theme(colors.stone.400);
+  /* 次要信息/标签 */
+  --theme-text-muted: theme(colors.stone.500);
+  /* 辅助文本/占位符 */
+
+  /* 边框 */
+  --theme-border-default: theme(colors.stone.800);
+  /* 主边框 */
+  --theme-border-strong: theme(colors.stone.700);
+  /* 强调边框 */
+  --theme-border-subtle: theme(colors.stone.600);
+  /* 分隔线 */
+}

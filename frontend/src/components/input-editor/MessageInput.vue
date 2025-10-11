@@ -6,7 +6,7 @@
       :fuseInstance="messageEditor.promptHistoryModal.fuseInstance.value"
       :onSelect="messageEditor.promptHistoryModal.selectPrompt" :onClose="messageEditor.promptHistoryModal.hide" />
 
-    <div class="bg-surface-50 dark:bg-surface-800 border-surface-200 dark:border-surface-500 rounded-2xl p-3 shadow-sm">
+    <div class="bg-bg-elevated border-border-default rounded-2xl p-3 shadow-sm">
       <!-- Input Area -->
       <div class="mb-1">
         <!-- 图片缩略图 -->
@@ -16,7 +16,7 @@
         />
 
         <div class="w-full resize-none border-0 bg-transparent min-h-20 px-2 focus:outline-2
-          text-zinc-800 dark:text-slate-200 custom-tiptap-editor">
+          text-text-primary custom-tiptap-editor">
           <EditorContent :editor="messageEditor.editor.value" />
         </div>
       </div>
@@ -26,9 +26,9 @@
         <!-- Left Tool Buttons -->
         <div class="flex items-center gap-2">
           <Button icon="pi pi-face-smile" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-text-muted hover:text-text-secondary" />
           <Button icon="pi pi-at" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-text-muted hover:text-text-secondary" />
 
           <!-- 图片上传按钮 -->
           <input
@@ -44,23 +44,23 @@
             severity="secondary"
             variant="text"
             size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700"
+            class="p-1 w-7 h-7 text-text-muted hover:text-text-secondary"
             @click="triggerFileInput"
             title="上传图片"
           />
 
           <Button icon="pi pi-bolt" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-text-muted hover:text-text-secondary" />
           <Button icon="pi pi-th-large" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-text-muted hover:text-text-secondary" />
 
           <!-- Language/Settings Button -->
           <Button icon="pi pi-language" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+            class="p-1 w-7 h-7 text-text-muted hover:text-text-secondary" />
 
           <!-- Export Button -->
           <Button icon="pi pi-download" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700"
+            class="p-1 w-7 h-7 text-text-muted hover:text-text-secondary"
             @click="exportCurrentChat()" :disabled="foregroundChat?.messages.length === 0" title="导出对话" />
         </div>
 
@@ -75,15 +75,15 @@
           <!-- Send Button -->
           <Button v-if="!isGenerating" @click="messageEditor.handleSend" :disabled="!messageEditor.editable.value"
             icon="pi pi-arrow-up" severity="secondary" size="small"
-            class="rounded-full w-10 h-10 p-0 shrink-0 transition-all duration-200 dark:bg-surface-950 dark:text-surface-300 bg-surface-300 text-surface-700"
-            v-tooltip.top="{ value: 'Enter', pt: { text: 'bg-surface-300 dark:bg-surface-950 text-xs' } }"
+            class="rounded-full w-10 h-10 p-0 shrink-0 transition-all duration-200 bg-bg-code text-text-secondary"
+            v-tooltip.top="{ value: 'Enter', pt: { text: 'bg-bg-code text-xs' } }"
             :title="messageEditor.disabledTooltip.value || '发送消息 (Enter)'" />
 
           <!-- Interrupt Button -->
           <Button v-else @click="handleStopGeneration" :disabled="!messageEditor.editable.value" icon="pi pi-stop"
             severity="secondary" size="small"
-            class="rounded-full w-10 h-10 p-0 shrink-0 transition-all duration-200 bg-red-500 dark:bg-red-600 text-white hover:bg-red-600 dark:hover:bg-red-700"
-            v-tooltip.top="{ value: 'Ctrl + C', pt: { text: 'red dark:bg-surface-950 text-xs' } }"
+            class="rounded-full w-10 h-10 p-0 shrink-0 transition-all duration-200 bg-status-error text-white hover:bg-red-600"
+            v-tooltip.top="{ value: 'Ctrl + C', pt: { text: 'red text-xs' } }"
             title="停止生成 (interrupt)" />
         </div>
       </div>

@@ -12,9 +12,14 @@ import { Toast, useToast } from 'primevue'
 import { provideWebSocket } from './composables/useWebSocket'
 import { useMessageHandler } from './composables/useMessageHandler'
 import { requestNotificationPermission } from './utils/notification'
+import { useTheme } from './stores/theme'
 
 const globalToast = useGlobalToast()
 globalToast.setToast(useToast())
+
+// 初始化主题系统
+const themeStore = useTheme()
+themeStore.initialize()
 
 // 初始化 WebSocket（通过依赖注入）
 provideWebSocket()

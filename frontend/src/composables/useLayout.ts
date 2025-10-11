@@ -1,39 +1,22 @@
-import { computed, ref, onMounted } from "vue";
+import { computed } from "vue";
+import { useTheme } from "../stores/theme";
 
-
-const appState = ref({
-  primary: "emerald",
-  surface: null,
-  darkMode: false,
-});
-
+/**
+ * 布局相关的组合函数
+ * 现在委托给 theme store 管理主题状态
+ */
 export function useLayout() {
+  const themeStore = useTheme();
+
   function toggleDarkMode() {
-    appState.value.darkMode = !appState.value.darkMode;
-    updateDarkModeClass();
+    const newTheme = themeStore.currentTheme === 'dark' ? 'default-light' : 'dark';
+    themeStore.setTheme(newTheme);
   }
 
-  function updateDarkModeClass() {
-    if (appState.value.darkMode) {
-      document.documentElement.classList.add("p-dark");
-    } else {
-      document.documentElement.classList.remove("p-dark");
-    }
-  }
-
-  // Initialize dark mode on first load
-  onMounted(() => {
-    updateDarkModeClass();
-  });
-
-  const isDarkMode = computed(() => appState.value.darkMode);
-  const primary = computed(() => appState.value.primary);
-  const surface = computed(() => appState.value.surface);
+  const isDarkMode = computed(() => themeStore.currentTheme === 'dark');
 
   return {
     isDarkMode,
-    primary,
-    surface,
     toggleDarkMode,
   };
 }

@@ -1,0 +1,38 @@
+/**
+ * Warm Light 主题 - 暖色米黄调
+ * 米色/奶茶色系,温暖氛围,降低冷感
+ */
+
+[data-theme="warm-light"] {
+  /* 背景层级 */
+  --theme-bg-base: theme(colors.amber.50);
+  /* 页面主背景 */
+  --theme-bg-surface: theme(colors.amber.100);
+  /* 卡片/容器背景 */
+  --theme-bg-elevated: theme(colors.orange.50);
+  /* 弹窗/浮层背景 */
+  --theme-bg-interactive: theme(colors.amber.200);
+  /* 输入框/列表项 */
+  --theme-bg-code: theme(colors.amber.300);
+  /* 代码块/标签背景 */
+  --theme-bg-hover: theme(colors.amber.100);
+  /* 悬停状态 */
+
+  /* 文本层级 */
+  --theme-text-primary: theme(colors.amber.950);
+  /* 主标题/重要文本 */
+  --theme-text-secondary: theme(colors.amber.800);
+  /* 正文内容 */
+  --theme-text-tertiary: theme(colors.amber.700);
+  /* 次要信息/标签 */
+  --theme-text-muted: theme(colors.amber.600);
+  /* 辅助文本/占位符 */
+
+  /* 边框 */
+  --theme-border-default: theme(colors.amber.200);
+  /* 主边框 */
+  --theme-border-strong: theme(colors.amber.300);
+  /* 强调边框 */
+  --theme-border-subtle: theme(colors.amber.400);
+  /* 分隔线 */
+}

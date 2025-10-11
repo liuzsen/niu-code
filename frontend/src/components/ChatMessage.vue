@@ -1,16 +1,16 @@
 <template>
-  <div class="flex w-full dark:text-surface-300 font-normal"
+  <div class="flex w-full text-text-secondary font-normal"
     :class="{ 'justify-end': message.data.from === 'human', 'justify-start': message.data.from === 'agent' }">
     <div class="flex items-start w-full space-x-2 max-w-full"
       :class="{ 'flex-row-reverse space-x-reverse': message.data.from === 'human' }">
       <div class="flex flex-col w-full">
 
         <div class="flex gap-2 text-sm px-0 mb-0.5">
-          <p v-if="message.data.from === 'human'" class=" text-green-500">Human</p>
-          <p v-if="message.data.from === 'agent'" class=" dark:text-orange-300 text-surface-700">Main Agent</p>
+          <p v-if="message.data.from === 'human'" class="text-label-human">Human</p>
+          <p v-if="message.data.from === 'agent'" class="text-label-agent">Main Agent</p>
         </div>
 
-        <div class=" rounded-sm text-sm bg-surface-300 dark:bg-surface-900">
+        <div class="rounded-sm text-sm bg-bg-interactive">
           <!-- 用户消息 -->
           <div v-if="message.data.from === 'human'" class="p-4">
             <MarkdownRenderer v-if="typeof message.data.content.content === 'string'" :content="message.data.content.content" />
@@ -90,7 +90,7 @@
             </div>
           </div>
         </div>
-        <div class="flex justify-end mt-0.5 text-gray-500">
+        <div class="flex justify-end mt-0.5 text-text-muted">
           <p class="text-xs mr-2">
             {{ formatTime }}
           </p>

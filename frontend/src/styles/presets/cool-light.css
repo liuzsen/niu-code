@@ -1,0 +1,38 @@
+/**
+ * Cool Light 主题 - 冷色青蓝调
+ * 浅蓝灰色系,清爽感,提升专注力
+ */
+
+[data-theme="cool-light"] {
+  /* 背景层级 */
+  --theme-bg-base: theme(colors.sky.50);
+  /* 页面主背景 */
+  --theme-bg-surface: theme(colors.sky.100);
+  /* 卡片/容器背景 */
+  --theme-bg-elevated: theme(colors.white);
+  /* 弹窗/浮层背景 */
+  --theme-bg-interactive: theme(colors.sky.200);
+  /* 输入框/列表项 */
+  --theme-bg-code: theme(colors.sky.300);
+  /* 代码块/标签背景 */
+  --theme-bg-hover: theme(colors.sky.100);
+  /* 悬停状态 */
+
+  /* 文本层级 */
+  --theme-text-primary: theme(colors.sky.950);
+  /* 主标题/重要文本 */
+  --theme-text-secondary: theme(colors.sky.800);
+  /* 正文内容 */
+  --theme-text-tertiary: theme(colors.sky.700);
+  /* 次要信息/标签 */
+  --theme-text-muted: theme(colors.sky.600);
+  /* 辅助文本/占位符 */
+
+  /* 边框 */
+  --theme-border-default: theme(colors.sky.200);
+  /* 主边框 */
+  --theme-border-strong: theme(colors.sky.300);
+  /* 强调边框 */
+  --theme-border-subtle: theme(colors.sky.400);
+  /* 分隔线 */
+}
