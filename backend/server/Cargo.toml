@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 actix-web = "4.11.0"
-actix-ws = "0.3.0"
+actix-ws = { git = "https://github.com/liuzsen/actix-extras"}
 anyhow.workspace = true
 arc-swap = "1.7.1"
 async-trait.workspace = true

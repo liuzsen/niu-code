@@ -27,7 +27,7 @@ pub type Responder<T> = oneshot::Sender<T>;
 pub type CanUseToolReponder = Responder<Arc<PermissionResult>>;
 
 pub enum ClaudeCliMessage {
-    UserInput(Arc<String>),
+    UserInput(APIUserMessage),
     PermissionResp(Arc<PermissionResult>),
     SetMode(PermissionMode),
     GetInfo,
@@ -129,13 +129,10 @@ impl ClaudeCli {
         Ok(())
     }
 
-    fn build_prompt(&self, prompt: Arc<String>) -> SDKUserMessage {
+    fn build_prompt(&self, prompt: APIUserMessage) -> SDKUserMessage {
         SDKUserMessage {
             uuid: None,
-            message: APIUserMessage {
-                content: cc_sdk::types::UserContent::String(prompt),
-                role: cc_sdk::types::APIUserMessageRole::User,
-            },
+            message: prompt,
             parent_tool_use_id: None,
         }
     }

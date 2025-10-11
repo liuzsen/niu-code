@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use cc_sdk::{
     cli::{ModelInfo, SlashCommand},
-    types::{PermissionMode, PermissionResult, SDKMessage},
+    types::{APIUserMessage, PermissionMode, PermissionResult, SDKMessage},
 };
 use derive_more::From;
 use serde::{Deserialize, Serialize};
@@ -20,18 +20,12 @@ pub struct ClientMessage {
 #[serde(rename_all = "snake_case")]
 pub enum ClientMessageData {
     RegisterChat,
-    UserInput(UserInput),
+    UserInput(APIUserMessage),
     PermissionResp(Arc<PermissionResult>),
     SetMode { mode: PermissionMode },
     GetInfo,
     StopSession,
     Interrupt,
-}
-
-#[derive(Deserialize, Serialize, Debug)]
-pub struct UserInput {
-    pub content: Arc<String>,
-    pub resume: Option<String>,
 }
 
 #[derive(Serialize)]

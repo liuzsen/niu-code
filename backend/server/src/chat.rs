@@ -7,7 +7,10 @@ use std::{
 };
 
 use anyhow::{Context, Result};
-use cc_sdk::types::{ClaudeCodeOptions, PermissionMode, PermissionResult, SDKMessage};
+use cc_sdk::types::{
+    APIUserMessage, ClaudeCodeOptions, PermissionMode, PermissionResult, SDKMessage,
+    anthropic::ContentBlockParam,
+};
 use chrono::{DateTime, Utc};
 use derive_more::Display;
 use serde::{Deserialize, Serialize};
@@ -49,7 +52,7 @@ pub fn get_manager_mailbox() -> UnboundedSender<ChatManagerMessage> {
 // Persistent message types
 #[derive(Clone, Serialize)]
 pub enum CacheMessage {
-    UserInput(Arc<String>),
+    UserInput(APIUserMessage),
     Claude(Arc<SDKMessage>),
     SystemInfo(Arc<ClaudeSystemInfo>),
     CanUseTool(Arc<CanUseToolParams>),
@@ -235,7 +238,7 @@ impl ChatManager {
             crate::message::ClientMessageData::UserInput(prompt) => {
                 self.record_user_input(&chat_id, &prompt);
 
-                self.forward_to_cli(&chat_id, ClaudeCliMessage::UserInput(prompt.content));
+                self.forward_to_cli(&chat_id, ClaudeCliMessage::UserInput(prompt));
             }
             crate::message::ClientMessageData::PermissionResp(permission_result) => {
                 self.record_user_permission_resp(&chat_id, permission_result.clone());
@@ -303,7 +306,8 @@ impl ChatManager {
         self.chat_to_cli.get(chat_id).copied()
     }
 
-    fn record_user_input(&mut self, chat_id: &String, prompt: &crate::message::UserInput) {
+    fn record_user_input(&mut self, chat_id: &String, prompt: &APIUserMessage) {
+        debug!(chat_id, "record user input");
         let Some(cli_id) = self.get_chat_cli_id(chat_id) else {
             debug!(chat_id, "no cli found when record user input");
             return;
@@ -316,15 +320,13 @@ impl ChatManager {
         let now = Utc::now();
         session.messages.push(MessageRecord {
             timestamp: now,
-            message: CacheMessage::UserInput(prompt.content.clone()),
+            message: CacheMessage::UserInput(prompt.clone()),
         });
         session.last_activity = now;
 
         // 添加到提示词中心
-        self.prompt_hub.add_prompt(
-            prompt.content.clone(),
-            Some(session.work_dir.clone()),
-        );
+        self.prompt_hub
+            .add_user_input(prompt.clone(), Some(session.work_dir.clone()));
     }
 
     fn stop_cli_by_chat(&mut self, chat_id: &String) {
@@ -376,8 +378,8 @@ impl ChatManager {
                 for msg in &session.messages[start..end] {
                     let ws = self.connections.get(&conn_id).unwrap();
                     let data = match msg.message.clone() {
-                        CacheMessage::UserInput(input) => {
-                            warn!(%input, "Impossible to send user input");
+                        CacheMessage::UserInput(..) => {
+                            warn!("Impossible to send user input");
                             continue;
                         }
                         CacheMessage::Claude(sdkmessage) => ServerMessageData::Claude(sdkmessage),
@@ -408,6 +410,7 @@ impl ChatManager {
     }
 
     fn forward_to_cli(&mut self, chat_id: &ChatId, msg: ClaudeCliMessage) {
+        debug!(chat_id, name = msg.name(), "forward client msg to cli");
         let Some(cli_id) = self.get_chat_cli_id(chat_id) else {
             debug!(chat_id, "no cli found when forward to cli");
             return;
@@ -745,7 +748,17 @@ impl CliSession {
     fn last_user_input(&self) -> Option<Arc<String>> {
         self.messages.iter().rev().find_map(|msg| {
             if let CacheMessage::UserInput(input) = &msg.message {
-                Some(input.clone())
+                match &*input.content {
+                    cc_sdk::types::UserContent::String(s) => Some(Arc::new(s.clone())),
+                    cc_sdk::types::UserContent::Vec(values) => {
+                        for v in values.iter().rev() {
+                            if let ContentBlockParam::Text(t) = v {
+                                return Some(t.text.clone());
+                            }
+                        }
+                        return None;
+                    }
+                }
             } else {
                 None
             }
@@ -821,7 +834,7 @@ pub enum StartChatError {
 }
 
 impl ChatManagerMessage {
-    fn name(&self) -> &'static str {
+    pub fn name(&self) -> &'static str {
         match self {
             ChatManagerMessage::NewConnect { .. } => "NewConnect",
             ChatManagerMessage::ClientMessage { .. } => "ClientMessage",

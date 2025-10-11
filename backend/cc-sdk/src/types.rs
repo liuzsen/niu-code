@@ -1,3 +1,4 @@
+pub mod anthropic;
 mod can_use_tool;
 mod message;
 mod options;

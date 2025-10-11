@@ -18,11 +18,13 @@ use crate::{
 pub async fn ws_handler(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
     debug!("new ws connection");
 
-    let (res, session, stream) = actix_ws::handle(&req, stream)?;
+    let (res, session, mut stream) = actix_ws::handle(&req, stream)?;
+    stream = stream.max_frame_size(1 * 1024 * 1024);
 
     let stream = stream
+        .max_frame_size(10 * 1024 * 1024)
         .aggregate_continuations()
-        .max_continuation_size(2_usize.pow(20));
+        .max_continuation_size(10 * 1024 * 1024);
 
     // start task but don't wait for it
     rt::spawn(async move {
@@ -150,7 +152,15 @@ impl WsEndpoint {
             AggregatedMessage::Close(close_reason) => {
                 bail!("ws session closed. reason = {:?}", close_reason)
             }
-            _ => {}
+            AggregatedMessage::Binary(bytes) => {
+                let msg: ClientMessage = serde_json::from_slice(&bytes)?;
+                let msg = ChatManagerMessage::ClientMessage {
+                    conn_id: self.conn_id,
+                    msg,
+                };
+                self.manager_mailbox.send(msg)?;
+            }
+            AggregatedMessage::Pong(..) => {}
         }
 
         Ok(ControlFlow::Continue(()))

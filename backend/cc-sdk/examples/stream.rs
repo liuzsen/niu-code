@@ -94,7 +94,7 @@ impl PromptGenerator for PromptGen {
         let msg = SDKUserMessage {
             uuid: None,
             message: APIUserMessage {
-                content: Arc::new(prompt).into(),
+                content: Arc::new(prompt.into()),
                 role: cc_sdk::types::APIUserMessageRole::User,
             },
             parent_tool_use_id: None,

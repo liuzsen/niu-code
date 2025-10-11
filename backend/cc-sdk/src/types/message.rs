@@ -1,8 +1,10 @@
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
 use derive_more::From;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+
+use crate::types::anthropic::ContentBlockParam;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SDKMessage {
@@ -30,11 +32,17 @@ pub struct SDKAssistantMessage {
     pub parent_tool_use_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum APIUserMessageRole {
     User,
     Assistant,
+}
+
+impl Default for APIUserMessageRole {
+    fn default() -> Self {
+        Self::User
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -44,17 +52,18 @@ pub struct SDKUserMessage {
     pub parent_tool_use_id: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct APIUserMessage {
-    pub content: UserContent,
+    pub content: Arc<UserContent>,
+    #[serde(default)]
     pub role: APIUserMessageRole,
 }
 
-#[derive(Serialize, Deserialize, Debug, From)]
+#[derive(Serialize, Deserialize, Debug, From, Clone)]
 #[serde(untagged)]
 pub enum UserContent {
-    String(Arc<String>),
-    Vec(Vec<serde_json::Value>),
+    String(String),
+    Vec(Vec<ContentBlockParam>),
 }
 
 #[derive(Serialize, Deserialize, Debug)]

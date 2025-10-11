@@ -7,6 +7,7 @@ use std::{
 };
 
 use anyhow::{Context, Result};
+use cc_sdk::types::APIUserMessage;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
@@ -50,7 +51,26 @@ impl std::fmt::Debug for PromptHub {
 
 impl PromptHub {
     /// 添加新提示词
-    pub fn add_prompt(&self, content: Arc<String>, work_dir: Option<PathBuf>) {
+    pub fn add_user_input(&self, prompt: APIUserMessage, work_dir: Option<PathBuf>) {
+        match &*prompt.content {
+            cc_sdk::types::UserContent::String(s) => {
+                self.add_prompt(Arc::new(s.clone()), work_dir);
+            }
+            cc_sdk::types::UserContent::Vec(msgs) => {
+                for msg in msgs {
+                    match msg {
+                        cc_sdk::types::anthropic::ContentBlockParam::Text(block) => {
+                            self.add_prompt(block.text.clone(), work_dir.clone());
+                        }
+                        cc_sdk::types::anthropic::ContentBlockParam::Other(..) => {}
+                    }
+                }
+            }
+        }
+    }
+
+    /// 添加新提示词
+    fn add_prompt(&self, content: Arc<String>, work_dir: Option<PathBuf>) {
         let record = PromptRecord {
             content: content.clone(),
             timestamp: Utc::now(),
