@@ -2,7 +2,7 @@ import { watch, onUnmounted } from 'vue'
 import { useWorkspace } from '../stores/workspace'
 import { apiService } from '../services/api'
 import { fileUpdateService } from '../services/fileUpdates'
-import { loadFileList, addFileToCache, removeFileFromCache } from '../components/file-reference/FileReferenceSuggestion'
+import { loadFileList, addFileToCache, removeFileFromCache } from '../components/suggestions/file-reference/config'
 import { errorHandler } from '../services/errorHandler'
 
 /**

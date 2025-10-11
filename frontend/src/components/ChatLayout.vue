@@ -17,7 +17,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import MessageList from './MessageList.vue'
-import MessageInput from './MessageInput.vue'
+import MessageInput from './input-editor/MessageInput.vue'
 import GlobalPermissionDialog from './GlobalPermissionDialog.vue'
 import { useChatManager } from '../stores/chat'
 

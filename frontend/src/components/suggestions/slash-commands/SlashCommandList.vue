@@ -5,33 +5,41 @@
         :class="{ ' bg-surface-400 dark:bg-surface-800': selectedIndex == index }" @click="selectItem(index)"
         class="items-center rounded-md text-white cursor-pointer flex gap-3 p-1 text-left w-full transition-all duration-150">
         <div class="flex flex-col gap-0.5 flex-1 min-w-0">
-          <div class="font-mono text-sm text-gray-800 dark:text-surface-200 leading-5 truncate">
-            {{ item.path }}
-          </div>
+          <div class="font-semibold text-sm text-gray-800 dark:text-surface-200 leading-5 whitespace-nowrap">{{
+            item.name }}</div>
+          <div class="text-xs leading-4 text-gray-800 dark:text-surface-400 font-normal whitespace-nowrap">{{
+            item.description }}</div>
         </div>
       </button>
     </template>
 
-    <div class="text-gray-400 p-3 text-center text-sm" v-else>无匹配文件</div>
+    <div class="text-gray-400 p-3 text-center text-sm" v-else-if="hasCommands">无匹配命令</div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import type { FileItem } from './FileReferenceSuggestion'
+import { ref, watch, computed } from 'vue'
+import { useChatManager } from '../../../stores/chat'
+import type { CommandItem } from './config'
 
 interface Props {
-  items: FileItem[]
-  command: (item: FileItem) => void
+  items: CommandItem[]
+  command: (item: CommandItem) => void
 }
 
 const props = defineProps<Props>()
+const chatManager = useChatManager()
 
 const selectedIndex = ref(0)
+
+const hasCommands = computed(() => {
+  return !!chatManager.foregroundChat.session.systemInfo?.commands && chatManager.foregroundChat.session.systemInfo.commands.length > 0
+})
 
 watch(() => props.items, () => {
   selectedIndex.value = 0
 })
+
 
 const onKeyDown = (event: KeyboardEvent): boolean => {
   if (event.key === 'ArrowUp') {

@@ -1,13 +1,11 @@
-import { computePosition, flip, shift } from '@floating-ui/dom'
-import { posToDOMRect, VueRenderer } from '@tiptap/vue-3'
-import { Editor } from '@tiptap/core'
-import type { Range } from '@tiptap/core'
-
-import SlashCommandList from './SlashCommandList.vue'
-import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion'
-import { useChatManager } from '../../stores/chat'
-import { useClaudeInfo } from '../../stores/claudeInfo'
+import type { Editor, Range } from '@tiptap/core'
+import { PluginKey } from '@tiptap/pm/state'
+import { useChatManager } from '../../../stores/chat'
+import { useClaudeInfo } from '../../../stores/claudeInfo'
 import type { SlashCommand } from '@anthropic-ai/claude-code'
+
+// PluginKey 用于 TipTap Suggestion 插件
+export const slashCommandPluginKey = new PluginKey("slash-command-suggestion")
 
 export const appCommands: SlashCommand[] = [
   {
@@ -80,19 +78,15 @@ const defaultCommands = [
   }
 ];
 
-interface UpdatePositionParams {
-  x: number
-  y: number
-  strategy: string
-}
-
 export interface CommandItem {
   name: string
   description: string
   command: ({ editor, range }: { editor: Editor; range: Range }) => void
 }
 
-// 将 SDK 的 SlashCommand 转换为我们的 CommandItem 格式
+/**
+ * 将 SDK 的 SlashCommand 转换为 CommandItem 格式
+ */
 export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): CommandItem => {
   return {
     name: sdkCommand.name,
@@ -109,7 +103,7 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
 
         // 打开统一的会话选择模态框（包含活跃和非活跃会话）
         // 注意：这里我们使用动态导入来避免循环依赖
-        import('../../composables/useResume.ts').then(module => {
+        import('../../../composables/useResume.ts').then(module => {
           const { showSessionList } = module.useResume()
           showSessionList(editor)
         })
@@ -124,7 +118,7 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
 
         if (currentChatId) {
           // 动态导入 messageSender 来避免循环依赖
-          import('../../composables/useMessageSender.ts').then(module => {
+          import('../../../composables/useMessageSender.ts').then(module => {
             const messageSender = module.useMessageSender()
             messageSender.sendStop(currentChatId)
           })
@@ -137,15 +131,15 @@ export const convertSDKSlashCommandToCommandItem = (sdkCommand: SlashCommand): C
   }
 }
 
-export type SelectedCommand = CommandItem;
-
 interface CommandScore {
   item: CommandItem
   score: number
   matchType: 'exact' | 'prefix' | 'wordStart' | 'substring' | 'description' | 'none'
 }
 
-// 计算命令匹配分数
+/**
+ * 计算命令匹配分数
+ */
 const calculateCommandScore = (item: CommandItem, query: string): CommandScore => {
   const lowerQuery = query.toLowerCase()
   const lowerName = item.name.toLowerCase()
@@ -194,7 +188,9 @@ const calculateCommandScore = (item: CommandItem, query: string): CommandScore =
   return { item, score: 0, matchType: 'none' }
 }
 
-// 智能排序函数
+/**
+ * 智能排序函数
+ */
 const sortCommandsByRelevance = (commands: CommandItem[], query: string): CommandItem[] => {
   if (!query) return commands
 
@@ -213,131 +209,37 @@ const sortCommandsByRelevance = (commands: CommandItem[], query: string): Comman
   return scoredCommands.map(score => score.item)
 }
 
-const updatePosition = (editor: Editor, element: HTMLElement) => {
-  const virtualElement = {
-    getBoundingClientRect: () => posToDOMRect(editor.view, editor.state.selection.from, editor.state.selection.to),
+/**
+ * 获取建议的命令列表
+ */
+export const getSlashCommandItems = ({ query }: { query: string }): CommandItem[] => {
+  try {
+    const chatManager = useChatManager()
+    const claudeInfo = useClaudeInfo()
+
+    let commands: SlashCommand[];
+
+    // Priority 1: ChatState systemInfo (highest)
+    if (chatManager.foregroundChat.session.systemInfo) {
+      commands = chatManager.foregroundChat.session.systemInfo.commands
+    }
+    // Priority 2: Global store from HTTP API (medium)
+    else if (claudeInfo.systemInfo) {
+      commands = claudeInfo.systemInfo.commands
+    }
+    // Priority 3: Hardcoded defaults (lowest)
+    else {
+      commands = defaultCommands
+    }
+
+    // Always append appCommands
+    commands = commands.concat(appCommands)
+
+    const dynamicCommands = commands.map(convertSDKSlashCommandToCommandItem)
+
+    return sortCommandsByRelevance(dynamicCommands, query)
+  } catch {
+    // 如果 Pinia 还未初始化，返回空数组
+    return []
   }
-
-  computePosition(virtualElement, element, {
-    placement: 'bottom-start',
-    strategy: 'absolute',
-    middleware: [shift(), flip()],
-  }).then(({ x, y, strategy }: UpdatePositionParams) => {
-    element.style.width = 'max-content'
-    element.style.position = strategy
-    element.style.left = `${x}px`
-    element.style.top = `${y}px`
-  })
 }
-
-import { exitSuggestion } from '@tiptap/suggestion'
-import { PluginKey } from '@tiptap/pm/state'
-
-export type CommandSuggestionProps = SuggestionProps<CommandItem, SelectedCommand>
-export type CommandSuggestionOptions = SuggestionOptions<CommandItem, SelectedCommand>
-
-export const slashCommandPluginKey = new PluginKey("slash-command-suggestion")
-
-export const suggestionOptions: CommandSuggestionOptions = {
-  pluginKey: slashCommandPluginKey,
-  char: '/',
-  command: ({ editor, range, props }: { editor: Editor; range: Range; props: CommandItem }) => {
-    props.command({ editor, range })
-  },
-  editor: null as unknown as Editor,
-
-  items: ({ query }: { query: string }) => {
-    try {
-      const chatManager = useChatManager()
-      const claudeInfo = useClaudeInfo()
-
-      let commands: SlashCommand[];
-
-      // Priority 1: ChatState systemInfo (highest)
-      if (chatManager.foregroundChat.session.systemInfo) {
-        commands = chatManager.foregroundChat.session.systemInfo.commands
-      }
-      // Priority 2: Global store from HTTP API (medium)
-      else if (claudeInfo.systemInfo) {
-        commands = claudeInfo.systemInfo.commands
-      }
-      // Priority 3: Hardcoded defaults (lowest)
-      else {
-        commands = defaultCommands
-      }
-
-      // Always append appCommands
-      commands = commands.concat(appCommands)
-
-      const dynamicCommands = commands.map(convertSDKSlashCommandToCommandItem)
-
-      return sortCommandsByRelevance(dynamicCommands, query)
-    } catch {
-      // 如果 Pinia 还未初始化，返回空数组
-      return []
-    }
-  },
-
-  render: () => {
-    let component: VueRenderer | null = null
-
-    return {
-      onStart: (props) => {
-        component = new VueRenderer(SlashCommandList, {
-          props: {
-            items: props.items,
-            command: props.command
-          },
-          editor: props.editor,
-        })
-
-        if (props.clientRect && props.clientRect()) {
-          (component.element as HTMLElement).style.position = 'absolute'
-          document.body.appendChild(component.element as Node)
-          updatePosition(props.editor, component.element as HTMLElement)
-        }
-      },
-
-      onUpdate: (props) => {
-        if (component) {
-          component.updateProps({
-            items: props.items,
-            command: props.command
-          })
-
-          if (props.clientRect && props.clientRect()) {
-            updatePosition(props.editor, component.element as HTMLElement)
-          }
-        }
-      },
-
-      onKeyDown: (props) => {
-        if (props.event.key === 'Escape') {
-          props.event.preventDefault()
-          if (component) {
-            const editor = component.editor
-            component.destroy()
-            if (component.element) {
-              component.element.remove()
-            }
-            if (editor) {
-              editor.commands.focus()
-              exitSuggestion(editor.view, slashCommandPluginKey)
-            }
-          }
-          return true
-        }
-        return (component!.ref as { onKeyDown: (event: KeyboardEvent) => boolean })!.onKeyDown(props.event)
-      },
-
-      onExit() {
-        if (component) {
-          component.destroy()
-          if (component.element) {
-            component.element.remove()
-          }
-        }
-      },
-    }
-  },
-} 
