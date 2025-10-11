@@ -1,5 +1,6 @@
 import type { ClientMessage } from '../types/message'
 import type { PermissionResult, PermissionMode } from '@anthropic-ai/claude-code'
+import type { ContentBlockParam } from '@anthropic-ai/sdk/resources'
 import { useWebSocket } from './useWebSocket'
 import { useChatManager } from '../stores/chat'
 import { useWorkspace } from '../stores/workspace'
@@ -8,7 +9,7 @@ import { useMessageHandler } from './useMessageHandler'
 
 // 定义返回类型
 interface MessageSenderInstance {
-  sendUserInput: (chatId: string, content: string) => Promise<void>
+  sendUserInput: (chatId: string, content: string | Array<ContentBlockParam>) => Promise<void>
   sendPermissionResponse: (chatId: string, result: PermissionResult) => void
   sendSetMode: (chatId: string, mode: PermissionMode) => Promise<void>
   sendStop: (chatId: string) => void
@@ -37,7 +38,7 @@ export function useMessageSender() {
   /**
    * 发送用户输入消息
    */
-  async function sendUserInput(chatId: string, content: string) {
+  async function sendUserInput(chatId: string, content: string | Array<ContentBlockParam>) {
     console.log('Sending user input:', content)
 
     const chat = chatManager.getChat(chatId)
@@ -46,7 +47,7 @@ export function useMessageSender() {
       return
     }
 
-    chatManager.addUserMessage(chatId, { content })
+    chatManager.addUserMessage(chatId, { role: 'user', content })
     if (messageHandler.isReplaying) {
       return
     }
@@ -62,6 +63,7 @@ export function useMessageSender() {
       chat_id: chatId,
       data: {
         kind: 'user_input',
+        role: 'user',
         content
       }
     }

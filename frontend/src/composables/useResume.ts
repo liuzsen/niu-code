@@ -22,7 +22,8 @@ export function useResume() {
     const message = record.message
 
     if ('UserInput' in message) {
-      sendUserInput(chatId, message.UserInput)
+      const userInput = message.UserInput
+      sendUserInput(chatId, userInput.content)
     } else if ('Claude' in message) {
       const serverMessage: ServerMessage = {
         chat_id: chatId,

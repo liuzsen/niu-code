@@ -1,8 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
+import type { ToolResultBlockParam, MessageParam } from '@anthropic-ai/sdk/resources'
 import type { PermissionMode, SDKMessage, SDKSystemMessage, } from '@anthropic-ai/claude-code'
 import type {
-  UserInput,
   ToolPermissionRequest,
 } from '../types/message'
 import type { ClaudeSystemInfo } from '../types/message'
@@ -43,7 +42,7 @@ export class ChatState {
     this.toolResults.set(result.tool_use_id, result)
   }
 
-  addUserMessage(content: UserInput) {
+  addUserMessage(content: MessageParam) {
     this.messages.push({
       from: 'human',
       content
@@ -71,7 +70,7 @@ export class ChatState {
 }
 
 export type ChatMessageData =
-  | { from: 'human'; content: UserInput }
+  | { from: 'human'; content: MessageParam }
   | { from: 'agent'; content: SDKMessage }
 
 export interface ChatManager {
@@ -102,7 +101,7 @@ export const useChatManager = defineStore("chat-manager", {
     },
 
     // 添加用户消息
-    addUserMessage(chatId: string, content: UserInput) {
+    addUserMessage(chatId: string, content: MessageParam) {
       const chat = this.getChat(chatId)
       chat?.addUserMessage(content)
     },

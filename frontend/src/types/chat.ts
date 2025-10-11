@@ -1,5 +1,5 @@
 import type { SDKMessage } from "@anthropic-ai/claude-code";
-import type { UserInput } from "./message";
+import type { MessageParam } from "@anthropic-ai/sdk/resources";
 
 // 聊天消息类型
 export interface ChatMessage {
@@ -8,5 +8,5 @@ export interface ChatMessage {
 }
 
 export type ChatMessageData =
-    | { from: 'human'; content: UserInput }
+    | { from: 'human'; content: MessageParam }
     | { from: 'agent'; content: SDKMessage }

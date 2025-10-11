@@ -1,4 +1,5 @@
 import type { SDKMessage } from '@anthropic-ai/claude-code'
+import type { MessageParam } from '@anthropic-ai/sdk/resources'
 import type { ClaudeSystemInfo, ToolPermissionRequest } from './message'
 import type { PermissionResult } from '@anthropic-ai/claude-code'
 
@@ -17,7 +18,7 @@ export interface SessionInfo {
   created_at: string  // ISO timestamp
   last_activity: string
   message_count: number
-  last_uesr_input: string | null  // 注意：后端拼写错误，前端也保持一致
+  last_uesr_input: string | null  // 注意：后端拼写错误,前端也保持一致
 }
 
 // 严格对齐 backend/server/src/chat.rs:56-60
@@ -28,7 +29,7 @@ export interface MessageRecord {
 
 // 严格对齐 backend/server/src/chat.rs:47-54
 export type CacheMessage =
-  | { UserInput: string }
+  | { UserInput: MessageParam }
   | { Claude: SDKMessage }
   | { SystemInfo: ClaudeSystemInfo }
   | { CanUseTool: ToolPermissionRequest }

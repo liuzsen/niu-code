@@ -13,7 +13,18 @@
         <div class=" rounded-sm text-sm bg-surface-300 dark:bg-surface-900">
           <!-- 用户消息 -->
           <div v-if="message.data.from === 'human'" class="p-4">
-            <MarkdownRenderer :content="message.data.content.content" />
+            <MarkdownRenderer v-if="typeof message.data.content.content === 'string'" :content="message.data.content.content" />
+            <div v-else>
+              <!-- 多模态内容，包含图片和文本 -->
+              <div v-for="(block, index) in message.data.content.content" :key="index">
+                <img v-if="block.type === 'image' && 'source' in block && block.source.type === 'base64'"
+                  :src="`data:${block.source.media_type};base64,${block.source.data}`"
+                  class="max-w-md rounded-lg mb-2"
+                  alt="Uploaded image"
+                />
+                <MarkdownRenderer v-else-if="block.type === 'text' && 'text' in block" :content="block.text" />
+              </div>
+            </div>
           </div>
 
           <!-- Agent 消息-->

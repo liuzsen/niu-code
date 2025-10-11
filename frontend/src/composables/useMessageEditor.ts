@@ -1,4 +1,4 @@
-import { computed, watch, type Ref } from 'vue'
+import { computed, watch, ref, type Ref } from 'vue'
 import { useEditor } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import { DOMSerializer, Slice } from '@tiptap/pm/model'
@@ -13,6 +13,18 @@ import { useWorkspace } from '../stores/workspace'
 import { useWebSocket } from './useWebSocket'
 import '../assets/tiptap.css'
 import type { EditorView } from '@tiptap/pm/view'
+import type { ContentBlockParam, ImageBlockParam } from '@anthropic-ai/sdk/resources'
+import { v4 as uuidv4 } from 'uuid'
+
+/**
+ * 图片附件
+ */
+export interface ImageAttachment {
+  id: string
+  base64: string
+  mediaType: 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp'
+  thumbnailUrl: string
+}
 
 /**
  * 消息编辑器配置选项
@@ -23,7 +35,7 @@ export interface MessageEditorOptions {
   /** 中断生成的回调 */
   onStopGeneration: () => void
   /** 发送消息的回调 */
-  onSendMessage: (markdown: string) => void
+  onSendMessage: (content: string | Array<ContentBlockParam>) => void
 }
 
 function clipboardTextSerializer(slice: Slice) {
@@ -43,29 +55,48 @@ function clipboardTextSerializer(slice: Slice) {
   return htmlToMarkdown(html)
 }
 
-function handlePaste(view: EditorView, event: ClipboardEvent): boolean {
-  const clipboardData = event.clipboardData
-  if (!clipboardData) return false
+/**
+ * 将图片文件转换为 Base64 并生成缩略图
+ */
+async function fileToBase64ImageBlock(file: File): Promise<ImageAttachment> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = async () => {
+      const base64 = (reader.result as string).split(',')[1]
 
-  // 检查是否包含文件（图片）
-  const files = Array.from(clipboardData.files)
-  const images = files.filter(file => file.type.startsWith('image/'))
+      // 生成缩略图
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')!
 
-  if (images.length > 0) {
-    // TODO: 处理图片粘贴
-    console.log('Image pasted:', images)
-    event.preventDefault()
-    return true
-  }
+        // 缩略图尺寸
+        const thumbnailSize = 80
+        canvas.width = thumbnailSize
+        canvas.height = thumbnailSize
 
-  // 处理纯文本粘贴 - 移除所有格式（包括代码块）
-  const text = clipboardData.getData('text/plain')
-  if (text) {
-    view.dispatch(view.state.tr.insertText(text))
-    return true
-  }
+        // 计算裁剪区域（保持宽高比居中裁剪）
+        const scale = Math.max(thumbnailSize / img.width, thumbnailSize / img.height)
+        const scaledWidth = img.width * scale
+        const scaledHeight = img.height * scale
+        const x = (thumbnailSize - scaledWidth) / 2
+        const y = (thumbnailSize - scaledHeight) / 2
 
-  return false
+        ctx.drawImage(img, x, y, scaledWidth, scaledHeight)
+
+        resolve({
+          id: uuidv4(),
+          base64,
+          mediaType: file.type as ImageAttachment['mediaType'],
+          thumbnailUrl: canvas.toDataURL()
+        })
+      }
+      img.onerror = reject
+      img.src = reader.result as string
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 }
 
 /**
@@ -77,6 +108,64 @@ export function useMessageEditor(options: MessageEditorOptions) {
   const workspace = useWorkspace()
   const { state: websocketState } = useWebSocket()
   const promptHistoryModal = usePromptHistoryModal()
+
+  // 图片附件状态
+  const attachedImages = ref<ImageAttachment[]>([])
+
+  /**
+   * 处理图片粘贴
+   */
+  const handleImagePaste = async (files: File[]) => {
+    for (const file of files) {
+      try {
+        const attachment = await fileToBase64ImageBlock(file)
+        attachedImages.value.push(attachment)
+      } catch (error) {
+        console.error('Failed to process image:', error)
+      }
+    }
+  }
+
+  /**
+   * 处理图片上传
+   */
+  const handleImageUpload = async (files: File[]) => {
+    await handleImagePaste(files)
+  }
+
+  /**
+   * 移除图片
+   */
+  const removeImage = (id: string) => {
+    attachedImages.value = attachedImages.value.filter(img => img.id !== id)
+  }
+
+  /**
+   * 自定义粘贴处理
+   */
+  const handlePaste = (view: EditorView, event: ClipboardEvent): boolean => {
+    const clipboardData = event.clipboardData
+    if (!clipboardData) return false
+
+    // 检查是否包含文件（图片）
+    const files = Array.from(clipboardData.files)
+    const images = files.filter(file => file.type.startsWith('image/'))
+
+    if (images.length > 0) {
+      handleImagePaste(images)
+      event.preventDefault()
+      return true
+    }
+
+    // 处理纯文本粘贴 - 移除所有格式（包括代码块）
+    const text = clipboardData.getData('text/plain')
+    if (text) {
+      view.dispatch(view.state.tr.insertText(text))
+      return true
+    }
+
+    return false
+  }
 
   // 创建斜杠命令扩展
   const SlashCommandsExtension = createSuggestionExtension<CommandItem, CommandItem>({
@@ -221,18 +310,51 @@ export function useMessageEditor(options: MessageEditorOptions) {
    * 发送消息
    */
   const handleSend = () => {
-    if (!editor.value || editor.value.isEmpty) return
+    if (!editor.value || (editor.value.isEmpty && attachedImages.value.length === 0)) return
 
     const textContent = editor.value.getText()
-    if (!textContent.trim()) return
+    if (!textContent.trim() && attachedImages.value.length === 0) return
 
     const htmlContent = editor.value.getHTML()
     const markdownContent = htmlToMarkdown(htmlContent)
 
-    options.onSendMessage(markdownContent)
+    // 构造消息内容
+    let content: string | Array<ContentBlockParam>
 
+    if (attachedImages.value.length > 0) {
+      // 有图片时，构造 ContentBlockParam 数组
+      const imageBlocks: ImageBlockParam[] = attachedImages.value.map(img => ({
+        type: 'image',
+        source: {
+          type: 'base64',
+          media_type: img.mediaType,
+          data: img.base64
+        }
+      }))
+
+      // 图片在前，文本在后
+      if (textContent.trim()) {
+        content = [
+          ...imageBlocks,
+          {
+            type: 'text',
+            text: markdownContent
+          }
+        ]
+      } else {
+        content = imageBlocks
+      }
+    } else {
+      // 没有图片，直接发送字符串
+      content = markdownContent
+    }
+
+    options.onSendMessage(content)
+
+    // 清空编辑器和图片
     editor.value.commands.focus()
     editor.value.commands.clearContent()
+    attachedImages.value = []
   }
 
   /**
@@ -257,5 +379,9 @@ export function useMessageEditor(options: MessageEditorOptions) {
     handleSend,
     focus,
     clear,
+    // 图片相关
+    attachedImages,
+    handleImageUpload,
+    removeImage,
   }
 }

@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
-import type { ToolResultBlockParam } from '@anthropic-ai/sdk/resources'
+import type { ToolResultBlockParam, MessageParam } from '@anthropic-ai/sdk/resources'
 import type { PermissionMode, SDKMessage, SDKSystemMessage } from '@anthropic-ai/claude-code'
-import type { UserInput, ToolPermissionRequest } from '../types/message'
+import type { ToolPermissionRequest } from '../types/message'
 import type { ClaudeSystemInfo } from '../types/message'
 import type { TodoWriteData } from '../utils/messageExtractors'
 import { defineStore } from 'pinia'
@@ -48,7 +48,7 @@ export class ChatState {
     this.toolResults.set(result.tool_use_id, result)
   }
 
-  addUserMessage(content: UserInput) {
+  addUserMessage(content: MessageParam) {
     this.messages.push({
       from: 'human',
       content
@@ -98,7 +98,7 @@ export class ChatState {
 }
 
 export type ChatMessageData =
-  | { from: 'human'; content: UserInput }
+  | { from: 'human'; content: MessageParam }
   | { from: 'agent'; content: SDKMessage }
 
 /**
@@ -177,7 +177,7 @@ export const useChatStore = defineStore('chat', {
     /**
      * 添加用户消息
      */
-    addUserMessage(chatId: string, content: UserInput) {
+    addUserMessage(chatId: string, content: MessageParam) {
       const chat = this.getChat(chatId)
       chat?.addUserMessage(content)
     },

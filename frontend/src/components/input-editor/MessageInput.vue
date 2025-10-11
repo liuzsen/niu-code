@@ -9,6 +9,12 @@
     <div class="bg-surface-50 dark:bg-surface-800 border-surface-200 dark:border-surface-500 rounded-2xl p-3 shadow-sm">
       <!-- Input Area -->
       <div class="mb-1">
+        <!-- 图片缩略图 -->
+        <ImageThumbnails
+          :images="messageEditor.attachedImages.value"
+          @remove="messageEditor.removeImage"
+        />
+
         <div class="w-full resize-none border-0 bg-transparent min-h-20 px-2 focus:outline-2
           text-zinc-800 dark:text-slate-200 custom-tiptap-editor">
           <EditorContent :editor="messageEditor.editor.value" />
@@ -23,8 +29,26 @@
             class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
           <Button icon="pi pi-at" severity="secondary" variant="text" size="small"
             class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
-          <Button icon="pi pi-image" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+
+          <!-- 图片上传按钮 -->
+          <input
+            ref="fileInputRef"
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            multiple
+            class="hidden"
+            @change="handleFileSelect"
+          />
+          <Button
+            icon="pi pi-image"
+            severity="secondary"
+            variant="text"
+            size="small"
+            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700"
+            @click="triggerFileInput"
+            title="上传图片"
+          />
+
           <Button icon="pi pi-bolt" severity="secondary" variant="text" size="small"
             class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
           <Button icon="pi pi-th-large" severity="secondary" variant="text" size="small"
@@ -68,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import Button from 'primevue/button'
 import { useChatStore } from '../../stores/chat'
 import { useMessageSender } from '../../composables/useMessageSender'
@@ -79,7 +103,9 @@ import { EditorContent } from '@tiptap/vue-3'
 import PromptHistoryList from '../prompt-history/PromptHistoryList.vue'
 import MessageEditorConfig from './SelectClaudeConfig.vue'
 import MessagePermissionMode from './SelectPermissionMode.vue'
+import ImageThumbnails from './ImageThumbnails.vue'
 import type { PermissionMode } from '@anthropic-ai/claude-code'
+import type { ContentBlockParam } from '@anthropic-ai/sdk/resources'
 
 // Stores and composables
 const chatStore = useChatStore()
@@ -102,9 +128,9 @@ const handleStopGeneration = () => {
 }
 
 // 发送消息回调
-const handleSendMessage = (markdown: string) => {
+const handleSendMessage = (content: string | Array<ContentBlockParam>) => {
   const chatId = foregroundChat.value?.chatId || ''
-  sender.sendUserInput(chatId, markdown)
+  sender.sendUserInput(chatId, content)
 }
 
 // 初始化消息编辑器
@@ -129,5 +155,24 @@ const onPermissionModeChange = async () => {
   const chatId = foregroundChat.value?.chatId || ''
   const mode = foregroundChat.value?.session.permissionMode || 'default'
   await sender.sendSetMode(chatId, mode)
+}
+
+// 文件输入引用
+const fileInputRef = ref<HTMLInputElement | null>(null)
+
+// 触发文件选择
+const triggerFileInput = () => {
+  fileInputRef.value?.click()
+}
+
+// 处理文件选择
+const handleFileSelect = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const files = target.files
+  if (files && files.length > 0) {
+    messageEditor.handleImageUpload(Array.from(files))
+    // 重置 input 以便选择同一文件
+    target.value = ''
+  }
 }
 </script>

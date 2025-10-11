@@ -1,6 +1,7 @@
 import type { ModelInfo, PermissionMode, PermissionResult, PermissionUpdate, SDKMessage, SlashCommand } from '@anthropic-ai/claude-code';
 export type { PermissionUpdate }
 import type { AgentInput, BashInput, BashOutputInput, ExitPlanModeInput, FileEditInput, FileMultiEditInput, FileReadInput, FileWriteInput, GlobInput, GrepInput, KillShellInput, ListMcpResourcesInput, McpInput, NotebookEditInput, ReadMcpResourceInput, TodoWriteInput, WebFetchInput, WebSearchInput } from './sdk-tools';
+import type { MessageParam } from '@anthropic-ai/sdk/resources';
 
 export type ChatId = string;
 
@@ -11,7 +12,7 @@ export interface ClientMessage {
 
 export type ClientMessageData =
     | { kind: "register_chat" }
-    | { kind: "user_input" } & UserInput
+    | { kind: "user_input" } & MessageParam
     | { kind: 'permission_resp' } & PermissionResult
     | { kind: 'set_mode', mode: PermissionMode }
     | { kind: 'get_info' }
@@ -19,10 +20,6 @@ export type ClientMessageData =
     | { kind: 'interrupt' }
 
 // StartChatOptions moved to HTTP API, no longer used in WebSocket messages
-
-export interface UserInput {
-    content: string,
-}
 
 export interface ServerMessage {
     chat_id: ChatId;

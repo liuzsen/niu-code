@@ -104,15 +104,8 @@ export function useMessageHandler() {
       chatManager.addToolResult(chat_id, toolResult)
     } else {
       if (data.type === 'user' && data.message.role === 'user') {
-        if (typeof data.message.content === 'string') {
-          chatManager.addUserMessage(chat_id, { content: data.message.content })
-        } else if (Array.isArray(data.message.content)) {
-          for (const content of data.message.content) {
-            if (content.type === 'text') {
-              chatManager.addUserMessage(chat_id, { content: content.text })
-            }
-          }
-        }
+        // 直接传递整个 message 对象，它已经是 MessageParam 类型了
+        chatManager.addUserMessage(chat_id, data.message)
       } else {
         chatManager.addClaudeMessage(chat_id, data)
       }
