@@ -44,6 +44,7 @@ declare module 'vue' {
     ResultMessage: typeof import('./src/components/message/ResultMessage.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    Select: typeof import('primevue/select')['default']
     SelectClaudeConfig: typeof import('./src/components/input-editor/SelectClaudeConfig.vue')['default']
     SelectPermissionMode: typeof import('./src/components/input-editor/SelectPermissionMode.vue')['default']
     SessionListModal: typeof import('./src/components/SessionListModal.vue')['default']
