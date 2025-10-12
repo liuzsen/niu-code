@@ -1,0 +1,86 @@
+/**
+ * Dark 主题 - 深色主题
+ * 深灰/黑色系,适合夜间使用和低光环境
+ */
+
+[data-theme="dark"] {
+  /* ===== 页面布局层级 ===== */
+
+  /* 页面最外层背景 - 最深的黑灰色 */
+  --theme-page-bg: theme(colors.neutral.950);
+
+  /* 卡片/面板背景 - 深灰色 */
+  --theme-panel-bg: theme(colors.neutral.950);
+
+  /* 浮层背景 - 稍浅的灰色,营造浮起感 */
+  --theme-elevated-bg: theme(colors.neutral.900);
+
+  /* ===== 输入控件 ===== */
+
+  /* 输入框/文本区域背景 - 深灰 */
+  --theme-input-bg: theme(colors.neutral.700);
+
+  /* 搜索框背景 - 深灰 */
+  --theme-search-bg: theme(colors.neutral.800);
+
+  /* ===== 按钮系统 ===== */
+
+  /* 主要操作按钮  */
+  --theme-button-primary-bg: theme(colors.neutral.600);
+  --theme-button-primary-text: theme(colors.white);
+
+  /* 次要操作按钮 */
+  --theme-button-secondary-bg: theme(colors.neutral.800);
+  --theme-button-secondary-text: theme(colors.sky.300);
+
+  /* 工具栏图标按钮 - 透明背景,浅色图标 */
+  --theme-button-ghost-bg: transparent;
+  --theme-button-ghost-text: theme(colors.neutral.400);
+
+  /* ===== 交互状态 ===== */
+
+  /* 悬停状态 - 稍浅的灰色 */
+  --theme-hover-bg: theme(colors.neutral.800);
+
+  /* 激活/选中状态 - 更浅的灰色 */
+  --theme-active-bg: theme(colors.neutral.800);
+
+  /* ===== 内容展示 ===== */
+
+  /* 代码块背景 - 深灰色,与面板背景有区分 */
+  --theme-code-block-bg: theme(colors.neutral.700);
+
+  /* 行内代码背景 - 稍浅 */
+  --theme-code-inline-bg: theme(colors.neutral.600);
+
+  /* 列表项背景 - 深灰 */
+  --theme-list-item-bg: theme(colors.neutral.900);
+
+  /* 消息气泡背景 - 深灰 */
+  --theme-message-bg: theme(colors.neutral.800);
+
+  /* ===== 文本层级 ===== */
+
+  /* 标题/重要文本 - 最浅的白色,最高可读性 */
+  --theme-heading-text: theme(colors.neutral.50);
+
+  /* 正文内容 - 浅灰色,保持良好可读性 */
+  --theme-body-text: theme(colors.neutral.400);
+
+  /* 说明文字/标签 - 中等灰色 */
+  --theme-caption-text: theme(colors.neutral.400);
+
+  /* 禁用/占位符 - 较深的灰色 */
+  --theme-disabled-text: theme(colors.neutral.500);
+
+  /* ===== 边框 ===== */
+
+  /* 默认边框 */
+  --theme-border: theme(colors.neutral.700);
+
+  /* 强调边框 */
+  --theme-border-strong: theme(colors.neutral.700);
+
+  /* 微弱分隔线 */
+  --theme-border-subtle: theme(colors.neutral.700);
+}

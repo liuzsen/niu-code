@@ -2,7 +2,7 @@
   <div class="max-w-4xl mx-auto flex flex-col items-center p-4">
     <!-- Welcome Header -->
     <div class="text-center mb-8">
-      <h1 class="text-3xl font-semibold text-surface-800 dark:text-surface-100 mb-2">
+      <h1 class="text-3xl font-semibold mb-2">
         Welcome to Claude Code Web
       </h1>
       <p class="text-lg text-surface-600 dark:text-surface-400">
@@ -11,25 +11,25 @@
     </div>
 
     <!-- Search Projects -->
-    <div
-      class="bg-surface-50 dark:bg-surface-800 rounded-lg p-6 border border-surface-200 dark:border-surface-700 w-[90%]">
+    <div class=" bg-elevated-bg rounded-lg p-6 border border-border w-[90%]">
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center gap-3">
-          <i class="pi pi-search text-2xl text-primary-500"></i>
-          <h3 class="text-lg font-medium text-surface-800 dark:text-surface-100">
+          <i class="pi pi-search text-2xl text-caption-text"></i>
+          <h3 class="text-lg font-medium text-heading-text">
             Search Projects
           </h3>
         </div>
         <Button label="Open Folder" icon="pi pi-folder-open" @click="showDirectoryPicker = true" severity="primary"
-          class=" dark:bg-surface-400 bg-surface-300 outline-none border-none" size="small" />
+          class="bg-button-secondary-bg text-button-secondary-text outline-none border-none" size="small" />
       </div>
 
       <div class="relative">
-        <InputText v-model="searchQuery" placeholder="Search by project name or path..." class="w-full" :pt="{
-          root: {
-            class: 'pr-10'
-          }
-        }" />
+        <InputText v-model="searchQuery" placeholder="Search by project name or path..." class="w-full bg-search-bg"
+          :pt="{
+            root: {
+              class: 'pr-10'
+            }
+          }" />
         <i v-if="!searchQuery"
           class="pi pi-search absolute right-3 top-1/2 transform -translate-y-1/2 text-surface-400" />
         <Button v-else icon="pi pi-times" text size="small" class="absolute right-2 top-1/2 transform -translate-y-1/2"
@@ -38,12 +38,12 @@
 
       <div v-if="searchResults.length > 0" class="mt-4 space-y-2">
         <div v-for="project in searchResults" :key="project.path"
-          class="p-3 rounded bg-surface-100 dark:bg-surface-950 hover:bg-surface-200 dark:hover:bg-surface-700 transition-colors cursor-pointer"
+          class="p-3 rounded bg-list-item-bg hover:bg-hover-bg transition-colors cursor-pointer"
           @click="openProject(project.path)">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <i class="pi pi-folder text-primary-500"></i>
-              <span class="font-medium text-surface-800 dark:text-surface-100">
+              <span class="font-medium">
                 {{ project.path }}
               </span>
             </div>

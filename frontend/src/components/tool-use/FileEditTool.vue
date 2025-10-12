@@ -8,8 +8,7 @@
                         <i class="pi pi-file-edit dark:text-surface-500"></i>
                         <span class="text-sm font-mono font-extrabold">File Edit</span>
                     </div>
-                    <div
-                        class="flex items-center gap-2 font-mono text-sm break-all rounded-sm bg-surface-400 dark:bg-surface-700 px-1">
+                    <div class="bg-code-inline-bg flex items-center gap-2 font-mono text-sm break-all rounded-sm px-1">
                         {{ toRelativePath(input.file_path) }}
                     </div>
                 </div>

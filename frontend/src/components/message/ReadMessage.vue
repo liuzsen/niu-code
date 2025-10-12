@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- Read Header -->
-        <div class="p-4 border-b border-surface-200 dark:border-surface-700">
+        <div class="p-4 border-b border-border-subtle">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-file-import dark:text-surface-500"></i>
@@ -33,7 +33,7 @@
                 <div class="flex items-start gap-2">
                     <span class="font-mono text-sm font-semibold">📖</span>
                     <code
-                        class="font-mono text-sm leading-relaxed break-all bg-surface-400 dark:bg-surface-800 px-1 rounded-sm">{{ toRelativePath(input.file_path) }}</code>
+                        class="font-mono text-sm leading-relaxed break-all bg-code-inline-bg px-1 rounded-sm">{{ toRelativePath(input.file_path) }}</code>
                 </div>
 
                 <!-- File Content (preview) -->
@@ -43,11 +43,8 @@
                             chars, {{ lineCount }}
                             lines</div>
                         <div class="flex items-center gap-2">
-                            <Button size="small" severity="secondary" variant="text" @click="copyToClipboard">
-                                <i class="pi pi-copy text-sm"></i>
-                                Copy
-                            </Button>
-                            <Button size="small" severity="secondary" variant="text" @click="showFullContent = true">
+                            <Button size="small" class="bg-button-ghost-bg text-caption-text hover:bg-hover-bg" variant="text"
+                                @click="showFullContent = true">
                                 <i class="pi pi-expand text-xs"></i>
                                 View Full
                             </Button>
@@ -59,7 +56,7 @@
                 <div v-else-if="state === 'pending'"
                     class="bg-surface-50 dark:bg-surface-900 rounded-lg p-8 text-center">
                     <ProgressSpinner class="w-6 h-6 mx-auto mb-2" />
-                    <div class="text-sm text-surface-500">Reading file content...</div>
+                    <div class="text-sm text-disabled-text">Reading file content...</div>
                 </div>
 
             </div>
@@ -71,20 +68,22 @@
         <template #header>
             <div class="flex items-center gap-2">
                 <i class="pi pi-file-import"></i>
-                {{ input.file_path }}
+                <div class="bg-code-inline-bg px-2 rounded-sm">
+                    {{ input.file_path }}
+                </div>
             </div>
         </template>
         <div class="space-y-4">
             <div
-                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar-dark border border-surface-300 dark:border-surface-700">
+                class="bg-code-block-bg rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar border border-surface-300 dark:border-surface-700">
                 <pre class="font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ fileContent }}</pre>
             </div>
             <div class="flex justify-end gap-2">
-                <Button severity="secondary" @click="copyToClipboard" size="small">
-                    <i class="pi pi-copy mr-1"></i>
+                <Button class="bg-button-secondary-bg text-button-secondary-text border-none" @click="copyToClipboard" size="small">
                     Copy
                 </Button>
-                <Button severity="secondary" @click="showFullContent = false" size="small">
+                <Button class="bg-button-secondary-bg text-button-secondary-text border-none" @click="showFullContent = false"
+                    size="small">
                     Close
                 </Button>
             </div>

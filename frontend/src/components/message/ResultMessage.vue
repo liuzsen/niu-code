@@ -1,22 +1,20 @@
 <template>
-  <div class="m-2 border border-surface-400 dark:border-surface-500 rounded-sm">
+  <div class="m-2 border border-border-subtle rounded-sm">
     <!-- Status Section -->
     <div>
-      <div class="flex justify-between items-center px-4 py-3 border-b border-surface-400 dark:border-surface-500">
+      <div class="flex justify-between items-center px-4 py-3 border-b border-border-subtle">
         <div class="flex items-center gap-2 font-semibold text-sm"
-          :class="props.data.subtype === 'success' ? 'text-green-600' : 'text-red-600'">
+          :class="props.data.subtype === 'success' ? 'text-status-success' : 'text-status-error'">
           <i :class="props.data.subtype === 'success' ? 'pi pi-check-circle' : 'pi pi-exclamation-circle'"></i>
           <span>{{ props.data.subtype === 'success' ? 'Success' : 'Error' }}</span>
         </div>
-        <div class="flex gap-4 text-xs text-text-secondary">
-          <span
-            class="flex items-center gap-1 px-2 py-1 bg-surface-card rounded border border-surface-400 dark:border-surface-500"
+        <div class="flex gap-4 text-xs text-body-text">
+          <span class="flex items-center gap-1 px-2 py-1 bg-surface-card rounded border border-border-subtle"
             v-if="duration">
             <i class="pi pi-clock text-xs mr-0.5"></i>
             {{ duration }}
           </span>
-          <span
-            class="flex items-center gap-1 px-2 py-1 bg-surface-card rounded border border-surface-400 dark:border-surface-500"
+          <span class="flex items-center gap-1 px-2 py-1 bg-surface-card rounded border border-border-subtle"
             v-if="totalCost">
             ${{ totalCost }}
           </span>
@@ -27,9 +25,9 @@
     <!-- Stats Section -->
     <div class="last:border-b-0 " v-if="stats.length > 0">
       <div class="p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-3">
           <div
-            class="flex items-center gap-3 p-3 rounded-lg border border-surface-400 dark:border-surface-500 neutral transition-all duration-200 hover:border-surface hover:shadow-md"
+            class="flex items-center gap-3 p-3 rounded-lg border border-border-subtle neutral transition-all duration-200 hover:border-surface hover:shadow-md"
             v-for="stat in stats" :key="stat.label">
             <div class="flex items-center justify-center w-8 h-8 rounded-lg text-sm">
               <i :class="getStatIcon(stat.label)"></i>

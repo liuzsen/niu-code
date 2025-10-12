@@ -4,13 +4,14 @@
     <div class="flex flex-col gap-4">
       <!-- Path Input -->
       <div class="flex items-center gap-2">
-        <InputText v-model="currentPath" placeholder="Enter folder path" class="flex-1" @keydown="handleKeyDown" />
-        <Button label="Open" :disabled="!currentPath.trim()" @click="handlePathSubmit" severity="primary" />
+        <InputText v-model="currentPath" placeholder="Enter folder path" class="flex-1 bg-input-bg"
+          @keydown="handleKeyDown" />
+        <Button class="bg-button-secondary-bg border-none text-button-primary-text" label="Open"
+          :disabled="!currentPath.trim()" @click="handlePathSubmit" />
       </div>
 
       <!-- Directory List -->
-      <div
-        class="bg-surface-50 dark:bg-surface-800 rounded-lg border border-surface-200 dark:border-surface-700 h-120 overflow-auto">
+      <div class="bg-panel-bg rounded-lg border border-surface-200 dark:border-surface-700 h-120 overflow-auto">
         <div v-if="loading" class="flex items-center justify-center py-8">
           <ProgressSpinner style="width: 32px; height: 32px" />
           <span class="ml-2 text-surface-600 dark:text-surface-400">
@@ -28,12 +29,11 @@
 
         <div v-else class="">
           <div v-for="(item, index) in filteredDirectoryItems" :key="item.path"
-            class="flex items-center gap-3 px-4 py-2 hover:bg-surface-100 dark:hover:bg-surface-700 cursor-pointer transition-colors"
-            :class="{
-              'bg-surface-100 dark:bg-surface-700': selectedIndex === index,
-              'bg-primary-50 dark:bg-primary-900/20 border-l-2 border-primary-500': selectedIndex === index
+            class="flex items-center gap-3 px-4 py-2 cursor-pointer transition-colors hover:bg-hover-bg" :class="{
+              'bg-active-bg': selectedIndex === index,
+              'bg-list-item-bg': selectedIndex !== index
             }" @click="handleItemClick(item, index)">
-            <i class="pi pi-folder text-primary-500" />
+            <i class="pi pi-folder text-button-ghost-text" />
             <span class="flex-1">{{ item.name }}</span>
           </div>
         </div>

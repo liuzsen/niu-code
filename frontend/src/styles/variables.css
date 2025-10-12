@@ -1,0 +1,128 @@
+/**
+ * 主题变量定义 - 语义化层
+ * 这些变量引用主题预设中定义的具体颜色值
+ */
+
+@layer theme {
+  :root {
+    /* ===== 页面布局层级 ===== */
+
+    /* 页面最外层背景 */
+    --page-bg: var(--theme-page-bg);
+
+    /* 卡片/面板背景(如消息列表、设置面板) */
+    --panel-bg: var(--theme-panel-bg);
+
+    /* 浮层背景(如对话框、下拉菜单) */
+    --elevated-bg: var(--theme-elevated-bg);
+
+    /* ===== 输入控件 ===== */
+
+    /* 输入框/文本区域背景 */
+    --input-bg: var(--theme-input-bg);
+
+    /* 搜索框背景 */
+    --search-bg: var(--theme-search-bg);
+
+    /* ===== 按钮系统 ===== */
+
+    /* 主要操作按钮(如发送、确认) */
+    --button-primary-bg: var(--theme-button-primary-bg);
+    --button-primary-text: var(--theme-button-primary-text);
+
+    /* 次要操作按钮(如Open Folder、取消) */
+    --button-secondary-bg: var(--theme-button-secondary-bg);
+    --button-secondary-text: var(--theme-button-secondary-text);
+
+    /* 工具栏图标按钮(透明背景) */
+    --button-ghost-bg: var(--theme-button-ghost-bg);
+    --button-ghost-text: var(--theme-button-ghost-text);
+
+    /* ===== 交互状态 ===== */
+
+    /* 悬停状态 */
+    --hover-bg: var(--theme-hover-bg);
+
+    /* 激活/选中状态 */
+    --active-bg: var(--theme-active-bg);
+
+    /* ===== 内容展示 ===== */
+
+    /* 代码块背景 */
+    --code-block-bg: var(--theme-code-block-bg);
+
+    /* 行内代码背景 */
+    --code-inline-bg: var(--theme-code-inline-bg);
+
+    /* 列表项背景(如历史项目、文件列表) */
+    --list-item-bg: var(--theme-list-item-bg);
+
+    /* 消息气泡背景 */
+    --message-bg: var(--theme-message-bg);
+
+    /* ===== 文本层级 ===== */
+
+    /* 标题/重要文本 */
+    --heading-text: var(--theme-heading-text);
+
+    /* 正文内容 */
+    --body-text: var(--theme-body-text);
+
+    /* 说明文字/标签 */
+    --caption-text: var(--theme-caption-text);
+
+    /* 禁用/占位符 */
+    --disabled-text: var(--theme-disabled-text);
+
+    /* ===== 边框 ===== */
+
+    /* 默认边框 */
+    --border: var(--theme-border);
+
+    /* 强调边框 */
+    --border-strong: var(--theme-border-strong);
+
+    /* 微弱分隔线 */
+    --border-subtle: var(--theme-border-subtle);
+
+    /* ===== 状态色(跨主题统一) ===== */
+
+    --success: theme(colors.green.600);
+    --success-bg: theme(colors.green.50);
+    --success-border: theme(colors.green.200);
+
+    --error: theme(colors.red.600);
+    --error-bg: theme(colors.red.50);
+    --error-border: theme(colors.red.200);
+
+    --warning: theme(colors.yellow.600);
+    --warning-bg: theme(colors.yellow.50);
+    --warning-border: theme(colors.yellow.200);
+
+    --info: theme(colors.blue.500);
+    --info-border: theme(colors.blue.500);
+
+    /* ===== 特殊标签 ===== */
+
+    --label-human: theme(colors.green.500);
+    --label-agent: theme(colors.orange.300);
+  }
+
+  /* ===== 深色主题状态色调整 ===== */
+
+  [data-theme="dark"] {
+    --success: theme(colors.green.400);
+    --success-bg: color-mix(in srgb, theme(colors.green.600) 20%, transparent);
+    --success-border: theme(colors.green.800);
+
+    --error: theme(colors.red.400);
+    --error-bg: color-mix(in srgb, theme(colors.red.600) 20%, transparent);
+    --error-border: theme(colors.red.800);
+
+    --warning: theme(colors.yellow.400);
+    --warning-bg: color-mix(in srgb, theme(colors.yellow.600) 20%, transparent);
+    --warning-border: theme(colors.yellow.800);
+
+    --label-agent: theme(colors.orange.300);
+  }
+}

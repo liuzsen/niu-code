@@ -1,7 +1,6 @@
 <template>
   <div class="user-message-renderer">
-    <div ref="markdownContainer" class="markdown-body !bg-transparent dark:!text-surface-300"
-      v-html="renderedContent" />
+    <div ref="markdownContainer" class="markdown-body" v-html="renderedContent" />
   </div>
 </template>
 
@@ -28,6 +27,16 @@ watch(() => props.content, updateContent, { immediate: true })
 </script>
 
 <style scoped>
+:deep(.markdown-body) {
+  color: var(--color-body-text);
+  background: transparent;
+}
+
+:deep(pre) {
+  background-color: var(--color-code-block-bg);
+  color: var(--color-body-text);
+}
+
 /* Mermaid 图表样式 - GitHub markdown CSS 不包含 mermaid 支持 */
 .markdown-body :deep(.mermaid) {
   margin: 16px 0;

@@ -2,10 +2,8 @@
   <!-- Modal backdrop -->
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="visible" class="py-8 fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-        @click.self="close">
-        <div
-          class="bg-surface-200 dark:bg-surface-950 rounded-lg shadow-2xl flex flex-col w-[600px] max-w-[90vw] h-[70vh]">
+      <div v-if="visible" class="py-8 fixed inset-0 z-50 flex items-center justify-center" @click.self="close">
+        <div class="bg-elevated-bg rounded-lg shadow-2xl flex flex-col w-[600px] max-w-[90vw] h-[70vh]">
           <!-- Search input (fixed position) -->
           <div class="px-4 py-3 border-b border-surface-300 dark:border-surface-800 flex items-center gap-3 shrink-0">
             <i class="pi pi-search text-sm text-gray-500 dark:text-gray-400"></i>
@@ -20,7 +18,7 @@
             <template v-if="filteredItems.length">
               <button v-for="(item, index) in filteredItems" :key="item.timestamp"
                 :ref="el => { if (selectedIndex === index) selectedItemRef = el as HTMLElement }"
-                :class="{ 'bg-surface-400 dark:bg-surface-800': selectedIndex === index }" @click="selectItem(index)"
+                :class="{ 'bg-active-bg': selectedIndex === index }" @click="selectItem(index)"
                 class="items-start rounded-md cursor-pointer flex flex-col gap-1 p-3 text-left w-full transition-all duration-150 hover:bg-surface-300 dark:hover:bg-surface-900">
                 <div class="flex items-center justify-between w-full gap-2">
                   <div class="text-xs text-gray-500 dark:text-surface-400 font-mono">

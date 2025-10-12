@@ -1,8 +1,19 @@
 <template>
   <Select v-model="selectedConfigName" :options="configOptions" optionLabel="label" optionValue="value"
-    placeholder="选择配置" :disabled="disabled" class="h-7 text-sm no-dropdown" :label-class="'px-2 pt-1 pb-0.5'"
-    size="small">
+    placeholder="选择配置" :disabled="disabled" class="h-7 text-sm bg-button-secondary-bg" :label-class="'px-2 pt-1 pb-0.5'"
+    :pt="{
+      dropdown: 'hidden',
+      root: 'border border-border text-body-text',
+      overlay: 'bg-elevated-bg border-0',
+      label: 'text-body-text',
+      option: ({ context }) => ({
+        class: context.selected
+          ? 'bg-active-bg hover:bg-hover-bg text-body-text'
+          : 'bg-list-item-bg hover:bg-hover-bg text-body-text'
+      })
+    }" size="small">
   </Select>
+
 </template>
 
 <script setup lang="ts">
@@ -49,9 +60,3 @@ onMounted(() => {
   loadConfigNames()
 })
 </script>
-
-<style scoped>
-.no-dropdown :deep(.p-select-dropdown) {
-  display: none;
-}
-</style>

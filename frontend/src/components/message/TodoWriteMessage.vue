@@ -9,13 +9,13 @@
         <!-- Todo List Content -->
         <div class="flex flex-col gap-3">
             <div v-for="(todo, index) in input.todos" :key="index"
-                class="transition-colors hover:bg-surface-100 dark:hover:bg-surface-950 rounded-sm bg-surface-200 dark:bg-surface-800">
+                class="transition-colors rounded-sm bg-list-item-bg hover:bg-hover-bg">
                 <div class="flex items-start p-2 gap-2" :class="{ '': index !== input.todos.length - 1 }">
                     <!-- Status Icon -->
                     <div class="flex-shrink-0 mt-0.5">
                         <i class="" :class="{
                             ' bg-gray-50 pi pi-circle rounded-full': todo.status == 'pending',
-                            'text-primary-400 pi pi-spin pi-spinner': todo.status === 'in_progress',
+                            'text-info pi pi-spin pi-spinner': todo.status === 'in_progress',
                             'text-green-500 pi pi-check-circle': todo.status === 'completed',
                         }" />
                     </div>

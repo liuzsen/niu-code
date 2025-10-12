@@ -6,17 +6,14 @@
       :fuseInstance="messageEditor.promptHistoryModal.fuseInstance.value"
       :onSelect="messageEditor.promptHistoryModal.selectPrompt" :onClose="messageEditor.promptHistoryModal.hide" />
 
-    <div class="bg-surface-50 dark:bg-surface-800 border-surface-200 dark:border-surface-500 rounded-2xl p-3 shadow-sm">
+    <div class="bg-panel-bg border border-border rounded-2xl p-3 pb-2">
       <!-- Input Area -->
       <div class="mb-1">
         <!-- 图片缩略图 -->
-        <ImageThumbnails
-          :images="messageEditor.attachedImages.value"
-          @remove="messageEditor.removeImage"
-        />
+        <ImageThumbnails :images="messageEditor.attachedImages.value" @remove="messageEditor.removeImage" />
 
         <div class="w-full resize-none border-0 bg-transparent min-h-20 px-2 focus:outline-2
-          text-zinc-800 dark:text-slate-200 custom-tiptap-editor">
+          custom-tiptap-editor">
           <EditorContent :editor="messageEditor.editor.value" />
         </div>
       </div>
@@ -26,41 +23,29 @@
         <!-- Left Tool Buttons -->
         <div class="flex items-center gap-2">
           <Button icon="pi pi-face-smile" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text" />
           <Button icon="pi pi-at" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text" />
 
           <!-- 图片上传按钮 -->
-          <input
-            ref="fileInputRef"
-            type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp"
-            multiple
-            class="hidden"
-            @change="handleFileSelect"
-          />
-          <Button
-            icon="pi pi-image"
-            severity="secondary"
-            variant="text"
-            size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700"
-            @click="triggerFileInput"
-            title="上传图片"
-          />
+          <input ref="fileInputRef" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple
+            class="hidden" @change="handleFileSelect" />
+          <Button icon="pi pi-image" severity="secondary" variant="text" size="small"
+            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text"
+            @click="triggerFileInput" title="上传图片" />
 
           <Button icon="pi pi-bolt" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text" />
           <Button icon="pi pi-th-large" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text" />
 
           <!-- Language/Settings Button -->
           <Button icon="pi pi-language" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700" />
+            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text" />
 
           <!-- Export Button -->
           <Button icon="pi pi-download" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 text-surface-500 dark:text-surface-400 hover:text-surface-700"
+            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text"
             @click="exportCurrentChat()" :disabled="foregroundChat?.messages.length === 0" title="导出对话" />
         </div>
 
@@ -74,17 +59,15 @@
 
           <!-- Send Button -->
           <Button v-if="!isGenerating" @click="messageEditor.handleSend" :disabled="!messageEditor.editable.value"
-            icon="pi pi-arrow-up" severity="secondary" size="small"
-            class="rounded-full w-10 h-10 p-0 shrink-0 transition-all duration-200 dark:bg-surface-950 dark:text-surface-300 bg-surface-300 text-surface-700"
-            v-tooltip.top="{ value: 'Enter', pt: { text: 'bg-surface-300 dark:bg-surface-950 text-xs' } }"
-            :title="messageEditor.disabledTooltip.value || '发送消息 (Enter)'" />
+            icon="pi pi-arrow-up" size="small"
+            class="bg-button-primary-bg text-button-primary-text border-0 rounded-full w-8 h-8 p-0 shrink-0 transition-all duration-200"
+            v-tooltip.top="{ value: 'Enter' }" :title="messageEditor.disabledTooltip.value || '发送消息 (Enter)'" />
 
           <!-- Interrupt Button -->
           <Button v-else @click="handleStopGeneration" :disabled="!messageEditor.editable.value" icon="pi pi-stop"
             severity="secondary" size="small"
-            class="rounded-full w-10 h-10 p-0 shrink-0 transition-all duration-200 bg-red-500 dark:bg-red-600 text-white hover:bg-red-600 dark:hover:bg-red-700"
-            v-tooltip.top="{ value: 'Ctrl + C', pt: { text: 'red dark:bg-surface-950 text-xs' } }"
-            title="停止生成 (interrupt)" />
+            class="rounded-full w-10 h-10 p-0 shrink-0 transition-all duration-200 bg-error text-white hover:bg-red-600"
+            v-tooltip.top="{ value: 'Ctrl + C', pt: { text: 'red text-xs' } }" title="停止生成 (interrupt)" />
         </div>
       </div>
     </div>
@@ -176,3 +159,9 @@ const handleFileSelect = (event: Event) => {
   }
 }
 </script>
+
+<style scoped>
+:deep(.prose) {
+  color: var(--color-body-text);
+}
+</style>

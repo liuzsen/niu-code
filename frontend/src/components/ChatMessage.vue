@@ -1,27 +1,26 @@
 <template>
-  <div class="flex w-full dark:text-surface-300 font-normal"
+  <div class="flex w-full font-normal"
     :class="{ 'justify-end': message.data.from === 'human', 'justify-start': message.data.from === 'agent' }">
     <div class="flex items-start w-full space-x-2 max-w-full"
       :class="{ 'flex-row-reverse space-x-reverse': message.data.from === 'human' }">
       <div class="flex flex-col w-full">
 
         <div class="flex gap-2 text-sm px-0 mb-0.5">
-          <p v-if="message.data.from === 'human'" class=" text-green-500">Human</p>
-          <p v-if="message.data.from === 'agent'" class=" dark:text-orange-300 text-surface-700">Main Agent</p>
+          <p v-if="message.data.from === 'human'" class="text-label-human">Human</p>
+          <p v-if="message.data.from === 'agent'" class="text-label-agent">Main Agent</p>
         </div>
 
-        <div class=" rounded-sm text-sm bg-surface-300 dark:bg-surface-900">
+        <div class="rounded-sm text-sm bg-message-bg">
           <!-- 用户消息 -->
           <div v-if="message.data.from === 'human'" class="p-4">
-            <MarkdownRenderer v-if="typeof message.data.content.content === 'string'" :content="message.data.content.content" />
+            <MarkdownRenderer v-if="typeof message.data.content.content === 'string'"
+              :content="message.data.content.content" />
             <div v-else>
               <!-- 多模态内容，包含图片和文本 -->
               <div v-for="(block, index) in message.data.content.content" :key="index">
                 <img v-if="block.type === 'image' && 'source' in block && block.source.type === 'base64'"
-                  :src="`data:${block.source.media_type};base64,${block.source.data}`"
-                  class="max-w-md rounded-lg mb-2"
-                  alt="Uploaded image"
-                />
+                  :src="`data:${block.source.media_type};base64,${block.source.data}`" class="max-w-md rounded-lg mb-2"
+                  alt="Uploaded image" />
                 <MarkdownRenderer v-else-if="block.type === 'text' && 'text' in block" :content="block.text" />
               </div>
             </div>
@@ -29,8 +28,8 @@
 
           <!-- Agent 消息-->
           <div v-else>
-            <div v-if="assistant_text">
-              <TextRenderer :input="assistant_text"></TextRenderer>
+            <div v-if="assistant_text" class="p-4">
+              <MarkdownRenderer :content="assistant_text"></MarkdownRenderer>
             </div>
             <div v-else-if="claude_user_text">
               <ClaudeUserMessage :content="claude_user_text"></ClaudeUserMessage>
@@ -90,7 +89,7 @@
             </div>
           </div>
         </div>
-        <div class="flex justify-end mt-0.5 text-gray-500">
+        <div class="flex justify-end mt-0.5 text-disabled-text">
           <p class="text-xs mr-2">
             {{ formatTime }}
           </p>
@@ -107,7 +106,6 @@ import type { ChatMessage } from '../types/chat'
 
 // 导入渲染器组件
 import SystemRenderer from './message/SystemMessage.vue'
-import TextRenderer from './message/TextMessage.vue'
 import TodoWriteRenderer from './message/TodoWriteMessage.vue'
 import WriteRenderer from './message/WriteMessage.vue'
 import ResultRenderer from './message/ResultMessage.vue'
