@@ -12,6 +12,7 @@ export interface ClaudeSetting {
 
 export interface Setting {
   claude_settings: ClaudeSetting[]
+  default_config?: string // Name of the default config to use for new chats
 }
 
 /**
