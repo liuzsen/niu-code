@@ -1,8 +1,8 @@
 <template>
-  <div class="bg-surface-200 dark:bg-surface-950 rounded-lg shadow-lg flex flex-col gap-0.5 p-1 relative">
+  <div class="bg-elevated-bg rounded-lg shadow-lg flex flex-col gap-0.5 p-1 relative">
     <template v-if="items.length">
-      <button v-for="(item, index) in items" :key="index"
-        :class="{ ' bg-surface-400 dark:bg-surface-800': selectedIndex == index }" @click="selectItem(index)"
+      <button v-for="(item, index) in items" :key="index" :class="{ 'bg-active-bg': selectedIndex == index }"
+        @click="selectItem(index)"
         class="items-center rounded-md text-white cursor-pointer flex gap-3 p-1 text-left w-full transition-all duration-150">
         <div class="flex flex-col gap-0.5 flex-1 min-w-0">
           <div class="font-semibold text-sm text-gray-800 dark:text-surface-200 leading-5 whitespace-nowrap">{{

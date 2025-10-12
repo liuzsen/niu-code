@@ -1,18 +1,20 @@
 <template>
   <div
-    class="animate-attention bg-surface-50 dark:bg-surface-900 rounded-2xl p-4 border border-surface-500 dark:border-surface-700 outline-none shadow-sm"
+    class="animate-attention bg-elevated-bg rounded-2xl p-4 border border-surface-500 dark:border-surface-700 outline-none shadow-sm"
     tabindex="0" ref="permissionContainer" @keydown="handleKeyDown">
     <div class="flex flex-col gap-1">
       <div class="flex mb-2 items-center">
-        <img src="@/assets/snowflake.svg" class="w-4 h-4 mr-2 animate-spin" alt="snowflake" />
         <div class="font-semibold">
           {{ questionText }}
         </div>
       </div>
 
-      <div v-for="(option, index) in options" :key="option.id" class="permission-option"
-        :class="{ 'permission-option-selected': selectedIndex === index }" @click="executeOption(option)"
-        @mouseenter="selectedIndex = index">
+      <div v-for="(option, index) in options" :key="option.id"
+        class="cursor-pointer p-1 rounded-2xl border border-border transition-all duration-200" :class="{
+          ' bg-active-bg': selectedIndex === index,
+          'bg-list-item-bg': selectedIndex !== index
+
+        }" @click="executeOption(option)" @mouseenter="selectedIndex = index">
         <div class="flex items-center gap-2">
           <i class="pi" :class="[option.icon, option.iconClass]"></i>
           <span :class="option.textClass" v-html="option.text"></span>
@@ -92,10 +94,6 @@ onMounted(() => {
 
 .permission-option {
   @apply cursor-pointer p-1 rounded-2xl border border-surface-400 transition-all duration-200;
-}
-
-.permission-option-selected {
-  @apply bg-surface-300 dark:bg-orange-600;
 }
 
 .animate-attention {

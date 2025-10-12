@@ -4,35 +4,83 @@
  */
 
 [data-theme="cool-light"] {
-  /* 背景层级 */
-  --theme-bg-base: theme(colors.sky.50);
-  /* 页面主背景 */
-  --theme-bg-surface: theme(colors.sky.100);
-  /* 卡片/容器背景 */
-  --theme-bg-elevated: theme(colors.white);
-  /* 弹窗/浮层背景 */
-  --theme-bg-interactive: theme(colors.sky.200);
-  /* 输入框/列表项 */
-  --theme-bg-code: theme(colors.sky.300);
-  /* 代码块/标签背景 */
-  --theme-bg-hover: theme(colors.sky.100);
+  /* ===== 页面布局层级 ===== */
+
+  /* 页面最外层背景*/
+  --theme-page-bg: theme(colors.sky.50);
+
+  /* 卡片/面板背景 */
+  --theme-panel-bg: theme(colors.white);
+
+  /* 浮层背景 */
+  --theme-elevated-bg: theme(colors.sky.50);
+
+  /* ===== 输入控件 ===== */
+
+  /* 输入框/文本区域背景 - 浅青 */
+  --theme-input-bg: theme(colors.sky.50);
+
+  /* 搜索框背景 - 浅青 */
+  --theme-search-bg: theme(colors.sky.50);
+
+  /* ===== 按钮系统 ===== */
+
+  /* 主要操作按钮 - 鲜明的青蓝色 */
+  --theme-button-primary-bg: theme(colors.sky.500);
+  --theme-button-primary-text: theme(colors.white);
+
+  /* 次要操作按钮 - 柔和的浅青 */
+  --theme-button-secondary-bg: theme(colors.cyan.300);
+  --theme-button-secondary-text: theme(colors.cyan.900);
+
+  /* 工具栏图标按钮 - 透明 */
+  --theme-button-ghost-bg: transparent;
+  --theme-button-ghost-text: theme(colors.neutral.500);
+
+  /* ===== 交互状态 ===== */
+
   /* 悬停状态 */
+  --theme-hover-bg: theme(colors.sky.100);
 
-  /* 文本层级 */
-  --theme-text-primary: theme(colors.sky.950);
-  /* 主标题/重要文本 */
-  --theme-text-secondary: theme(colors.sky.800);
+  /* 激活/选中状态 */
+  --theme-active-bg: theme(colors.sky.200);
+
+  /* ===== 内容展示 ===== */
+
+  /* 代码块背景 */
+  --theme-code-block-bg: theme(colors.cyan.100);
+
+  /* 行内代码背景 */
+  --theme-code-inline-bg: theme(colors.cyan.100);
+
+  /* 列表项背景 */
+  --theme-list-item-bg: theme(colors.sky.50);
+
+  /* 消息气泡背景 */
+  --theme-message-bg: theme(colors.sky.50);
+
+  /* ===== 文本层级 ===== */
+
+  /* 标题/重要文本 - 深色保证可读性 */
+  --theme-heading-text: theme(colors.neutral.900);
+
   /* 正文内容 */
-  --theme-text-tertiary: theme(colors.sky.700);
-  /* 次要信息/标签 */
-  --theme-text-muted: theme(colors.sky.600);
-  /* 辅助文本/占位符 */
+  --theme-body-text: theme(colors.neutral.700);
 
-  /* 边框 */
-  --theme-border-default: theme(colors.sky.200);
-  /* 主边框 */
-  --theme-border-strong: theme(colors.sky.300);
+  /* 说明文字/标签 */
+  --theme-caption-text: theme(colors.neutral.500);
+
+  /* 禁用/占位符 */
+  --theme-disabled-text: theme(colors.neutral.400);
+
+  /* ===== 边框 ===== */
+
+  /* 默认边框 */
+  --theme-border: theme(colors.sky.200);
+
   /* 强调边框 */
-  --theme-border-subtle: theme(colors.sky.400);
-  /* 分隔线 */
+  --theme-border-strong: theme(colors.sky.300);
+
+  /* 微弱分隔线 */
+  --theme-border-subtle: theme(colors.cyan.100);
 }

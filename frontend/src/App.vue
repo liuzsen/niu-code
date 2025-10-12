@@ -1,7 +1,9 @@
 <template>
-  <Toast />
-  <router-view />
-  <SessionListModal />
+  <div class="h-full flex flex-col text-body-text">
+    <Toast />
+    <router-view />
+    <SessionListModal />
+  </div>
 </template>
 
 <script setup lang="ts">

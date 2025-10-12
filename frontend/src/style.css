@@ -8,42 +8,61 @@
 
 /* 注册自定义颜色到 Tailwind */
 @theme {
-  /* 背景层级 */
-  --color-bg-base: var(--bg-base);
-  --color-bg-surface: var(--bg-surface);
-  --color-bg-elevated: var(--bg-elevated);
-  --color-bg-interactive: var(--bg-interactive);
-  --color-bg-code: var(--bg-code);
-  --color-bg-hover: var(--bg-hover);
+  /* ===== 页面布局 ===== */
+  --color-page-bg: var(--page-bg);
+  --color-panel-bg: var(--panel-bg);
+  --color-elevated-bg: var(--elevated-bg);
 
-  /* 文本层级 */
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-tertiary: var(--text-tertiary);
-  --color-text-muted: var(--text-muted);
+  /* ===== 输入控件 ===== */
+  --color-input-bg: var(--input-bg);
+  --color-search-bg: var(--search-bg);
 
-  /* 边框 */
-  --color-border-default: var(--border-default);
+  /* ===== 按钮系统 ===== */
+  --color-button-primary-bg: var(--button-primary-bg);
+  --color-button-primary-text: var(--button-primary-text);
+  --color-button-secondary-bg: var(--button-secondary-bg);
+  --color-button-secondary-text: var(--button-secondary-text);
+  --color-button-ghost-bg: var(--button-ghost-bg);
+  --color-button-ghost-text: var(--button-ghost-text);
+
+  /* ===== 交互状态 ===== */
+  --color-hover-bg: var(--hover-bg);
+  --color-active-bg: var(--active-bg);
+
+  /* ===== 内容展示 ===== */
+  --color-code-block-bg: var(--code-block-bg);
+  --color-code-inline-bg: var(--code-inline-bg);
+  --color-list-item-bg: var(--list-item-bg);
+  --color-message-bg: var(--message-bg);
+
+  /* ===== 文本层级 ===== */
+  --color-heading-text: var(--heading-text);
+  --color-body-text: var(--body-text);
+  --color-caption-text: var(--caption-text);
+  --color-disabled-text: var(--disabled-text);
+
+  /* ===== 边框 ===== */
+  --color-border: var(--border);
   --color-border-strong: var(--border-strong);
   --color-border-subtle: var(--border-subtle);
 
-  /* 状态色 */
-  --color-status-success: var(--status-success);
-  --color-status-success-bg: var(--status-success-bg);
-  --color-status-success-border: var(--status-success-border);
+  /* ===== 状态色 ===== */
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-success-border: var(--success-border);
 
-  --color-status-error: var(--status-error);
-  --color-status-error-bg: var(--status-error-bg);
-  --color-status-error-border: var(--status-error-border);
+  --color-error: var(--error);
+  --color-error-bg: var(--error-bg);
+  --color-error-border: var(--error-border);
 
-  --color-status-warning: var(--status-warning);
-  --color-status-warning-bg: var(--status-warning-bg);
-  --color-status-warning-border: var(--status-warning-border);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-border: var(--warning-border);
 
-  --color-status-info: var(--status-info);
-  --color-status-info-border: var(--status-info-border);
+  --color-info: var(--info);
+  --color-info-border: var(--info-border);
 
-  /* 特殊标签 */
+  /* ===== 特殊标签 ===== */
   --color-label-human: var(--label-human);
   --color-label-agent: var(--label-agent);
 }
@@ -59,33 +78,6 @@
   scrollbar-color: var(--border-strong) transparent;
 
   /* WebKit */
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: var(--border-strong);
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-thumb:hover {
-    background-color: var(--border-default);
-  }
-}
-
-/*
- * 已废弃的滚动条类 (保留以兼容现有组件,统一使用 .custom-scrollbar)
- * TODO: 后续移除,所有使用处改为 .custom-scrollbar
- */
-.custom-scrollbar-light,
-.custom-scrollbar-dark {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border-strong) transparent;
-
   &::-webkit-scrollbar {
     width: 8px;
   }

@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- MCP Tool Header -->
-        <div class="p-4 border-b border-surface-200 dark:border-surface-700">
+        <div class="p-4 border-b border-border-subtle">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-box text-blue-400"></i>
@@ -29,15 +29,15 @@
         <!-- Input Section -->
         <div class="p-4">
             <div class="mb-2 text-sm text-surface-600 dark:text-surface-400">Input</div>
-            <div class="bg-surface-200 dark:bg-surface-950 rounded p-4 overflow-auto max-h-48">
+            <div class="bg-code-block-bg rounded p-4 overflow-auto max-h-48">
                 <pre class="font-mono text-xs leading-relaxed">{{ formattedInput }}</pre>
             </div>
         </div>
 
         <!-- Result Section -->
-        <div v-if="resultText" class="p-4 border-t border-surface-200 dark:border-surface-700">
+        <div v-if="resultText" class="p-4 border-t border-border-subtle">
             <div class="mb-2 text-sm text-surface-600 dark:text-surface-400">Result</div>
-            <div class="bg-surface-200 dark:bg-surface-950 rounded p-4 max-h-48 overflow-auto">
+            <div class="bg-code-block-bg rounded p-4 max-h-48 overflow-auto">
                 <pre class="font-mono text-xs leading-relaxed break-all whitespace-pre-wrap">{{ resultText }}</pre>
             </div>
         </div>

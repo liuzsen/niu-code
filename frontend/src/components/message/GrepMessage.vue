@@ -5,7 +5,7 @@
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-search dark:text-surface-500"></i>
-                    <span class="font-mono font-bold">Grep Search</span>
+                    <span class="font-mono font-bold text-heading-text">Grep Search</span>
                 </div>
 
                 <div class="flex items-center gap-2 flex-1">
@@ -38,24 +38,23 @@
                     <!-- Pattern -->
                     <div class="flex items-center gap-2">
                         <span class="font-mono text-sm font-semibold">🔍</span>
-                        <div class="text-xs text-surface-600 dark:text-surface-500">Pattern</div>
-                        <code
-                            class="font-mono text-sm bg-surface-400 dark:bg-surface-800 px-1 rounded-sm">{{ input.pattern }}</code>
+                        <div class="text-xs text-caption-text ">Pattern</div>
+                        <code class="font-mono text-sm bg-code-inline-bg px-1 rounded-sm">{{ input.pattern }}</code>
                     </div>
 
                     <!-- Path -->
                     <div v-if="input.path" class="flex items-center gap-2">
                         <span class="font-mono text-sm font-semibold">📁</span>
-                        <div class="text-xs text-surface-600 dark:text-surface-500">Search Path</div>
+                        <div class="text-xs text-caption-text">Search Path</div>
                         <code
-                            class="font-mono text-sm bg-surface-400 dark:bg-surface-800 px-1 rounded-sm">{{ toRelativePath(input.path) }}</code>
+                            class="font-mono text-sm bg-code-inline-bg px-1 rounded-sm">{{ toRelativePath(input.path) }}</code>
                     </div>
                 </div>
 
                 <!-- Search Results -->
                 <div v-if="grepResult && resultContent">
                     <!-- Result Preview -->
-                    <div class="relative bg-surface-50 dark:bg-surface-900 rounded-lg p-3">
+                    <div class="relative bg-code-block-bg rounded-lg p-3">
                         <!-- Action buttons - fixed position in top right corner -->
                         <div
                             class="absolute top-1 right-1 flex items-center gap-1 z-10 bg-surface-50 dark:bg-surface-900 rounded">
@@ -146,7 +145,7 @@
                         <div class="flex items-start gap-2">
                             <span class="text-xs text-surface-500 dark:text-surface-400 font-mono min-w-16">{{
                                 match.lineNumber
-                            }}</span>
+                                }}</span>
                             <pre
                                 class="font-mono text-sm leading-relaxed whitespace-pre-wrap flex-1">{{ match.content }}</pre>
                         </div>

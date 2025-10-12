@@ -50,7 +50,7 @@ export const createMarkedRenderer = (): Renderer => {
 
     const langClass = language ? `language-${language}` : ''
     // 转义代码内容
-    return `<pre class="dark:!bg-surface-800 !bg-gray-900 !text-surface-200"><code class="${langClass}">${escapeHtml(code)}</code></pre>`
+    return `<pre class=""><code class="${langClass}">${escapeHtml(code)}</code></pre>`
   }
 
   return renderer

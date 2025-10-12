@@ -1,7 +1,17 @@
 <template>
   <Select :modelValue="modelValue" @update:modelValue="onUpdate" :options="permissionModeOptions" optionLabel="label"
-    optionValue="value" @change="onChange" class="h-7 text-sm no-dropdown" :label-class="'px-2 pt-1 pb-0.5'"
-    variant="filled" size="small">
+    optionValue="value" @change="onChange" class="h-7 text-sm bg-button-secondary-bg" :label-class="'px-2 pt-1 pb-0.5'"
+    variant="filled" size="small" :pt="{
+      dropdown: 'hidden',
+      root: 'border border-border text-body-text',
+      overlay: 'bg-elevated-bg border-0',
+      label: 'text-body-text',
+      option: ({ context }) => ({
+        class: context.selected
+          ? 'bg-active-bg hover:bg-hover-bg text-body-text'
+          : 'bg-list-item-bg hover:bg-hover-bg text-body-text'
+      })
+    }">
   </Select>
 </template>
 
@@ -35,10 +45,5 @@ const onUpdate = (newValue: PermissionMode) => {
 const onChange = () => {
   emit('change')
 }
-</script>
 
-<style scoped>
-.no-dropdown :deep(.p-select-dropdown) {
-  display: none;
-}
-</style>
+</script>

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="bg-bg-surface flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar rounded-xl border-x border-y border-border-default"
+    class="bg-panel-bg flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar rounded-xl border-x border-y border-border"
     ref="messagesContainer">
 
     <!-- Show welcome screen if no workspace is selected -->
@@ -9,8 +9,8 @@
     <!-- Show chat messages if workspace is selected but no messages -->
     <div v-else-if="chatManager.foregroundChat.messages.length === 0" class="text-center mt-12">
       <i class="pi pi-comments text-4xl mb-4 block text-primary-500"></i>
-      <p class="text-lg font-medium text-text-primary">Welcome to Claude Code Web</p>
-      <p class="text-sm mt-2 text-text-tertiary">
+      <p class="text-lg font-medium text-heading-text">Welcome to Claude Code Web</p>
+      <p class="text-sm mt-2 text-caption-text">
         Connected to workspace: {{ workspace.workingDirectory }}
       </p>
     </div>

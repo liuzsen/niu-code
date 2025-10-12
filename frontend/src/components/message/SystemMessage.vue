@@ -1,31 +1,26 @@
 <template>
   <div class="space-y-4 p-4">
-    <div class="flex justify-between items-center pb-2 border-b border-surface-500">
+    <div class="flex justify-between items-center pb-2 border-b border-border-subtle">
       <div class="flex items-center gap-2">
         <i class="pi pi-cog"></i>
-        <span class="font-semibold text-surface-900 dark:text-surface-400">系统信息</span>
+        <span class="font-semibold text-heading-text">系统信息</span>
       </div>
-      <span class="px-2 py-1 text-xs rounded-xl bg-surface-400 dark:bg-surface-900 dark:text-orange-400">{{ model
+      <span class="px-2 py-1 text-xs rounded-xl bg-code-inline-bg">{{ model
       }}</span>
     </div>
 
-    <div class="space-y-2 text-xs flex flex-col gap-1 dark:text-surface-300 font-medium dark:font-semibold">
+    <div class="space-y-2 text-xs flex flex-col gap-1 text-body-text font-medium">
       <div class="flex gap-2">
         <span class="min-w-16 flex items-center">工作目录:</span>
-        <span class="font-mono break-all text-sm">{{ data.cwd }}</span>
+        <span class="font-mono break-all text-sm bg-code-inline-bg rounded-sm px-2">{{ data.cwd }}</span>
       </div>
       <div class="flex gap-2">
         <span class="min-w-16 flex items-center">会话 ID:</span>
-        <span class="font-mono break-all text-sm">{{ data.session_id }}</span>
+        <span class="font-mono break-all text-sm bg-code-inline-bg rounded-sm px-2">{{ data.session_id }}</span>
       </div>
       <div class="flex gap-2">
         <span class="min-w-16 flex items-center">权限模式:</span>
-        <span class="px-2 py-1 text-sm rounded-full" :class="{
-          'bg-gray-500 text-surface-900': data.permissionMode === 'default',
-          'bg-yellow-500 text-surface-900': data.permissionMode === 'acceptEdits',
-          'bg-red-400 text-surface-900': data.permissionMode === 'bypassPermissions',
-          'bg-green-500 text-surface-900': data.permissionMode === 'plan',
-        }">
+        <span class="px-2 py-1 text-sm rounded-full bg-button-secondary-bg">
           {{ data.permissionMode }}
         </span>
       </div>
@@ -33,7 +28,7 @@
         <span class="min-w-16 flex items-center max-h-6">可用工具:</span>
         <div class="flex flex-wrap gap-1">
           <span v-for="tool in data?.tools" :key="tool"
-            class="px-2 py-1 text-xs bg-surface-950 text-surface-300 rounded-full">
+            class="px-2 py-1 text-xs bg-code-inline-bg text-caption-text rounded-full">
             {{ tool }}
           </span>
         </div>
@@ -42,7 +37,7 @@
         <span class="min-w-16 flex items-center max-h-6">斜杠命令:</span>
         <div class="flex flex-wrap gap-1">
           <span v-for="command in data.slash_commands" :key="command"
-            class="px-2 py-1 text-xs bg-surface-300 dark:bg-surface-900 rounded-full">
+            class="px-2 py-1 text-xs bg-code-inline-bg rounded-full">
             /{{ command }}
           </span>
         </div>
@@ -65,6 +60,5 @@ const props = defineProps<Props>()
 const model = computed(() => {
   return props.data?.model || 'Unknown'
 })
-
 
 </script>

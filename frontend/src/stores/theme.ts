@@ -4,7 +4,7 @@ import { ref, watch } from 'vue'
 /**
  * 主题预设列表
  */
-export const THEME_PRESETS = ['default-light', 'warm-light', 'cool-light', 'dark'] as const
+export const THEME_PRESETS = ['warm-light', 'cool-light', 'dark'] as const
 
 /**
  * 主题预设类型
@@ -15,7 +15,6 @@ export type ThemePreset = typeof THEME_PRESETS[number]
  * 主题显示名称映射
  */
 export const THEME_LABELS: Record<ThemePreset, string> = {
-  'default-light': 'Default Light',
   'warm-light': 'Warm Light',
   'cool-light': 'Cool Light',
   'dark': 'Dark'
@@ -25,7 +24,6 @@ export const THEME_LABELS: Record<ThemePreset, string> = {
  * 主题描述
  */
 export const THEME_DESCRIPTIONS: Record<ThemePreset, string> = {
-  'default-light': '中性灰色调，适合长时间工作',
   'warm-light': '温暖米黄色调，舒适氛围',
   'cool-light': '清爽青蓝色调，提升专注力',
   'dark': '深色主题，适合夜间使用'
@@ -37,7 +35,7 @@ const STORAGE_KEY = 'theme-preset'
  * 主题管理 Store
  */
 export const useTheme = defineStore('theme', () => {
-  const currentTheme = ref<ThemePreset>('default-light')
+  const currentTheme = ref<ThemePreset>('warm-light')
 
   /**
    * 从 localStorage 加载主题设置

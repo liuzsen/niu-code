@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- WebSearch Header -->
-        <div class="p-2 border-b border-surface-200 dark:border-surface-700">
+        <div class="p-2 border-b border-border-subtle">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-search dark:text-surface-500"></i>
@@ -39,9 +39,8 @@
                     <div class="flex items-start gap-2">
                         <span class="font-mono text-sm font-semibold">🔍</span>
                         <div class="text-xs text-surface-600 dark:text-surface-500">Query</div>
-                        <code
-                            class="font-mono text-sm bg-surface-400 dark:bg-surface-800 px-1 rounded-sm">{{
-                                input.query }}</code>
+                        <code class="font-mono text-sm bg-code-inline-bg px-1 rounded-sm">{{
+                            input.query }}</code>
                     </div>
 
                     <!-- Allowed Domains -->
@@ -58,7 +57,8 @@
                     </div>
 
                     <!-- Blocked Domains -->
-                    <div v-if="input.blocked_domains && input.blocked_domains.length > 0" class="flex items-start gap-2">
+                    <div v-if="input.blocked_domains && input.blocked_domains.length > 0"
+                        class="flex items-start gap-2">
                         <span class="font-mono text-sm font-semibold">🚫</span>
                         <div class="text-xs text-surface-600 dark:text-surface-500">Blocked Domains</div>
                         <div class="flex flex-wrap gap-1">
@@ -73,7 +73,7 @@
                 <!-- Search Results -->
                 <div v-if="searchResults">
                     <!-- Results Preview -->
-                    <div class="relative bg-surface-50 dark:bg-surface-900 rounded-lg p-3">
+                    <div class="relative bg-code-block-bg rounded-lg p-3">
                         <!-- Action buttons - fixed position in top right corner -->
                         <div
                             class="absolute top-1 right-1 flex items-center gap-1 z-10 bg-surface-50 dark:bg-surface-900 rounded">

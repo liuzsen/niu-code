@@ -1,15 +1,15 @@
 <template>
-  <header class="bg-bg-surface p-4 flex items-center justify-between border-b border-border-default">
+  <header class="bg-panel-bg p-4 flex items-center justify-between border-b border-border">
     <div class="flex items-center space-x-3">
       <i class="pi pi-comments text-xl"></i>
-      <h1 class="text-lg font-semibold">Claude Code Web</h1>
+      <h1 class="text-lg font-semibold text-heading-text">Claude Code Web</h1>
     </div>
 
     <div class="flex items-center space-x-2">
       <div class="flex items-center space-x-2">
         <span class="pi pi-circle-fill text-sm"
           :class="{ 'text-green-500': isConnected, 'text-yellow-500': isConnecting, 'text-red-500': !isConnected && !isConnecting }"></span>
-        <span class="text-sm" style="color: var(--text-color-secondary)">{{ connectionStatus }}</span>
+        <span class="text-sm">{{ connectionStatus }}</span>
       </div>
       <Button v-if="!isConnected" @click="connect" :loading="isConnecting" size="small" severity="info">
         Connect
@@ -18,20 +18,32 @@
       <!-- Mock File Selector (Dev only) -->
       <div v-if="isDevelopment" class="flex items-center space-x-2">
         <Select :options="mockOptions" v-model="selectedMockOption" @change="handleMockFileChange" optionLabel="label"
-          optionValue="value" placeholder="选择 Mock 文件" class="w-48" size="small" />
+          optionValue="value" placeholder="选择 Mock 文件" class="bg-button-secondary-bg" size="small" :pt="{
+            dropdown: 'hidden',
+            root: 'border border-border text-body-text',
+            overlay: 'bg-elevated-bg border-0',
+            label: 'text-body-text',
+            option: ({ context }) => ({
+              class: context.selected
+                ? 'bg-active-bg hover:bg-hover-bg text-body-text'
+                : 'bg-list-item-bg hover:bg-hover-bg text-body-text'
+            })
+          }" />
       </div>
 
       <!-- Theme Selector -->
-      <Select
-        v-model="themeStore.currentTheme"
-        :options="themeOptions"
-        optionLabel="label"
-        optionValue="value"
-        @change="handleThemeChange"
-        placeholder="选择主题"
-        class="w-44"
-        size="small"
-      >
+      <Select v-model="themeStore.currentTheme" class="bg-button-secondary-bg" :options="themeOptions"
+        optionLabel="label" optionValue="value" @change="handleThemeChange" placeholder="选择主题" size="small" :pt="{
+          dropdown: 'hidden',
+          root: 'border border-border text-body-text',
+          overlay: 'bg-elevated-bg border-0',
+          label: 'text-body-text',
+          option: ({ context }) => ({
+            class: context.selected
+              ? 'bg-active-bg hover:bg-hover-bg text-body-text'
+              : 'bg-list-item-bg hover:bg-hover-bg text-body-text'
+          })
+        }">
         <template #value="slotProps">
           <div v-if="slotProps.value" class="flex items-center gap-2">
             <i :class="getThemeIcon(slotProps.value as ThemePreset)" />
@@ -47,7 +59,7 @@
       </Select>
 
       <button type="button"
-        class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-bg-hover transition-all text-text-primary"
+        class="w-10 h-10 flex items-center justify-center rounded-full bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg transition-all"
         @click="navigateToSettings">
         <i class="pi pi-cog text-base" />
       </button>
@@ -104,7 +116,6 @@ const handleThemeChange = () => {
 // Get theme icon based on theme type
 const getThemeIcon = (theme: ThemePreset) => {
   if (theme === 'dark') return 'pi pi-moon'
-  if (theme === 'default-light') return 'pi pi-sun'
   if (theme === 'warm-light') return 'pi pi-sun text-orange-500'
   if (theme === 'cool-light') return 'pi pi-sun text-blue-500'
   return 'pi pi-palette'

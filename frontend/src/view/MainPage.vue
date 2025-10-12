@@ -2,7 +2,7 @@
     <div class="h-full flex flex-col">
         <Toast />
         <AppHeader />
-        <div class=" overflow-hidden bg-bg-base h-full">
+        <div class=" overflow-hidden bg-page-bg h-full">
             <ChatLayout />
         </div>
     </div>
