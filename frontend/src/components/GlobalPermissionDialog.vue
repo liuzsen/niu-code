@@ -60,9 +60,11 @@ const handleKeyDown = (event: KeyboardEvent) => {
       executeSelectedOption()
       break
     case 'Escape':
+      console.log('esc', escCallback)
       event.preventDefault()
-      if (escCallback) {
-        escCallback()
+      if (escCallback.value) {
+        console.log("escCallback")
+        escCallback.value()
       }
       break
   }

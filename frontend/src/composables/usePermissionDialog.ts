@@ -1,4 +1,4 @@
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { PermissionUpdate, ToolPermissionRequest } from '../types/message'
 import type { PermissionResult } from '@anthropic-ai/claude-code'
 import { useWorkspace } from '../stores/workspace'
@@ -25,7 +25,7 @@ export function usePermissionDialog(request: ToolPermissionRequest) {
   const isExitPlanMode = computed(() => request?.tool_use.tool_name === 'ExitPlanMode')
   const suggestions = computed(() => request?.suggestions || [])
 
-  let escCallback: (() => void) | undefined;
+  const escCallback = ref<(() => void) | undefined>(undefined);
 
   const questionText = computed(() => {
     if (!request) return ''
@@ -135,9 +135,10 @@ export function usePermissionDialog(request: ToolPermissionRequest) {
 
   const options = computed<PermissionOption[]>(() => {
     if (!request) return []
+    console.log("isExitPlanMode", isExitPlanMode.value)
 
     if (isExitPlanMode.value) {
-      escCallback = denyPermission
+      escCallback.value = denyPermission
       return [
         {
           id: 'exit-allow-with-suggestion',
@@ -186,7 +187,7 @@ export function usePermissionDialog(request: ToolPermissionRequest) {
       action: () => allowWithSuggestion(suggestion)
     }))
 
-    escCallback = denyPermission
+    escCallback.value = denyPermission
     const denyOption: PermissionOption = {
       id: 'deny',
       text: 'No, and tell Claude what to do differently (ESC)',
