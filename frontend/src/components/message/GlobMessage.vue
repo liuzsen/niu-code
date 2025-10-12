@@ -58,15 +58,12 @@
                         <!-- Action buttons - fixed position in top right corner -->
                         <div
                             class="absolute top-1 right-1 flex items-center gap-1 z-10 bg-surface-50 dark:bg-surface-900 rounded">
-                            <Button size="small" severity="secondary" variant="text" @click="copyToClipboard"
-                                class="w-6 h-6 p-0 hover:bg-surface-200 dark:hover:bg-surface-800 rounded"
-                                v-tooltip.left="'Copy'">
+                            <Button size="small" variant="text" @click="copyToClipboard"
+                                class="w-6 h-6 p-0 bg-button-ghost-bg text-button-ghost-text rounded">
                                 <i class="pi pi-copy text-xs"></i>
                             </Button>
-                            <Button v-if="showExpandButton" size="small" severity="secondary" variant="text"
-                                @click="showFullContent = true"
-                                class="w-6 h-6 p-0 hover:bg-surface-200 dark:hover:bg-surface-800 rounded"
-                                v-tooltip.left="'View Full'">
+                            <Button v-if="showExpandButton" size="small" variant="text" @click="showFullContent = true"
+                                class="w-6 h-6 p-0 bg-button-ghost-bg text-button-ghost-text rounded">
                                 <i class="pi pi-expand text-xs"></i>
                             </Button>
                         </div>
@@ -103,7 +100,7 @@
         </template>
         <div class="space-y-4">
             <div
-                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar-dark border border-surface-300 dark:border-surface-700">
+                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar border border-surface-300 dark:border-surface-700">
                 <div class="space-y-1">
                     <div v-for="(file, index) in fileMatches" :key="index" class="font-mono text-sm py-1">
                         <i class="pi pi-file text-xs mr-1"></i>

@@ -105,7 +105,7 @@
         </template>
         <div class="space-y-4">
             <div
-                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar-dark border border-surface-300 dark:border-surface-700">
+                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar border border-surface-300 dark:border-surface-700">
                 <pre class="font-mono text-sm leading-relaxed whitespace-pre-wrap">{{ resultText }}</pre>
             </div>
             <div class="flex justify-end gap-2">

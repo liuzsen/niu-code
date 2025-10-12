@@ -16,6 +16,7 @@ declare module 'vue' {
     ChatMessage: typeof import('./src/components/ChatMessage.vue')['default']
     ClaudeSettingsTab: typeof import('./src/components/settings/ClaudeSettingsTab.vue')['default']
     ClaudeUserMessage: typeof import('./src/components/message/ClaudeUserMessage.vue')['default']
+    ContentPreview: typeof import('./src/components/common/ContentPreview.vue')['default']
     Dialog: typeof import('primevue/dialog')['default']
     DiffViewer: typeof import('./src/components/diff/DiffViewer.vue')['default']
     DirectoryPicker: typeof import('./src/components/DirectoryPicker.vue')['default']

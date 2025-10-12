@@ -47,7 +47,7 @@
         </template>
         <div class="space-y-4">
             <!-- Full diff viewer with split view -->
-            <div class="max-h-[70vh] overflow-y-auto custom-scrollbar-dark">
+            <div class="max-h-[70vh] overflow-y-auto custom-scrollbar">
                 <DiffViewer :old-text="input.old_string" :new-text="input.new_string" mode="split" />
             </div>
 

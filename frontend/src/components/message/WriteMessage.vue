@@ -24,7 +24,7 @@
             </template>
             <template #result>
                 <!-- Result/Error -->
-                <div v-if="resultText" class="mt-4 border-t-1">
+                <div v-if="state == 'error'" class="mt-4 border-t-1">
                     <div class="text-xs my-2">Result:</div>
                     <div class="flex items-start gap-2">
                         <pre

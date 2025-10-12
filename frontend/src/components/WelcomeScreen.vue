@@ -42,7 +42,7 @@
           @click="openProject(project.path)">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <i class="pi pi-folder text-primary-500"></i>
+              <i class="pi pi-folder text-button-ghost-text"></i>
               <span class="font-medium">
                 {{ project.path }}
               </span>

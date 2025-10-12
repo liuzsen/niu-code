@@ -1,7 +1,7 @@
 <template>
     <div>
         <!-- WebSearch Header -->
-        <div class="p-2 border-b border-border-subtle">
+        <div class="p-2 border-b border-surface-200 dark:border-surface-700">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                     <i class="pi pi-search dark:text-surface-500"></i>
@@ -71,48 +71,46 @@
                 </div>
 
                 <!-- Search Results -->
-                <div v-if="searchResults">
-                    <!-- Results Preview -->
-                    <div class="relative bg-code-block-bg rounded-lg p-3">
-                        <!-- Action buttons - fixed position in top right corner -->
-                        <div
-                            class="absolute top-1 right-1 flex items-center gap-1 z-10 bg-surface-50 dark:bg-surface-900 rounded">
-                            <Button size="small" severity="secondary" variant="text" @click="copyToClipboard"
-                                class="w-6 h-6 p-0 hover:bg-surface-200 dark:hover:bg-surface-800 rounded"
-                                v-tooltip.left="'Copy'">
-                                <i class="pi pi-copy text-xs"></i>
-                            </Button>
-                            <Button v-if="showExpandButton" size="small" severity="secondary" variant="text"
-                                @click="showFullContent = true"
-                                class="w-6 h-6 p-0 hover:bg-surface-200 dark:hover:bg-surface-800 rounded"
-                                v-tooltip.left="'View Full'">
-                                <i class="pi pi-expand text-xs"></i>
-                            </Button>
+                <div v-if="resultText" class="space-y-3">
+                    <!-- Links Section -->
+                    <div v-if="searchLinks && searchLinks.length > 0">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="pi pi-link text-sm"></i>
+                            <span class="text-xs font-semibold">Search Links ({{
+                                searchLinks.length }})</span>
                         </div>
-
-                        <!-- Limited preview -->
-                        <div class="max-h-96 overflow-auto custom-scrollbar-light space-y-3 pr-10">
-                            <div v-for="(result, idx) in limitedResults" :key="idx"
-                                class="border-l-2 border-blue-500 pl-3">
-                                <div class="space-y-1">
-                                    <a v-if="result.url" :href="result.url" target="_blank" rel="noopener noreferrer"
-                                        class="font-semibold text-blue-600 dark:text-blue-400 hover:underline text-sm">
-                                        {{ result.title || result.url }}
-                                    </a>
-                                    <div v-else class="font-semibold text-sm">{{ result.title || 'Result' }}</div>
-                                    <div v-if="result.snippet"
-                                        class="text-sm text-surface-700 dark:text-surface-300 leading-relaxed">
-                                        {{ result.snippet }}
-                                    </div>
-                                    <div v-if="result.url" class="text-xs text-green-600 dark:text-green-400">
-                                        {{ result.url }}
+                        <div class="space-y-2">
+                            <a v-for="(link, idx) in limitedLinks" :key="idx" :href="link.url" target="_blank"
+                                rel="noopener noreferrer"
+                                class="block text-body-text bg-code-block-bg rounded-lg p-2 transition-colors border border-border-subtle">
+                                <div class="flex items-start gap-2">
+                                    <i class="pi pi-external-link text-xs text-blue-500 mt-1"></i>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-semibold text-sm truncate">
+                                            {{ link.title }}
+                                        </div>
+                                        <div class="text-xs text-green-600 dark:text-green-400 truncate mt-0.5">
+                                            {{ link.url }}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
-                        <div v-if="hasMoreResults" class="text-xs text-surface-500 dark:text-surface-400 italic mt-2">
-                            ... {{ searchResults.length - 5 }} more results
+                        <Button v-if="hasMoreLinks" size="small" variant="text" @click="showAllLinks = true"
+                            class="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                            <i class="pi pi-chevron-down mr-1"></i>
+                            Show {{ searchLinks.length - 5 }} more links
+                        </Button>
+                    </div>
+
+                    <!-- Formatted Response Section -->
+                    <div v-if="formattedResponse">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="pi pi-file-edit text-sm text-surface-600 dark:text-surface-500"></i>
+                            <span class="text-xs font-semibold text-surface-600 dark:text-surface-500">Analysis</span>
                         </div>
+                        <ContentPreview :content="formattedResponse" :maxLines="10" :icon="'pi pi-search'"
+                            :label="input.query" />
                     </div>
                 </div>
 
@@ -127,39 +125,35 @@
         </div>
     </div>
 
-    <!-- Full Content Modal -->
-    <Dialog v-model:visible="showFullContent" modal class="w-[90vw] max-w-[1000px]" :dismissableMask="true">
+    <!-- All Links Modal -->
+    <Dialog v-model:visible="showAllLinks" modal class="w-[90vw] max-w-[1000px]" :dismissableMask="true">
         <template #header>
             <div class="flex items-center gap-2">
-                <i class="pi pi-search"></i>
-                Search Results: {{ input.query }}
+                <i class="pi pi-link"></i>
+                All Search Links: {{ input.query }}
             </div>
         </template>
         <div class="space-y-4">
             <div
-                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar-dark border border-surface-300 dark:border-surface-700 space-y-4">
-                <div v-for="(result, idx) in searchResults" :key="idx" class="border-l-2 border-blue-500 pl-3">
-                    <div class="space-y-1">
-                        <a v-if="result.url" :href="result.url" target="_blank" rel="noopener noreferrer"
-                            class="font-semibold text-blue-600 dark:text-blue-400 hover:underline">
-                            {{ result.title || result.url }}
-                        </a>
-                        <div v-else class="font-semibold">{{ result.title || 'Result' }}</div>
-                        <div v-if="result.snippet" class="text-surface-700 dark:text-surface-300 leading-relaxed">
-                            {{ result.snippet }}
-                        </div>
-                        <div v-if="result.url" class="text-sm text-green-600 dark:text-green-400">
-                            {{ result.url }}
+                class="rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar border border-border-subtle space-y-2">
+                <a v-for="(link, idx) in searchLinks" :key="idx" :href="link.url" target="_blank"
+                    rel="noopener noreferrer"
+                    class="block bg-code-block-bg hover:bg-hover-bg rounded-lg p-3 transition-colors">
+                    <div class="flex items-start gap-2">
+                        <i class="pi pi-external-link text-sm text-blue-500 mt-1"></i>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-semibold text-body-text">
+                                {{ link.title }}
+                            </div>
+                            <div class="text-sm text-green-600 dark:text-green-400 break-all mt-1">
+                                {{ link.url }}
+                            </div>
                         </div>
                     </div>
-                </div>
+                </a>
             </div>
             <div class="flex justify-end gap-2">
-                <Button severity="secondary" @click="copyToClipboard" size="small">
-                    <i class="pi pi-copy mr-1"></i>
-                    Copy
-                </Button>
-                <Button severity="secondary" @click="showFullContent = false" size="small">
+                <Button severity="secondary" @click="showAllLinks = false" size="small">
                     Close
                 </Button>
             </div>
@@ -172,6 +166,7 @@ import { computed, ref } from 'vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
+import ContentPreview from '../common/ContentPreview.vue'
 import type { WebSearchInput } from '../../types/sdk-tools'
 import { useToolUseHandler } from '../../composables/useToolUseHandler'
 
@@ -180,99 +175,108 @@ interface Props {
     input: WebSearchInput
 }
 
-interface SearchResult {
-    title?: string
-    url?: string
-    snippet?: string
+interface SearchLink {
+    title: string
+    url: string
 }
 
 const props = defineProps<Props>()
 const { state, resultText } = useToolUseHandler(props.id)
 
-const showFullContent = ref(false)
+const showAllLinks = ref(false)
 
-// Parse search results from the result text
-const searchResults = computed<SearchResult[] | null>(() => {
+// Parse search links from the result text
+const searchLinks = computed<SearchLink[] | null>(() => {
     const text = resultText.value
     if (!text) return null
 
-    // Try to parse as JSON array first
-    try {
-        const parsed = JSON.parse(text)
-        if (Array.isArray(parsed)) {
-            return parsed
-        }
-    } catch {
-        // Not JSON, parse as text
-    }
+    // Look for the Links: [...] section using simpler pattern
+    const linksStartIndex = text.indexOf('Links: [')
+    if (linksStartIndex === -1) return null
 
-    // Parse text format results
-    // Expected format: title, URL, and snippet separated by newlines or other delimiters
-    const results: SearchResult[] = []
-    const lines = text.split('\n\n') // Split by double newline for result blocks
+    // Find the end of the JSON array by finding the matching closing bracket
+    let jsonStart = linksStartIndex + 7 // length of "Links: "
+    let bracketCount = 0
+    let jsonEnd = -1
 
-    for (const block of lines) {
-        if (!block.trim()) continue
-
-        const result: SearchResult = {}
-        const blockLines = block.split('\n')
-
-        // Simple heuristic: first line is title, lines with http are URLs, rest is snippet
-        for (const line of blockLines) {
-            const trimmed = line.trim()
-            if (!trimmed) continue
-
-            if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-                result.url = trimmed
-            } else if (!result.title) {
-                result.title = trimmed
-            } else {
-                result.snippet = (result.snippet || '') + (result.snippet ? ' ' : '') + trimmed
+    for (let i = jsonStart; i < text.length; i++) {
+        if (text[i] === '[') bracketCount++
+        if (text[i] === ']') {
+            bracketCount--
+            if (bracketCount === 0) {
+                jsonEnd = i + 1
+                break
             }
         }
-
-        if (result.title || result.url || result.snippet) {
-            results.push(result)
-        }
     }
 
-    return results.length > 0 ? results : [{ snippet: text }]
-})
+    if (jsonEnd === -1) return null
 
-// Limited results (max 5 for preview)
-const limitedResults = computed(() => {
-    return searchResults.value?.slice(0, 5) || []
-})
-
-// Check if there are more results
-const hasMoreResults = computed(() => {
-    return (searchResults.value?.length || 0) > 5
-})
-
-// Show expand button if there are more than 5 results
-const showExpandButton = computed(() => {
-    return hasMoreResults.value
-})
-
-// Copy to clipboard (copy all results as formatted text)
-const copyToClipboard = async () => {
     try {
-        if (searchResults.value) {
-            const formatted = searchResults.value.map((result, idx) => {
-                const parts = []
-                parts.push(`Result ${idx + 1}:`)
-                if (result.title) parts.push(`Title: ${result.title}`)
-                if (result.url) parts.push(`URL: ${result.url}`)
-                if (result.snippet) parts.push(`Snippet: ${result.snippet}`)
-                return parts.join('\n')
-            }).join('\n\n')
-
-            await navigator.clipboard.writeText(formatted)
-        } else if (resultText.value) {
-            await navigator.clipboard.writeText(resultText.value)
+        const jsonStr = text.substring(jsonStart, jsonEnd)
+        const linksArray = JSON.parse(jsonStr) as unknown[]
+        if (Array.isArray(linksArray)) {
+            return linksArray
+                .filter((link): link is { title?: string; url?: string } =>
+                    typeof link === 'object' && link !== null
+                )
+                .map((link) => ({
+                    title: link.title || link.url || 'Untitled',
+                    url: link.url || ''
+                }))
+                .filter(link => link.url)
         }
     } catch (err) {
-        console.error('Failed to copy text: ', err)
+        console.error('Failed to parse links JSON:', err)
     }
-}
+
+    return null
+})
+
+// Limited links (max 5 for preview)
+const limitedLinks = computed(() => {
+    return searchLinks.value?.slice(0, 5) || []
+})
+
+// Check if there are more links
+const hasMoreLinks = computed(() => {
+    return (searchLinks.value?.length || 0) > 5
+})
+
+// Extract formatted response (everything after the Links section)
+const formattedResponse = computed<string | null>(() => {
+    const text = resultText.value
+    if (!text) return null
+
+    // If no Links section found, return the full text
+    if (!text.includes('Links: [')) {
+        return text.trim()
+    }
+
+    // Find where the Links section ends
+    const linksStartIndex = text.indexOf('Links: [')
+    let jsonEnd = -1
+    let bracketCount = 0
+
+    for (let i = linksStartIndex + 7; i < text.length; i++) {
+        if (text[i] === '[') bracketCount++
+        if (text[i] === ']') {
+            bracketCount--
+            if (bracketCount === 0) {
+                jsonEnd = i + 1
+                break
+            }
+        }
+    }
+
+    if (jsonEnd === -1) return null
+
+    // Extract everything after the Links section, skipping empty lines
+    const afterLinks = text.substring(jsonEnd).trim()
+
+    // Remove the "Web search results for query:" prefix if it exists at the beginning
+    const cleanedText = afterLinks.replace(/^Web search results for query:.*?\n\n/s, '')
+
+    return cleanedText || null
+})
 </script>

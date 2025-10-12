@@ -99,6 +99,7 @@ export function useResume() {
         chat_id: newChat.chatId,
         work_dir: workspace.workingDirectory,
         mode: newChat.session.permissionMode,
+        config_name: newChat.session.configName,
         resume: sessionId
       })
 

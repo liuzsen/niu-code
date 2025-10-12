@@ -8,7 +8,7 @@
 
     <!-- Show chat messages if workspace is selected but no messages -->
     <div v-else-if="chatManager.foregroundChat.messages.length === 0" class="text-center mt-12">
-      <i class="pi pi-comments text-4xl mb-4 block text-primary-500"></i>
+      <i class="pi pi-comments text-4xl mb-4 block text-button-secondary-text"></i>
       <p class="text-lg font-medium text-heading-text">Welcome to Claude Code Web</p>
       <p class="text-sm mt-2 text-caption-text">
         Connected to workspace: {{ workspace.workingDirectory }}

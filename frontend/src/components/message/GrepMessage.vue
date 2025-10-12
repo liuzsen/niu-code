@@ -56,17 +56,13 @@
                     <!-- Result Preview -->
                     <div class="relative bg-code-block-bg rounded-lg p-3">
                         <!-- Action buttons - fixed position in top right corner -->
-                        <div
-                            class="absolute top-1 right-1 flex items-center gap-1 z-10 bg-surface-50 dark:bg-surface-900 rounded">
-                            <Button size="small" severity="secondary" variant="text" @click="copyToClipboard"
-                                class="w-6 h-6 p-0 hover:bg-surface-200 dark:hover:bg-surface-800 rounded"
-                                v-tooltip.left="'Copy'">
+                        <div class="absolute top-1 right-1 flex items-center gap-1 z-10 rounded">
+                            <Button size="small" variant="text" @click="copyToClipboard"
+                                class="w-6 h-6 p-0 bg-button-ghost-bg text-button-ghost-text rounded">
                                 <i class="pi pi-copy text-xs"></i>
                             </Button>
-                            <Button v-if="showExpandButton" size="small" severity="secondary" variant="text"
-                                @click="showFullContent = true"
-                                class="w-6 h-6 p-0 hover:bg-surface-200 dark:hover:bg-surface-800 rounded"
-                                v-tooltip.left="'View Full'">
+                            <Button v-if="showExpandButton" size="small" variant="text" @click="showFullContent = true"
+                                class="w-6 h-6 p-0 bg-button-ghost-bg text-button-ghost-text rounded">
                                 <i class="pi pi-expand text-xs"></i>
                             </Button>
                         </div>
@@ -139,7 +135,7 @@
         </template>
         <div class="space-y-4">
             <div
-                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar-dark border border-surface-300 dark:border-surface-700">
+                class="bg-surface-100 dark:bg-surface-900 rounded-lg p-4 max-h-[60vh] overflow-y-auto custom-scrollbar border border-surface-300 dark:border-surface-700">
                 <div v-if="input.output_mode === 'content'" class="space-y-2">
                     <div v-for="(match, index) in contentMatches" :key="index" class="border-l-2 border-blue-500 pl-2">
                         <div class="flex items-start gap-2">

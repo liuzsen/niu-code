@@ -53,7 +53,7 @@
                         class="diff-split-header bg-red-50 dark:bg-red-900/20 px-3 py-1 text-xs font-semibold text-red-600 dark:text-red-400 border-b border-surface-200 dark:border-surface-700">
                         Original
                     </div>
-                    <div class="diff-split-content overflow-x-auto custom-scrollbar-dark">
+                    <div class="diff-split-content overflow-x-auto custom-scrollbar">
                         <div v-for="(line, index) in splitViewLines.left" :key="`left-${index}`"
                             class="diff-line-wrapper flex" :class="getSplitLineClass(line.type)">
                             <!-- Line content -->
@@ -72,7 +72,7 @@
                         class="diff-split-header bg-green-50 dark:bg-green-900/20 px-3 py-1 text-xs font-semibold text-green-600 dark:text-green-400 border-b border-surface-200 dark:border-surface-700">
                         Modified
                     </div>
-                    <div class="diff-split-content overflow-x-auto custom-scrollbar-dark">
+                    <div class="diff-split-content overflow-x-auto custom-scrollbar">
                         <div v-for="(line, index) in splitViewLines.right" :key="`right-${index}`"
                             class="diff-line-wrapper flex" :class="getSplitLineClass(line.type)">
                             <!-- Line content -->

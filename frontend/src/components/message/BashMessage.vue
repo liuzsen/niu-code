@@ -28,51 +28,8 @@
                 </div>
             </template>
             <template #result>
-                <div v-if="resultText" class="relative">
-                    <!-- Buttons container in top-right corner -->
-                    <div class="absolute top-2 right-4 z-10 flex gap-0">
-                        <Button size="small" severity="secondary" variant="text" @click="copyToClipboard">
-                            <i class="pi pi-copy text-sm"></i>
-                        </Button>
-                        <Button size="small" severity="secondary" variant="text" @click="showFullContent = true"
-                            class="text-blue">
-                            <i class="pi pi-expand text-xs"></i>
-                        </Button>
-                    </div>
-
-                    <!-- Result content with limited height -->
-                    <div class="max-h-32 overflow-auto">
-                        <div class="flex items-start gap-2">
-                            <pre class="text-gray-300 font-mono text-sm leading-relaxed break-all whitespace-pre-wrap
-                                flex-1">{{ resultText }}</pre>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Full content modal -->
-                <Dialog v-model:visible="showFullContent" modal :dismissableMask="true"
-                    class="bg-surface-200 dark:bg-surface-900 w-[70%] h-[70%]" :pt="{
-                        content: 'overflow-hidden px-4 h-full',
-                    }">
-                    <template #header>
-                        <div class="flex justify-between items-center w-full">
-                            <span class="text-lg font-semibold">Command Output</span>
-                        </div>
-                    </template>
-                    <div
-                        class="h-full px-2 overflow-auto dark:bg-surface-800 bg-surface-300 rounded-sm custom-scrollbar-light">
-                        <pre class="text-gray-800 dark:text-surface-100 font-mono text-sm leading-relaxed break-all
-                            whitespace-pre-wrap">{{ resultText }}</pre>
-                    </div>
-                    <template #footer>
-                        <div class="flex justify-end gap-2">
-                            <Button severity="secondary" @click="copyToClipboard" size="small">
-                                <i class="pi pi-copy mr-1"></i>
-                                Copy
-                            </Button>
-                        </div>
-                    </template>
-                </Dialog>
+                <ContentPreview v-if="resultText" :content="resultText" :maxLines="12" label="Command Output"
+                    icon="pi pi-terminal" />
             </template>
         </BashTool>
 
@@ -80,8 +37,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
 import BashTool from '../tool-use/BashTool.vue'
+import ContentPreview from '../common/ContentPreview.vue'
 import type { BashInput } from '../../types/sdk-tools'
 import { useToolUseHandler } from '../../composables/useToolUseHandler'
 
@@ -92,18 +49,4 @@ interface Props {
 
 const props = defineProps<Props>()
 const { state, resultText } = useToolUseHandler(props.id)
-
-// Reactive state for modal and clipboard functionality
-const showFullContent = ref(false)
-
-// Copy to clipboard function
-const copyToClipboard = async () => {
-    try {
-        if (resultText.value) {
-            await navigator.clipboard.writeText(resultText.value)
-        }
-    } catch (err) {
-        console.error('Failed to copy text: ', err)
-    }
-}
 </script>
