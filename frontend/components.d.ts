@@ -31,6 +31,7 @@ declare module 'vue' {
     GlobMessage: typeof import('./src/components/message/GlobMessage.vue')['default']
     GrepMessage: typeof import('./src/components/message/GrepMessage.vue')['default']
     ImageThumbnails: typeof import('./src/components/input-editor/ImageThumbnails.vue')['default']
+    InputSwitch: typeof import('primevue/inputswitch')['default']
     InputText: typeof import('primevue/inputtext')['default']
     MarkdownRenderer: typeof import('./src/components/message/MarkdownRenderer.vue')['default']
     McpMessage: typeof import('./src/components/message/McpMessage.vue')['default']
