@@ -1,4 +1,4 @@
-name: Build and Release (Linux Only)
+name: Build and Release
 
 on:
   push:
@@ -10,15 +10,13 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-and-release:
-    name: Build and Release for Linux
+  # Build frontend once and share across all platforms
+  build-frontend:
+    name: Build Frontend
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
 
-      # ==================== Build Frontend ====================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -46,37 +44,128 @@ jobs:
           echo "Frontend build verified, dist directory exists"
           ls -la frontend/dist
 
-      # ==================== Build Backend ====================
+      - name: Upload frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 1
+
+  build-binaries:
+    name: Build ${{ matrix.platform }}
+    needs: build-frontend
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - platform: Linux x64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            binary_name: niu-code-linux-x64
+            use_musl: true
+            use_upx: true
+          - platform: macOS x64
+            os: macos-13
+            target: x86_64-apple-darwin
+            binary_name: niu-code-macos-x64
+            use_musl: false
+            use_upx: false
+          - platform: macOS ARM64
+            os: macos-14
+            target: aarch64-apple-darwin
+            binary_name: niu-code-macos-arm64
+            use_musl: false
+            use_upx: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Verify frontend files exist
+        run: |
+          if [ ! -d "frontend/dist" ]; then
+            echo "Error: frontend/dist directory not found!"
+            exit 1
+          fi
+          if [ ! -f "frontend/dist/index.html" ]; then
+            echo "Error: frontend/dist/index.html not found!"
+            exit 1
+          fi
+          echo "Frontend files verified:"
+          ls -la frontend/dist/ | head -20
+
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: x86_64-unknown-linux-musl
+          targets: ${{ matrix.target }}
 
-      - name: Install musl-tools
+      - name: Install musl-tools (Linux only)
+        if: matrix.use_musl
         run: sudo apt-get update && sudo apt-get install -y musl-tools
 
-      - name: Install UPX
+      - name: Install UPX (Linux only)
+        if: matrix.use_upx
         run: sudo apt-get install -y upx
 
-      - name: Build backend for Linux x64
+      - name: Build backend
         working-directory: backend
-        run: cargo build --release --target x86_64-unknown-linux-musl
+        run: cargo build --release --target ${{ matrix.target }}
 
-      - name: Strip binary
-        run: strip backend/target/x86_64-unknown-linux-musl/release/niu-code
+      - name: Strip binary (Linux only)
+        if: matrix.use_musl
+        run: strip backend/target/${{ matrix.target }}/release/niu-code
 
-      - name: Compress binary with UPX
+      - name: Strip binary (macOS only)
+        if: runner.os == 'macOS'
+        run: strip backend/target/${{ matrix.target }}/release/niu-code
+
+      - name: Compress binary with UPX (Linux only)
+        if: matrix.use_upx
         run: |
-          upx --best --lzma backend/target/x86_64-unknown-linux-musl/release/niu-code
-          ls -lh backend/target/x86_64-unknown-linux-musl/release/niu-code
+          upx --best --lzma backend/target/${{ matrix.target }}/release/niu-code
+          ls -lh backend/target/${{ matrix.target }}/release/niu-code
 
-      # ==================== Prepare Release ====================
-      - name: Create release directory
+      - name: Prepare binary
         run: |
           mkdir -p release
-          cp backend/target/x86_64-unknown-linux-musl/release/niu-code release/niu-code-linux-x64
+          cp backend/target/${{ matrix.target }}/release/niu-code release/${{ matrix.binary_name }}
+          chmod +x release/${{ matrix.binary_name }}
+          ls -lh release/${{ matrix.binary_name }}
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.binary_name }}
+          path: release/${{ matrix.binary_name }}
+          retention-days: 1
+
+  create-release:
+    name: Create GitHub Release
+    needs: build-binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release directory
+        run: |
+          mkdir -p release
+          cp artifacts/niu-code-linux-x64/niu-code-linux-x64 release/
+          cp artifacts/niu-code-macos-x64/niu-code-macos-x64 release/
+          cp artifacts/niu-code-macos-arm64/niu-code-macos-arm64 release/
           cp scripts/install.sh release/
-          chmod +x release/install.sh
+          chmod +x release/*
+          ls -lh release/
 
       - name: Generate checksums
         working-directory: release
@@ -84,7 +173,6 @@ jobs:
           sha256sum * > checksums.txt
           cat checksums.txt
 
-      # ==================== Create GitHub Release ====================
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
@@ -94,12 +182,17 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: |
-            ## Installation (Linux Only)
+            ## Installation
 
-            ### Quick Install
+            ### Quick Install (Linux & macOS)
             ```bash
             curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash
             ```
+
+            ### Supported Platforms
+            - Linux x64
+            - macOS x64 (Intel)
+            - macOS ARM64 (Apple Silicon)
 
             ### Prerequisites
             - Node.js (v18 or higher)

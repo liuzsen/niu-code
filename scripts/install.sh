@@ -298,6 +298,9 @@ setup_launchd_service() {
 
     print_info "Setting up launchd service..."
 
+    # Capture current user's PATH to preserve tool locations
+    local user_path="$PATH"
+
     cat > "$plist_file" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -325,7 +328,7 @@ setup_launchd_service() {
     <key>EnvironmentVariables</key>
     <dict>
         <key>PATH</key>
-        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <string>${user_path}</string>
     </dict>
 </dict>
 </plist>
