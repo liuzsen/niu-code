@@ -1147,7 +1147,7 @@ dependencies = [
 
 [[package]]
 name = "niu-code"
-version = "0.0.2"
+version = "0.0.3"
 dependencies = [
  "actix-web",
  "anyhow",
