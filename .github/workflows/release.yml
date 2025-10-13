@@ -101,22 +101,9 @@ jobs:
             curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash
             ```
 
-            ### Manual Download
-            Download `niu-code-linux-x64` from the assets below, then:
-            ```bash
-            chmod +x niu-code-linux-x64
-            sudo mv niu-code-linux-x64 /usr/local/bin/niu-code
-            ```
-
             ### Prerequisites
             - Node.js (v18 or higher)
             - Claude Code CLI: `npm install -g @anthropic-ai/claude-code`
 
             ### Usage
-            ```bash
-            niu-code
-            ```
             Access the web UI at: http://127.0.0.1:33333
-
-            ---
-            See `checksums.txt` for SHA256 checksums.
