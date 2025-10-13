@@ -227,6 +227,9 @@ setup_systemd_service() {
 
     print_info "Setting up systemd service..."
 
+    # Capture current user's PATH to preserve tool locations
+    local user_path="$PATH"
+
     cat > "$service_file" <<EOF
 [Unit]
 Description=Niu Code
@@ -240,6 +243,7 @@ Restart=on-failure
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
+Environment="PATH=${user_path}"
 
 [Install]
 WantedBy=default.target
