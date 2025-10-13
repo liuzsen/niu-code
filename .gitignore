@@ -1,3 +1,37 @@
+# Dependencies
 **/node_modules
-.local
+**/.pnpm-store
+
+# Build outputs
 **/target
+**/dist
+backend/target
+frontend/dist
+
+# Local development
+.local
+*.log
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Rust
+Cargo.lock
+**/*.rs.bk
+
+# Environment
+.env
+.env.local
+
+# Test coverage
+coverage/
+*.lcov

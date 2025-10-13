@@ -65,11 +65,15 @@ pub fn get_global_setting() -> &'static ArcSwap<Setting> {
     GLOBAL_SETTING.get_or_init(|| ArcSwap::new(Arc::new(Setting::default())))
 }
 
-pub fn get_config_path() -> PathBuf {
+pub fn get_config_dir() -> PathBuf {
     dirs::home_dir()
-        .unwrap_or_default()
+        .expect("expect home dir")
+        .join(".config")
         .join(".niu-code")
-        .join("settings.json")
+}
+
+pub fn get_config_path() -> PathBuf {
+    get_config_dir().join("settings.json")
 }
 
 async fn load_from_file_or_default() -> Setting {

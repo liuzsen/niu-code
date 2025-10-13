@@ -1,0 +1,22 @@
+[Unit]
+Description=Niu Code
+Documentation=https://github.com/your-repo/niu-code
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%INSTALL_PATH%/niu-code
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.config/niu-code %h/.local/share/niu-code
+
+[Install]
+WantedBy=default.target

@@ -12,6 +12,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 
+use crate::setting::get_config_dir;
+
 const MAX_PROMPTS: usize = 100;
 
 /// 单条提示词记录
@@ -117,8 +119,7 @@ impl PromptHub {
     }
 
     fn new() -> Result<Self> {
-        let home_dir = dirs::home_dir().context("Failed to get home directory")?;
-        let niu_code_dir = home_dir.join(".niu-code");
+        let niu_code_dir = get_config_dir();
 
         // 确保目录存在
         if !niu_code_dir.exists() {

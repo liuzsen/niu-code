@@ -13,6 +13,7 @@ pub mod prompt;
 pub mod setting;
 
 pub fn config(cfg: &mut web::ServiceConfig) {
+    // API routes
     cfg.route("/api/fs/home", get().to(fs::home));
     cfg.route("/api/fs/ls", get().to(fs::ls));
     cfg.route("/api/fs/files", get().to(fs::get_workspace_files));
@@ -24,6 +25,10 @@ pub fn config(cfg: &mut web::ServiceConfig) {
     cfg.route("/api/session/list", get().to(chat::session_list));
     cfg.route("/api/setting", get().to(setting::get_setting));
     cfg.route("/api/setting", post().to(setting::update_setting));
+
+    // Static file routes (must be last to act as catch-all)
+    cfg.route("/", get().to(crate::embedded::serve_index));
+    cfg.route("/{filename:.*}", get().to(crate::embedded::serve_static));
 }
 
 #[derive(Serialize)]
