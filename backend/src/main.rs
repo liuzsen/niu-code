@@ -8,6 +8,11 @@ mod embedded;
 
 #[actix_web::main]
 async fn main() -> Result<()> {
+    if version_command() {
+        println_version();
+        return Ok(());
+    }
+
     init()?;
 
     // Check if claude-code CLI is installed
@@ -32,14 +37,23 @@ async fn main() -> Result<()> {
 
 fn init() -> Result<()> {
     let subscriber = tracing_subscriber::fmt()
-        // filter spans/events with level TRACE or higher.
         .with_max_level(Level::DEBUG)
-        // build but do not install the subscriber.
         .finish();
 
     tracing::subscriber::set_global_default(subscriber)?;
 
     Ok(())
+}
+
+fn version_command() -> bool {
+    let args: Vec<_> = std::env::args().collect();
+    let arg = args.get(1).map(|a| &**a);
+    arg == Some("--version") || arg == Some("version")
+}
+
+fn println_version() {
+    let version = env!("CARGO_PKG_VERSION");
+    println!("v{}", version);
 }
 
 /// Check if claude-code CLI is installed and accessible

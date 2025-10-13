@@ -62,7 +62,6 @@ check_installed() {
         fi
         return 0
     fi
-    return 1
 }
 
 get_latest_version() {
@@ -180,6 +179,7 @@ download_binary() {
     fi
 
     local download_url="https://github.com/${GITHUB_REPO}/releases/latest/download/${binary_name}"
+    echo "Downloading ${download_url}"
 
     mkdir -p "$INSTALL_DIR"
 

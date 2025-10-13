@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build and Release (Linux Only)
 
 on:
   push:
@@ -10,12 +10,15 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-frontend:
-    name: Build Frontend
+  build-and-release:
+    name: Build and Release for Linux
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
+      # ==================== Build Frontend ====================
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -34,120 +37,47 @@ jobs:
         working-directory: frontend
         run: pnpm run build
 
-      - name: Upload frontend build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist/
-          retention-days: 1
+      - name: Verify frontend build
+        run: |
+          if [ ! -d "frontend/dist" ]; then
+            echo "Error: frontend/dist directory not found!"
+            exit 1
+          fi
+          echo "Frontend build verified, dist directory exists"
+          ls -la frontend/dist
 
-  build-binaries:
-    name: Build ${{ matrix.target }}
-    needs: build-frontend
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # Linux x64 (musl for static linking)
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            artifact_name: niu-code
-            asset_name: niu-code-linux-x64
-            use_cross: true
-
-          # macOS x64
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: niu-code
-            asset_name: niu-code-macos-x64
-            use_cross: false
-
-          # macOS ARM64 (Apple Silicon)
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            artifact_name: niu-code
-            asset_name: niu-code-macos-arm64
-            use_cross: false
-
-          # Windows x64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: niu-code.exe
-            asset_name: niu-code-windows-x64.exe
-            use_cross: false
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download frontend build
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-dist
-          path: frontend/dist/
-
+      # ==================== Build Backend ====================
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: x86_64-unknown-linux-musl
 
-      - name: Install cross (Linux only)
-        if: matrix.use_cross
+      - name: Install cross
         run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Build with cross (Linux)
-        if: matrix.use_cross
-        working-directory: backend
-        run: cross build --release --target ${{ matrix.target }}
-
-      - name: Build with cargo (macOS/Windows)
-        if: ${{ !matrix.use_cross }}
-        working-directory: backend
-        run: cargo build --release --target ${{ matrix.target }}
-
-      - name: Strip binary (Linux/macOS)
-        if: runner.os != 'Windows'
-        run: strip backend/target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-
-      - name: Rename binary
-        shell: bash
+      - name: Install UPX
         run: |
-          mkdir -p release
-          cp backend/target/${{ matrix.target }}/release/${{ matrix.artifact_name }} release/${{ matrix.asset_name }}
+          sudo apt-get update
+          sudo apt-get install -y upx
 
-      - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.asset_name }}
-          path: release/${{ matrix.asset_name }}
-          retention-days: 1
+      - name: Build backend for Linux x64
+        working-directory: backend
+        run: cross build --release --target x86_64-unknown-linux-musl
 
-  create-release:
-    name: Create Release
-    needs: build-binaries
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
+      - name: Strip binary
+        run: strip backend/target/x86_64-unknown-linux-musl/release/niu-code
 
-      - name: Download all artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: artifacts/
+      - name: Compress binary with UPX
+        run: |
+          upx --best --lzma backend/target/x86_64-unknown-linux-musl/release/niu-code
+          ls -lh backend/target/x86_64-unknown-linux-musl/release/niu-code
 
-      - name: Display structure
-        run: ls -R artifacts/
-
+      # ==================== Prepare Release ====================
       - name: Create release directory
         run: |
           mkdir -p release
-          find artifacts -type f -name "niu-code-*" -exec cp {} release/ \;
-
-      - name: Copy installation scripts
-        run: |
+          cp backend/target/x86_64-unknown-linux-musl/release/niu-code release/niu-code-linux-x64
           cp scripts/install.sh release/
-          cp scripts/install.ps1 release/
           chmod +x release/install.sh
 
       - name: Generate checksums
@@ -156,6 +86,7 @@ jobs:
           sha256sum * > checksums.txt
           cat checksums.txt
 
+      # ==================== Create GitHub Release ====================
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
@@ -165,31 +96,29 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: |
-            ## Installation
+            ## Installation (Linux Only)
 
-            ### Quick Install (Linux/macOS)
+            ### Quick Install
             ```bash
             curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash
             ```
 
-            ### Quick Install (Windows - PowerShell as Administrator)
-            ```powershell
-            irm https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.ps1 | iex
-            ```
-
             ### Manual Download
-            Download the appropriate binary for your platform:
-            - Linux: `niu-code-linux-x64`
-            - macOS Intel: `niu-code-macos-x64`
-            - macOS Apple Silicon: `niu-code-macos-arm64`
-            - Windows: `niu-code-windows-x64.exe`
+            Download `niu-code-linux-x64` from the assets below, then:
+            ```bash
+            chmod +x niu-code-linux-x64
+            sudo mv niu-code-linux-x64 /usr/local/bin/niu-code
+            ```
 
             ### Prerequisites
             - Node.js (v18 or higher)
             - Claude Code CLI: `npm install -g @anthropic-ai/claude-code`
 
-            ### Access
-            After installation, access the web UI at: http://127.0.0.1:33333
+            ### Usage
+            ```bash
+            niu-code
+            ```
+            Access the web UI at: http://127.0.0.1:33333
 
             ---
             See `checksums.txt` for SHA256 checksums.

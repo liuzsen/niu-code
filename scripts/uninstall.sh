@@ -46,7 +46,7 @@ uninstall_systemd() {
 
     local service_file="$HOME/.config/systemd/user/${APP_NAME}.service"
     if [ -f "$service_file" ]; then
-        print_info "Removing service file..."
+        print_info "Removing service file: ${service_file}"
         rm "$service_file"
         systemctl --user daemon-reload
     fi
@@ -61,7 +61,7 @@ uninstall_launchd() {
     fi
 
     if [ -f "$plist_file" ]; then
-        print_info "Removing service file..."
+        print_info "Removing service file: ${plist_file}"
         rm "$plist_file"
     fi
 
@@ -73,7 +73,7 @@ uninstall_launchd() {
 remove_binary() {
     local binary_path="${INSTALL_DIR}/${APP_NAME}"
     if [ -f "$binary_path" ]; then
-        print_info "Removing binary..."
+        print_info "Removing binary: ${binary_path}"
         rm "$binary_path"
     fi
 }
@@ -84,12 +84,12 @@ remove_data() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         if [ -d "$CONFIG_DIR" ]; then
-            print_info "Removing configuration..."
+            print_info "Removing configuration: ${CONFIG_DIR}"
             rm -rf "$CONFIG_DIR"
         fi
 
         if [ -d "$DATA_DIR" ]; then
-            print_info "Removing data..."
+            print_info "Removing data: ${DATA_DIR}"
             rm -rf "$DATA_DIR"
         fi
 

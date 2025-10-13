@@ -40,16 +40,9 @@ echo ""
 print_info "Building backend..."
 cd "$PROJECT_ROOT/backend"
 
-# Check if we should build release or debug
-BUILD_TYPE="${1:-release}"
-
-if [ "$BUILD_TYPE" = "release" ]; then
-    cargo build --release
-    BINARY_PATH="$PROJECT_ROOT/backend/target/release/niu-code"
-else
-    cargo build
-    BINARY_PATH="$PROJECT_ROOT/backend/target/debug/niu-code"
-fi
+cargo build --target x86_64-unknown-linux-musl --release
+BINARY_PATH="$PROJECT_ROOT/backend/target/x86_64-unknown-linux-musl/release/niu-code"
+upx --best --lzma ${BINARY_PATH}
 
 print_info "Backend built successfully"
 echo ""
@@ -67,5 +60,3 @@ echo ""
 echo "To run the application:"
 echo "  $BINARY_PATH"
 echo ""
-echo "Or use cargo run:"
-echo "  cd $PROJECT_ROOT/backend && cargo run --release"

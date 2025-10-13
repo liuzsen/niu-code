@@ -11,7 +11,7 @@ $ErrorActionPreference = "Stop"
 
 # Constants
 $AppName = "niu-code"
-$GitHubRepo = "your-username/niu-code"  # TODO: Update this
+$GitHubRepo = "liuzsen/niu-code"  # TODO: Update this
 $InstallDir = "$env:LOCALAPPDATA\$AppName"
 $BinaryPath = "$InstallDir\$AppName.exe"
 $ServiceName = "ClaudeWebUI"

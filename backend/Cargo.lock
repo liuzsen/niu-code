@@ -188,7 +188,8 @@ dependencies = [
 [[package]]
 name = "actix-ws"
 version = "0.3.0"
-source = "git+https://github.com/liuzsen/actix-extras#6e46f339c96933a8c05a82308c571e690d29470b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a3a1fb4f9f2794b0aadaf2ba5f14a6f034c7e86957b458c506a8cb75953f2d99"
 dependencies = [
  "actix-codec",
  "actix-http",
@@ -1146,7 +1147,7 @@ dependencies = [
 
 [[package]]
 name = "niu-code"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "actix-web",
  "anyhow",
@@ -1601,15 +1602,18 @@ dependencies = [
 name = "server"
 version = "0.1.0"
 dependencies = [
+ "actix-http",
  "actix-web",
  "actix-ws",
  "anyhow",
  "arc-swap",
  "async-trait",
+ "bytestring",
  "cc-sdk",
  "chrono",
  "derive_more",
  "dirs",
+ "futures-core",
  "ignore",
  "notify",
  "regex",
