@@ -89,7 +89,7 @@ confirm_update() {
             echo "  Latest:  $LATEST_VERSION"
         fi
         echo ""
-        read -p "Do you want to update? (y/n) " -n 1 -r
+        read -p "Do you want to update? (y/n) " -n 1 -r < /dev/tty
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             echo "Installation cancelled."
@@ -158,7 +158,7 @@ check_dependencies() {
         echo "Please install it with:"
         echo "  npm install -g @anthropic-ai/claude-code"
         echo ""
-        read -p "Do you want to continue anyway? (y/n) " -n 1 -r
+        read -p "Do you want to continue anyway? (y/n) " -n 1 -r < /dev/tty
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             exit 1
