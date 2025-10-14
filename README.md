@@ -24,6 +24,9 @@
 - **单一可执行文件**: 前端嵌入二进制文件中，便于部署、卸载
 - **小巧**：Linux 版本 3.2MB
 - niu code 使用 rust 实现的 Claude Code SDK，在本项目的 `backend/cc-sdk` 文件夹
+- 还有你最喜欢的 kunkun
+
+![demo](./docs/demo.gif)
 
 ## 快速开始
 

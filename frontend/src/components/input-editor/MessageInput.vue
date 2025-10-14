@@ -22,26 +22,12 @@
       <div class="flex items-center justify-between">
         <!-- Left Tool Buttons -->
         <div class="flex items-center gap-2">
-          <Button icon="pi pi-face-smile" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text" />
-          <Button icon="pi pi-at" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text" />
-
           <!-- 图片上传按钮 -->
           <input ref="fileInputRef" type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple
             class="hidden" @change="handleFileSelect" />
           <Button icon="pi pi-image" severity="secondary" variant="text" size="small"
             class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text"
             @click="triggerFileInput" title="上传图片" />
-
-          <Button icon="pi pi-bolt" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text" />
-          <Button icon="pi pi-th-large" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text" />
-
-          <!-- Language/Settings Button -->
-          <Button icon="pi pi-language" severity="secondary" variant="text" size="small"
-            class="p-1 w-7 h-7 bg-button-ghost-bg text-button-ghost-text hover:bg-hover-bg hover:text-body-text" />
 
           <!-- Export Button -->
           <Button icon="pi pi-download" severity="secondary" variant="text" size="small"

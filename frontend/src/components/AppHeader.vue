@@ -2,7 +2,7 @@
   <header class="bg-panel-bg p-4 flex items-center justify-between border-b border-border">
     <div class="flex items-center space-x-3">
       <i class="pi pi-comments text-xl"></i>
-      <h1 class="text-lg font-semibold text-heading-text">Claude Code Web</h1>
+      <h1 class="text-lg font-semibold text-heading-text">Niu Code</h1>
     </div>
 
     <div class="flex items-center space-x-2">

@@ -3,7 +3,7 @@
     <!-- Welcome Header -->
     <div class="text-center mb-8">
       <h1 class="text-3xl font-semibold mb-2">
-        Welcome to Claude Code Web
+        Welcome to Niu Code
       </h1>
       <p class="text-lg text-surface-600 dark:text-surface-400">
         Select a workspace folder to start coding with Claude

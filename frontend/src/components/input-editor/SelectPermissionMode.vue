@@ -34,7 +34,7 @@ const emit = defineEmits<Emits>()
 const permissionModeOptions = [
   { label: 'plan', value: 'plan' },
   { label: 'askBeforeEdits', value: 'default' },
-  { label: 'autoEdits', value: 'acceptEdits' },
+  { label: 'acceptEdits', value: 'acceptEdits' },
   { label: 'bypassPermissions', value: 'bypassPermissions' },
 ]
 
