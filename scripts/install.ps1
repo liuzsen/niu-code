@@ -11,10 +11,11 @@ $ErrorActionPreference = "Stop"
 
 # Constants
 $AppName = "niu-code"
-$GitHubRepo = "liuzsen/niu-code"  # TODO: Update this
-$InstallDir = "$env:LOCALAPPDATA\$AppName"
+$GitHubRepo = "liuzsen/niu-code"
+$InstallDir = "$env:LOCALAPPDATA\Programs\$AppName"
+$ConfigDir = "$env:LOCALAPPDATA\$AppName"
 $BinaryPath = "$InstallDir\$AppName.exe"
-$ServiceName = "ClaudeWebUI"
+$ServiceName = "NiuCode"
 
 # Functions
 function Write-Success {
@@ -67,17 +68,34 @@ function Test-Dependencies {
     }
 }
 
+function New-Directories {
+    Write-Host "Creating directories..." -ForegroundColor Cyan
+
+    # Create install directory for binary
+    if (!(Test-Path $InstallDir)) {
+        New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
+    }
+
+    # Create config directory for settings and data
+    if (!(Test-Path $ConfigDir)) {
+        New-Item -ItemType Directory -Path $ConfigDir -Force | Out-Null
+    }
+
+    # Create logs subdirectory
+    $logsDir = "$ConfigDir\logs"
+    if (!(Test-Path $logsDir)) {
+        New-Item -ItemType Directory -Path $logsDir -Force | Out-Null
+    }
+
+    Write-Success "Directories created"
+}
+
 function Download-Binary {
     Write-Host "Downloading $AppName..." -ForegroundColor Cyan
 
     $arch = "x64"  # Windows build is typically x64
     $binaryName = "$AppName-windows-$arch.exe"
     $downloadUrl = "https://github.com/$GitHubRepo/releases/latest/download/$binaryName"
-
-    # Create install directory
-    if (!(Test-Path $InstallDir)) {
-        New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
-    }
 
     # Download binary
     try {
@@ -93,7 +111,7 @@ function Install-NSSMService {
     Write-Host "Installing Windows service..." -ForegroundColor Cyan
 
     # Download NSSM if not exists
-    $nssmDir = "$InstallDir\nssm"
+    $nssmDir = "$ConfigDir\nssm"
     $nssmExe = "$nssmDir\nssm.exe"
 
     if (!(Test-Path $nssmExe)) {
@@ -127,8 +145,8 @@ function Install-NSSMService {
     & $nssmExe install $ServiceName $BinaryPath
     & $nssmExe set $ServiceName Description "Niu Code - Web interface for Claude Code CLI"
     & $nssmExe set $ServiceName Start SERVICE_AUTO_START
-    & $nssmExe set $ServiceName AppStdout "$InstallDir\service.log"
-    & $nssmExe set $ServiceName AppStderr "$InstallDir\service-error.log"
+    & $nssmExe set $ServiceName AppStdout "$ConfigDir\logs\$AppName.log"
+    & $nssmExe set $ServiceName AppStderr "$ConfigDir\logs\$AppName-error.log"
 
     # Start service
     & $nssmExe start $ServiceName
@@ -140,7 +158,7 @@ function Install-NSSMService {
     Write-Host "  Stop:    sc stop $ServiceName"
     Write-Host "  Start:   sc start $ServiceName"
     Write-Host "  Remove:  $nssmExe remove $ServiceName confirm"
-    Write-Host "  Logs:    Get-Content $InstallDir\service.log -Tail 50 -Wait"
+    Write-Host "  Logs:    Get-Content $ConfigDir\logs\$AppName.log -Tail 50 -Wait"
 }
 
 function Add-ToPath {
@@ -169,6 +187,9 @@ function Main {
     }
 
     Test-Dependencies
+    Write-Host ""
+
+    New-Directories
     Write-Host ""
 
     Download-Binary

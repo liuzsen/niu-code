@@ -13,7 +13,7 @@ APP_NAME="niu-code"
 GITHUB_REPO="liuzsen/niu-code"
 INSTALL_DIR="$HOME/.local/bin"
 CONFIG_DIR="$HOME/.config/niu-code"
-DATA_DIR="$HOME/.local/share/niu-code"
+DATA_DIR="${CONFIG_DIR}"
 BINARY_PATH="${INSTALL_DIR}/${APP_NAME}"
 BACKUP_PATH="${BINARY_PATH}.backup"
 
@@ -68,9 +68,9 @@ get_latest_version() {
     print_info "Fetching latest version info..."
 
     if command -v curl &> /dev/null; then
-        LATEST_VERSION=$(curl -s "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | grep -oP '"tag_name":\s*"\K[^"]+' || echo "")
+        LATEST_VERSION=$(curl -s "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' || echo "")
     elif command -v wget &> /dev/null; then
-        LATEST_VERSION=$(wget -qO- "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | grep -oP '"tag_name":\s*"\K[^"]+' || echo "")
+        LATEST_VERSION=$(wget -qO- "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' || echo "")
     fi
 
     if [ -n "$LATEST_VERSION" ]; then
@@ -287,7 +287,7 @@ setup_launchd_service() {
     local plist_dir="$HOME/Library/LaunchAgents"
     local plist_file="${plist_dir}/com.${APP_NAME}.plist"
     mkdir -p "$plist_dir"
-    mkdir -p "$HOME/Library/Logs"
+    mkdir -p "${CONFIG_DIR}/logs"
 
     local service_loaded=false
     if launchctl list | grep -q "com.${APP_NAME}"; then
@@ -320,9 +320,9 @@ setup_launchd_service() {
         <false/>
     </dict>
     <key>StandardOutPath</key>
-    <string>${HOME}/Library/Logs/${APP_NAME}.log</string>
+    <string>${CONFIG_DIR}/logs/${APP_NAME}.log</string>
     <key>StandardErrorPath</key>
-    <string>${HOME}/Library/Logs/${APP_NAME}-error.log</string>
+    <string>${CONFIG_DIR}/logs/${APP_NAME}-error.log</string>
     <key>WorkingDirectory</key>
     <string>${HOME}</string>
     <key>EnvironmentVariables</key>
@@ -348,7 +348,7 @@ EOF
     # Verify service is running
     sleep 2
     if ! launchctl list | grep -q "com.${APP_NAME}"; then
-        print_error "Service failed to start. Check logs at: ${HOME}/Library/Logs/${APP_NAME}-error.log"
+        print_error "Service failed to start. Check logs at: ${CONFIG_DIR}/logs/${APP_NAME}-error.log"
         exit 1
     fi
 
@@ -356,7 +356,7 @@ EOF
     echo "  Status:  launchctl list | grep ${APP_NAME}"
     echo "  Stop:    launchctl unload ${plist_file}"
     echo "  Start:   launchctl load ${plist_file}"
-    echo "  Logs:    tail -f ${HOME}/Library/Logs/${APP_NAME}.log"
+    echo "  Logs:    tail -f ${CONFIG_DIR}/logs/${APP_NAME}.log"
 }
 
 create_directories() {

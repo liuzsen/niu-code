@@ -200,3 +200,10 @@ jobs:
 
             ### Usage
             Access the web UI at: http://127.0.0.1:33333
+
+            ## Uninstallation
+
+            ### Quick Uninstall (Linux & macOS)
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/uninstall.sh | bash
+            ```

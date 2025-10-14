@@ -11,7 +11,7 @@ NC='\033[0m'
 APP_NAME="niu-code"
 INSTALL_DIR="$HOME/.local/bin"
 CONFIG_DIR="$HOME/.config/niu-code"
-DATA_DIR="$HOME/.local/share/niu-code"
+DATA_DIR="${CONFIG_DIR}"
 
 print_info() {
     echo -e "${GREEN}✓${NC} $1"
@@ -64,10 +64,6 @@ uninstall_launchd() {
         print_info "Removing service file: ${plist_file}"
         rm "$plist_file"
     fi
-
-    # Remove logs
-    rm -f "$HOME/Library/Logs/${APP_NAME}.log"
-    rm -f "$HOME/Library/Logs/${APP_NAME}-error.log"
 }
 
 remove_binary() {
@@ -84,24 +80,11 @@ remove_data() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         if [ -d "$CONFIG_DIR" ]; then
-            print_info "Removing configuration: ${CONFIG_DIR}"
+            print_info "Removing configuration and data: ${CONFIG_DIR}"
             rm -rf "$CONFIG_DIR"
         fi
-
-        if [ -d "$DATA_DIR" ]; then
-            print_info "Removing data: ${DATA_DIR}"
-            rm -rf "$DATA_DIR"
-        fi
-
-        # macOS additional data
-        if [ "$OS" = "macos" ]; then
-            local macos_data="$HOME/Library/Application Support/niu-code"
-            if [ -d "$macos_data" ]; then
-                rm -rf "$macos_data"
-            fi
-        fi
     else
-        print_warning "Configuration and data preserved"
+        print_warning "Configuration and data preserved at: ${CONFIG_DIR}"
     fi
 }
 

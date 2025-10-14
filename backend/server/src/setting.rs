@@ -69,7 +69,7 @@ pub fn get_config_dir() -> PathBuf {
     dirs::home_dir()
         .expect("expect home dir")
         .join(".config")
-        .join(".niu-code")
+        .join("niu-code")
 }
 
 pub fn get_config_path() -> PathBuf {
