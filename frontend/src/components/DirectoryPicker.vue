@@ -277,8 +277,6 @@ const onDialogShow = async () => {
   const homePath = await apiService.getHome()
   if (homePath) {
     currentPath.value = homePath + '/'
-  } else {
-    currentPath.value = '/'
   }
 }
 

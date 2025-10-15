@@ -15,9 +15,9 @@ use tracing::{debug, error, info};
 
 use crate::api::{ApiError, ApiOkResponse};
 
-pub async fn home() -> Result<ApiOkResponse<String>, ApiError> {
+pub async fn home() -> Result<ApiOkResponse<UniversePath>, ApiError> {
     let home_path = work_dir::home().await?;
-    Ok(ApiOkResponse::new(home_path.to_string_lossy().to_string()))
+    Ok(ApiOkResponse::new(home_path.into()))
 }
 
 #[derive(Deserialize)]
@@ -27,6 +27,16 @@ pub struct LsParams {
 
 #[derive(Serialize)]
 pub struct FileName(String);
+
+#[derive(Serialize, Clone, Debug)]
+pub struct UniversePath(String);
+
+impl From<PathBuf> for UniversePath {
+    fn from(value: PathBuf) -> Self {
+        let path = value.to_string_lossy().replace(r"\", "/");
+        Self(path)
+    }
+}
 
 pub async fn ls(path: Query<LsParams>) -> Result<ApiOkResponse<Vec<FileName>>, ApiError> {
     let entries = work_dir::ls(&path.dir).await?;
@@ -42,7 +52,7 @@ pub struct WorkspaceFilesParams {
 // 获取工作目录下的所有文件列表
 pub async fn get_workspace_files(
     path: Query<WorkspaceFilesParams>,
-) -> Result<ApiOkResponse<Vec<PathBuf>>, ApiError> {
+) -> Result<ApiOkResponse<Vec<UniversePath>>, ApiError> {
     let files = tokio::task::spawn_blocking(move || {
         work_dir::scan_workspace_files_realtime(&path.work_dir)
             .map_err(|e| ApiError::Anyhow(anyhow::anyhow!("Failed to get workspace files: {}", e)))
@@ -50,16 +60,27 @@ pub async fn get_workspace_files(
     .await
     .context("tokio spawn_blocking failed to get workspace files")??;
 
-    Ok(ApiOkResponse::new(files))
+    Ok(ApiOkResponse::new(
+        files.into_iter().map(Into::into).collect(),
+    ))
 }
 
 // 文件变动事件类型
 #[derive(Serialize, Clone, Debug)]
 #[serde(tag = "type")]
 pub enum FileChangeEvent {
-    FileCreated { work_dir: PathBuf, file: PathBuf },
-    FileRemoved { work_dir: PathBuf, file: PathBuf },
-    Error { work_dir: PathBuf, message: String },
+    FileCreated {
+        work_dir: UniversePath,
+        file: UniversePath,
+    },
+    FileRemoved {
+        work_dir: UniversePath,
+        file: UniversePath,
+    },
+    Error {
+        work_dir: UniversePath,
+        message: String,
+    },
 }
 
 // SSE 通知器 - 实现 FileChangeNotifier trait
@@ -83,12 +104,12 @@ impl FileChangeNotifier for SSENotifier {
 
         let event = match change {
             FileChange::Created(path) => FileChangeEvent::FileCreated {
-                work_dir: work_dir.to_path_buf(),
-                file: path,
+                work_dir: work_dir.to_path_buf().into(),
+                file: path.into(),
             },
             FileChange::Removed(path) => FileChangeEvent::FileRemoved {
-                work_dir: work_dir.to_path_buf(),
-                file: path,
+                work_dir: work_dir.to_path_buf().into(),
+                file: path.into(),
             },
         };
 
@@ -101,7 +122,7 @@ impl FileChangeNotifier for SSENotifier {
         }
 
         let event = FileChangeEvent::Error {
-            work_dir: work_dir.to_path_buf(),
+            work_dir: work_dir.to_path_buf().into(),
             message: error.to_string(),
         };
 
