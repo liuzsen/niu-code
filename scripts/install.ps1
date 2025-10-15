@@ -154,9 +154,9 @@ function Install-NSSMService {
     Write-Success "Windows service installed and started"
     Write-Host ""
     Write-Host "Service commands:" -ForegroundColor Cyan
-    Write-Host "  Status:  sc query $ServiceName"
-    Write-Host "  Stop:    sc stop $ServiceName"
-    Write-Host "  Start:   sc start $ServiceName"
+    Write-Host "  Status:  Get-Service -Name $ServiceName"
+    Write-Host "  Stop:    Stop-Service -Name $ServiceName"
+    Write-Host "  Start:   Start-Service -Name $ServiceName"
     Write-Host "  Remove:  $nssmExe remove $ServiceName confirm"
     Write-Host "  Logs:    Get-Content $ConfigDir\logs\$AppName.log -Tail 50 -Wait"
 }
