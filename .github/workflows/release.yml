@@ -76,6 +76,12 @@ jobs:
             binary_name: niu-code-macos-arm64
             use_musl: false
             use_upx: false
+          - platform: Windows x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary_name: niu-code-windows-x64.exe
+            use_musl: false
+            use_upx: false
     steps:
       - uses: actions/checkout@v4
 
@@ -85,7 +91,8 @@ jobs:
           name: frontend-dist
           path: frontend/dist
 
-      - name: Verify frontend files exist
+      - name: Verify frontend files exist (Unix)
+        if: runner.os != 'Windows'
         run: |
           if [ ! -d "frontend/dist" ]; then
             echo "Error: frontend/dist directory not found!"
@@ -97,6 +104,21 @@ jobs:
           fi
           echo "Frontend files verified:"
           ls -la frontend/dist/ | head -20
+
+      - name: Verify frontend files exist (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "frontend/dist")) {
+            Write-Error "Error: frontend/dist directory not found!"
+            exit 1
+          }
+          if (-not (Test-Path "frontend/dist/index.html")) {
+            Write-Error "Error: frontend/dist/index.html not found!"
+            exit 1
+          }
+          Write-Host "Frontend files verified:"
+          Get-ChildItem frontend/dist/ | Select-Object -First 20
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -129,12 +151,21 @@ jobs:
           upx --best --lzma backend/target/${{ matrix.target }}/release/niu-code
           ls -lh backend/target/${{ matrix.target }}/release/niu-code
 
-      - name: Prepare binary
+      - name: Prepare binary (Unix)
+        if: runner.os != 'Windows'
         run: |
           mkdir -p release
           cp backend/target/${{ matrix.target }}/release/niu-code release/${{ matrix.binary_name }}
           chmod +x release/${{ matrix.binary_name }}
           ls -lh release/${{ matrix.binary_name }}
+
+      - name: Prepare binary (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item backend/target/${{ matrix.target }}/release/niu-code.exe release/${{ matrix.binary_name }}
+          Get-ChildItem release/${{ matrix.binary_name }}
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
@@ -163,8 +194,12 @@ jobs:
           cp artifacts/niu-code-linux-x64/niu-code-linux-x64 release/
           cp artifacts/niu-code-macos-x64/niu-code-macos-x64 release/
           cp artifacts/niu-code-macos-arm64/niu-code-macos-arm64 release/
+          cp artifacts/niu-code-windows-x64.exe/niu-code-windows-x64.exe release/
           cp scripts/install.sh release/
-          chmod +x release/*
+          cp scripts/uninstall.sh release/
+          cp scripts/install.ps1 release/
+          cp scripts/uninstall.ps1 release/
+          chmod +x release/niu-code-* release/*.sh
           ls -lh release/
 
       - name: Generate checksums
@@ -189,8 +224,15 @@ jobs:
             curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.sh | bash
             ```
 
+            ### Quick Install (Windows)
+            **Run as Administrator in PowerShell:**
+            ```powershell
+            iwr -useb https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/install.ps1 | iex
+            ```
+
             ### Supported Platforms
             - Linux x64
+            - Windows x64
             - macOS x64 (Intel)
             - macOS ARM64 (Apple Silicon)
 
@@ -206,4 +248,10 @@ jobs:
             ### Quick Uninstall (Linux & macOS)
             ```bash
             curl -fsSL https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/uninstall.sh | bash
+            ```
+
+            ### Quick Uninstall (Windows)
+            **Run as Administrator in PowerShell:**
+            ```powershell
+            iwr -useb https://raw.githubusercontent.com/${{ github.repository }}/main/scripts/uninstall.ps1 | iex
             ```
