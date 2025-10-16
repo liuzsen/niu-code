@@ -239,7 +239,7 @@ After=network.target
 [Service]
 Type=simple
 ExecStart=${BINARY_PATH}
-Restart=on-failure
+Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal

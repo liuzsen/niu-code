@@ -1,5 +1,6 @@
 # Niu Code Installer for Windows
-# Requires PowerShell 5.1 or higher and Administrator privileges
+# Requires PowerShell 5.1 or higher
+# No Administrator privileges required - installs as user-level scheduled task
 
 #Requires -Version 5.1
 
@@ -15,7 +16,7 @@ $GitHubRepo = "liuzsen/niu-code"
 $InstallDir = "$env:LOCALAPPDATA\Programs\$AppName"
 $ConfigDir = "$env:LOCALAPPDATA\$AppName"
 $BinaryPath = "$InstallDir\$AppName.exe"
-$ServiceName = "NiuCode"
+$TaskName = "NiuCode"
 
 # Functions
 function Write-Success {
@@ -33,10 +34,9 @@ function Write-Error {
     Write-Host "✗ $Message" -ForegroundColor Red
 }
 
-function Test-Administrator {
-    $currentUser = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($currentUser)
-    return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+function Test-TaskExists {
+    $task = schtasks /query /tn $TaskName 2>$null
+    return $LASTEXITCODE -eq 0
 }
 
 function Test-Dependencies {
@@ -107,58 +107,145 @@ function Download-Binary {
     }
 }
 
-function Install-NSSMService {
-    Write-Host "Installing Windows service..." -ForegroundColor Cyan
+function Install-ScheduledTask {
+    Write-Host "Installing scheduled task..." -ForegroundColor Cyan
 
-    # Download NSSM if not exists
-    $nssmDir = "$ConfigDir\nssm"
-    $nssmExe = "$nssmDir\nssm.exe"
-
-    if (!(Test-Path $nssmExe)) {
-        Write-Host "Downloading NSSM..." -ForegroundColor Gray
-        $nssmZip = "$env:TEMP\nssm.zip"
-        $nssmUrl = "https://nssm.cc/release/nssm-2.24.zip"
-
-        Invoke-WebRequest -Uri $nssmUrl -OutFile $nssmZip -UseBasicParsing
-        Expand-Archive -Path $nssmZip -DestinationPath $env:TEMP -Force
-
-        # Copy appropriate version
-        $arch = if ([Environment]::Is64BitOperatingSystem) { "win64" } else { "win32" }
-        New-Item -ItemType Directory -Path $nssmDir -Force | Out-Null
-        Copy-Item "$env:TEMP\nssm-2.24\$arch\nssm.exe" $nssmExe
-
-        Remove-Item $nssmZip -Force
-        Remove-Item "$env:TEMP\nssm-2.24" -Recurse -Force
-
-        Write-Success "NSSM downloaded"
+    # Remove existing task if it exists
+    if (Test-TaskExists) {
+        Write-Host "Removing existing task..." -ForegroundColor Gray
+        schtasks /delete /tn $TaskName /f | Out-Null
     }
 
-    # Remove existing service if it exists
-    $existingService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
-    if ($existingService) {
-        Write-Host "Removing existing service..." -ForegroundColor Gray
-        & $nssmExe stop $ServiceName
-        & $nssmExe remove $ServiceName confirm
+    # Create wrapper script for logging and auto-restart
+    $wrapperScript = "$ConfigDir\start-service.ps1"
+    $wrapperContent = @"
+# Auto-generated wrapper script for $AppName
+# This script runs continuously and automatically restarts the service if it exits
+`$logFile = "$ConfigDir/logs/$AppName.log"
+`$errorLogFile = "$ConfigDir/logs/$AppName-error.log"
+
+# Ensure log directory exists
+`$null = New-Item -ItemType Directory -Path "$ConfigDir/logs" -Force -ErrorAction SilentlyContinue
+
+# Infinite restart loop
+while (`$true) {
+    try {
+        `$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        "`$timestamp - Starting $AppName..." | Out-File -FilePath `$logFile -Append
+
+        `$process = Start-Process -FilePath "$BinaryPath" ``
+            -RedirectStandardOutput `$logFile ``
+            -RedirectStandardError `$errorLogFile ``
+            -NoNewWindow ``
+            -PassThru
+
+        # Wait for process to exit
+        `$process.WaitForExit()
+
+        `$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        `$exitCode = `$process.ExitCode
+        "`$timestamp - $AppName exited with code `$exitCode. Restarting in 10 seconds..." | Out-File -FilePath `$logFile -Append
+
+        # Wait before restarting
+        Start-Sleep -Seconds 10
+    } catch {
+        `$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+        "`$timestamp - Error starting $AppName : `$_" | Out-File -FilePath `$errorLogFile -Append
+        Start-Sleep -Seconds 10
+    }
+}
+"@
+    $wrapperContent | Out-File -FilePath $wrapperScript -Encoding UTF8 -Force
+
+    # Create scheduled task XML configuration
+    $taskXml = @"
+<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>Niu Code - Web interface for Claude Code CLI</Description>
+    <URI>\$TaskName</URI>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+      <UserId>$env:USERDOMAIN\$env:USERNAME</UserId>
+    </LogonTrigger>
+    <BootTrigger>
+      <Enabled>true</Enabled>
+    </BootTrigger>
+  </Triggers>
+  <Principals>
+    <Principal>
+      <UserId>$env:USERDOMAIN\$env:USERNAME</UserId>
+      <LogonType>S4U</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <RunOnlyIfIdle>false</RunOnlyIfIdle>
+    <WakeToRun>false</WakeToRun>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Priority>7</Priority>
+    <RestartOnFailure>
+      <Interval>PT1M</Interval>
+      <Count>999</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>powershell.exe</Command>
+      <Arguments>-ExecutionPolicy Bypass -WindowStyle Hidden -File "$wrapperScript"</Arguments>
+      <WorkingDirectory>$env:USERPROFILE</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
+"@
+
+    # Save XML to temp file
+    $xmlFile = "$env:TEMP\$AppName-task.xml"
+    $taskXml | Out-File -FilePath $xmlFile -Encoding Unicode -Force
+
+    # Create the scheduled task
+    $result = schtasks /create /tn $TaskName /xml $xmlFile /f 2>&1
+    Remove-Item $xmlFile -Force
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Failed to create scheduled task: $result"
+        exit 1
     }
 
-    # Install service
-    & $nssmExe install $ServiceName $BinaryPath
-    & $nssmExe set $ServiceName Description "Niu Code - Web interface for Claude Code CLI"
-    & $nssmExe set $ServiceName Start SERVICE_AUTO_START
-    & $nssmExe set $ServiceName AppStdout "$ConfigDir\logs\$AppName.log"
-    & $nssmExe set $ServiceName AppStderr "$ConfigDir\logs\$AppName-error.log"
+    # Start the task immediately
+    schtasks /run /tn $TaskName | Out-Null
+    Start-Sleep -Seconds 2
 
-    # Start service
-    & $nssmExe start $ServiceName
+    # Verify task is running
+    $taskInfo = schtasks /query /tn $TaskName /fo LIST /v 2>$null | Out-String
+    if ($taskInfo -match "Status:\s+Running") {
+        Write-Success "Scheduled task installed and started"
+    } else {
+        Write-Warning "Task created but may not be running. Check logs for details."
+    }
 
-    Write-Success "Windows service installed and started"
     Write-Host ""
     Write-Host "Service commands:" -ForegroundColor Cyan
-    Write-Host "  Status:  Get-Service -Name $ServiceName"
-    Write-Host "  Stop:    Stop-Service -Name $ServiceName"
-    Write-Host "  Start:   Start-Service -Name $ServiceName"
-    Write-Host "  Remove:  $nssmExe remove $ServiceName confirm"
-    Write-Host "  Logs:    Get-Content $ConfigDir\logs\$AppName.log -Tail 50 -Wait"
+    Write-Host "  Status:  schtasks /query /tn $TaskName"
+    Write-Host "  Stop:    schtasks /end /tn $TaskName"
+    Write-Host "  Start:   schtasks /run /tn $TaskName"
+    Write-Host "  Remove:  schtasks /delete /tn $TaskName /f"
+    Write-Host "  Logs:    Get-Content $ConfigDir/logs/$AppName.log -Tail 50 -Wait"
 }
 
 function Add-ToPath {
@@ -179,13 +266,6 @@ function Main {
     Write-Host "=========================================" -ForegroundColor Cyan
     Write-Host ""
 
-    # Check administrator privileges for service installation
-    if (!$NoService -and !(Test-Administrator)) {
-        Write-Warning "Administrator privileges required for service installation"
-        Write-Host "Please run this script as Administrator, or use -NoService flag" -ForegroundColor Yellow
-        exit 1
-    }
-
     Test-Dependencies
     Write-Host ""
 
@@ -198,7 +278,8 @@ function Main {
     Add-ToPath
 
     if (!$NoService) {
-        Install-NSSMService
+        Write-Host ""
+        Install-ScheduledTask
     } else {
         Write-Warning "Service installation skipped"
         Write-Host "You can run the binary manually: $BinaryPath" -ForegroundColor Yellow
