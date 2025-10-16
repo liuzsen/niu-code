@@ -42,30 +42,25 @@ function Test-TaskExists {
 function Test-Dependencies {
     Write-Host "Checking dependencies..." -ForegroundColor Cyan
 
-    # Check for Node.js
+    # Check for Node.js (optional)
     try {
         $nodeVersion = node --version
         Write-Success "Node.js $nodeVersion found"
     } catch {
-        Write-Warning "Node.js not found. Please install Node.js first."
-        Write-Host "Visit: https://nodejs.org/" -ForegroundColor Yellow
-        exit 1
+        Write-Warning "Node.js not found (optional - not required for basic functionality)"
     }
 
-    # Check for claude-code CLI
+    # Check for claude-code CLI (optional)
     try {
         $null = Get-Command claude-code -ErrorAction Stop
         Write-Success "Claude Code CLI found"
     } catch {
-        Write-Warning "Claude Code CLI not found"
-        Write-Host "Please install it with:" -ForegroundColor Yellow
-        Write-Host "  npm install -g @anthropic-ai/claude-code" -ForegroundColor White
-        Write-Host ""
-        $continue = Read-Host "Do you want to continue anyway? (y/n)"
-        if ($continue -ne 'y') {
-            exit 1
-        }
+        Write-Warning "Claude Code CLI not found (optional - not required for basic functionality)"
     }
+
+    Write-Host ""
+    Write-Host "Note: This application can run without Node.js or Claude Code CLI." -ForegroundColor Cyan
+    Write-Host "The backend provides all core functionality independently." -ForegroundColor Cyan
 }
 
 function New-Directories {
