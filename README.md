@@ -43,12 +43,7 @@ curl -fsSL https://raw.githubusercontent.com/liuzsen/niu-code/main/scripts/insta
 ```
 
 #### Windows
-
-PowerShell (以管理员身份运行):
-
-```powershell
-irm https://raw.githubusercontent.com/liuzsen/niu-code/main/scripts/install.ps1 | iex
-```
+暂不支持
 
 ### 访问应用
 
@@ -62,7 +57,6 @@ irm https://raw.githubusercontent.com/liuzsen/niu-code/main/scripts/install.ps1 
 - **Linux**: `niu-code-linux-x64`
 - **macOS Intel**: `niu-code-macos-x64`
 - **macOS Apple Silicon**: `niu-code-macos-arm64`
-- **Windows**: `niu-code-windows-x64.exe`
 
 添加可执行权限并运行:
 

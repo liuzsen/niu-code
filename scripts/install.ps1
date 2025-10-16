@@ -35,7 +35,7 @@ function Write-Error {
 }
 
 function Test-TaskExists {
-    $task = schtasks /query /tn $TaskName 2>$null
+    $task = schtasks /query /tn $TaskName 2>&1 | Out-Null
     return $LASTEXITCODE -eq 0
 }
 
@@ -227,7 +227,7 @@ while (`$true) {
     Start-Sleep -Seconds 2
 
     # Verify task is running
-    $taskInfo = schtasks /query /tn $TaskName /fo LIST /v 2>$null | Out-String
+    $taskInfo = schtasks /query /tn $TaskName /fo LIST /v 2>&1 | Out-String
     if ($taskInfo -match "Status:\s+Running") {
         Write-Success "Scheduled task installed and started"
     } else {
